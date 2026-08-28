@@ -435,8 +435,6 @@ function viewFromHash() {
     return "committee";
   }
   if (seg[0] === "faqs") return "faqs";
-  /* registrations locked: #/register deflects home until CONFIG.REGISTRATIONS_OPEN */
-  if (seg[0] === "register" && !CONFIG.REGISTRATIONS_OPEN) return "home";
   return VIEWS.includes(h) ? h : "home";
 }
 
@@ -522,11 +520,6 @@ document.addEventListener("click", (e) => {
   const btn = e.target.closest("[data-nav]");
   if (!btn) return;
   const view = btn.dataset.nav;
-  if (view === "register" && !CONFIG.REGISTRATIONS_OPEN) {
-    closeDrawer();
-    showToast("<strong>Opening soon</strong>Registrations haven’t opened yet — the portal goes live shortly.");
-    return;
-  }
   closeDrawer();
   const targetHash = HASHES[view];
   if (window.location.hash === targetHash || (view === "home" && (window.location.hash === "" || window.location.hash === "#"))) {
@@ -537,22 +530,26 @@ document.addEventListener("click", (e) => {
 });
 
 /* [data-committee] buttons open that committee's own page */
-/* ————— Registrations locked: blur every Register trigger + "Opening Soon" tag.
-   Flip CONFIG.REGISTRATIONS_OPEN in config.js to release — everything re-enables. ————— */
+/* ————— Registrations veiled: the wizard box renders blurred + inert under an
+   "Opening Soon" stamp (fees sidebar, headings and CTAs stay normal).
+   Flip CONFIG.REGISTRATIONS_OPEN in config.js to release. ————— */
 if (!CONFIG.REGISTRATIONS_OPEN) {
-  $$('[data-nav="register"]').forEach((btn) => {
-    const wrap = document.createElement("span");
-    wrap.className = btn.classList.contains("drawer-cta") ? "reg-lock reg-lock--full" : "reg-lock";
-    btn.replaceWith(wrap);
-    wrap.append(btn);
-    btn.classList.add("reg-locked");
-    btn.setAttribute("aria-disabled", "true");
-    const tag = document.createElement("span");
-    tag.className = "reg-lock-tag";
-    tag.textContent = "Opening Soon";
-    wrap.append(tag);
-  });
-  /* hero status pill must not contradict the lock */
+  const regBox = $("#reg-box");
+  if (regBox) {
+    regBox.classList.add("is-veiled");
+    regBox.setAttribute("inert", "");
+    const veil = document.createElement("div");
+    veil.className = "reg-veil";
+    const stamp = document.createElement("span");
+    stamp.className = "reg-veil-stamp";
+    stamp.textContent = "Opening Soon";
+    const sub = document.createElement("span");
+    sub.className = "reg-veil-sub";
+    sub.textContent = "Registrations haven’t opened yet — the portal goes live shortly.";
+    veil.append(stamp, sub);
+    regBox.append(veil);
+  }
+  /* hero status pill must not contradict the veil */
   const heroRegens = $(".hero-regens");
   if (heroRegens) {
     heroRegens.classList.add("is-idle");
