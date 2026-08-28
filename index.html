@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOMUN '26 | Model United Nations Conference</title>
+  <meta name="description" content="SOMUN — Model United Nations 2026. Three days of charged debate, negotiation and diplomacy. October 30 – November 1, Hyderabad. Twelve committees, five hundred delegates, one chamber of ideas." />
+  <meta name="keywords" content="MUN, Model United Nations, SOMUN, conference, debate, diplomacy, Hyderabad" />
+  <meta property="og:title" content="SOMUN '26" />
+  <meta property="og:description" content="Three days of charged debate, negotiation and diplomacy. October 30 — November 1, 2026." />
+  <meta property="og:site_name" content="SOMUN" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/png" href="images/somun-mark.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300..700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="grain">
+
+  <!-- ———————————————— ENTRY GATE (plays once per session) ———————————————— -->
+  <section class="gate" id="gate" aria-label="Entrance">
+    <div class="gate-door gate-door--left" aria-hidden="true">
+      <div class="door-backdrop">
+        <div class="door-backdrop-img">
+          <img src="images/textures/hero-collage.jpg" alt="" />
+        </div>
+        <div class="door-vignette"></div>
+        <div class="door-seam door-seam--right"></div>
+      </div>
+    </div>
+    <div class="gate-door gate-door--right" aria-hidden="true">
+      <div class="door-backdrop">
+        <div class="door-backdrop-img">
+          <img src="images/textures/hero-collage.jpg" alt="" />
+        </div>
+        <div class="door-vignette"></div>
+        <div class="door-seam door-seam--left"></div>
+      </div>
+    </div>
+
+    <div class="gate-sheen" aria-hidden="true"></div>
+    <div class="gate-beam" aria-hidden="true"><div class="gate-beam-core"></div></div>
+    <div class="gate-flash" aria-hidden="true"></div>
+
+    <div class="gate-content">
+      <div class="gate-frame" aria-hidden="true">
+        <span class="gate-frame-dot" style="left:18%;top:35%"></span>
+        <span class="gate-frame-dot" style="left:18%;top:65%"></span>
+        <span class="gate-frame-dot" style="left:82%;top:35%"></span>
+        <span class="gate-frame-dot" style="left:82%;top:65%"></span>
+      </div>
+
+      <span class="gate-corner" style="left:20px;top:80px">SOMUN ’26</span>
+      <span class="gate-corner gate-corner--right" style="right:20px;top:80px">Eighth Edition</span>
+      <span class="gate-corner" style="left:20px;bottom:32px">October XXX – November I · MMXXVI</span>
+      <span class="gate-corner gate-corner--right" style="right:20px;bottom:32px">Hyderabad, IN</span>
+
+      <div class="gate-center">
+        <p class="gate-kicker">The Secretariat invites you to</p>
+
+        <div class="gate-crest-wrap">
+          <div class="gate-crest" id="gate-crest">
+            <span class="gate-glow" aria-hidden="true"></span>
+            <img src="images/somun-mark.png" alt="SOMUN — Model United Nations" class="gate-mark" />
+            <div class="gate-fleuron" aria-hidden="true">
+              <span class="fleuron-line fleuron-line--l"></span>
+              <span class="fleuron-diamond"></span>
+              <span class="fleuron-line fleuron-line--r"></span>
+            </div>
+            <h1 class="gate-h1">
+              Model United Nations
+              <span class="gate-h1-sub">Hyderabad · October ’26</span>
+            </h1>
+          </div>
+        </div>
+
+        <button class="gate-enter" id="gate-enter" type="button" aria-label="Enter the SOMUN website">
+          <span class="gate-bloom" aria-hidden="true"></span>
+          <svg viewBox="0 0 200 200" aria-hidden="true" class="gate-ring">
+            <defs>
+              <path id="gate-ring-path" d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0" />
+            </defs>
+            <text class="gate-ring-text" font-size="12" letter-spacing="3">
+              <textPath href="#gate-ring-path" textLength="487">Take your seat · The chamber awaits ·</textPath>
+            </text>
+          </svg>
+          <span class="gate-dashed" aria-hidden="true"></span>
+          <span class="gate-disc">
+            <i data-icon="arrow-right" data-cls="gate-disc-arrow"></i>
+          </span>
+          <span class="sr-only">Enter</span>
+        </button>
+
+        <p class="gate-enter-word" aria-hidden="true">Enter<span class="gate-cursor">_</span></p>
+        <p class="gate-hint">Press the seal to open the chamber</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ———————————————— MAIN SITE ———————————————— -->
+  <div class="site" id="site" hidden>
+    <!-- ———————— NAVIGATION ———————— -->
+    <header class="nav" id="nav">
+      <div class="nav-inner">
+        <div class="nav-row">
+          <button class="nav-brand" id="brand" aria-label="SOMUN home">
+            <img src="images/somun-mark.png" alt="SOMUN mark" class="nav-mark" />
+            <span class="nav-brand-tag">MODEL UN · HYDERABAD · MMXXVI</span>
+          </button>
+
+          <nav class="nav-links" aria-label="Primary">
+            <button class="nav-link" data-nav="home">Home<span class="nav-link-underline"></span><span class="nav-link-diamond"></span></button>
+            <button class="nav-link" data-nav="committees">Committees<span class="nav-link-underline"></span><span class="nav-link-diamond"></span></button>
+            <button class="nav-link" data-nav="secretariat">Secretariat<span class="nav-link-underline"></span><span class="nav-link-diamond"></span></button>
+            <button class="nav-link" data-nav="itinerary">Itinerary<span class="nav-link-underline"></span><span class="nav-link-diamond"></span></button>
+            <button class="nav-link" data-nav="resources">Resources<span class="nav-link-underline"></span><span class="nav-link-diamond"></span></button>
+          </nav>
+
+          <div class="nav-right">
+            <button class="btn btn--crimson nav-cta" data-nav="register">Register Now</button>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false">
+              <i data-icon="menu" data-cls="nav-toggle-icon nav-toggle-icon--menu"></i>
+              <i data-icon="x" data-cls="nav-toggle-icon nav-toggle-icon--close"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- mobile drawer -->
+    <div class="drawer" id="drawer">
+      <div class="drawer-overlay" id="drawer-overlay"></div>
+      <nav class="drawer-panel" aria-label="Mobile">
+        <button class="drawer-link" data-nav="home"><span class="drawer-link-label">Home</span><span class="drawer-link-num">01</span></button>
+        <button class="drawer-link" data-nav="committees"><span class="drawer-link-label">Committees</span><span class="drawer-link-num">02</span></button>
+        <button class="drawer-link" data-nav="secretariat"><span class="drawer-link-label">Secretariat</span><span class="drawer-link-num">03</span></button>
+        <button class="drawer-link" data-nav="itinerary"><span class="drawer-link-label">Itinerary</span><span class="drawer-link-num">04</span></button>
+        <button class="drawer-link" data-nav="resources"><span class="drawer-link-label">Resources</span><span class="drawer-link-num">05</span></button>
+        <button class="btn btn--crimson drawer-cta" data-nav="register">Register Now</button>
+      </nav>
+    </div>
+
+    <!-- ———————— VIEW: HOME ———————— -->
+    <section class="view" data-view="home">
+      <main>
+        <!-- Hero -->
+        <section class="hero">
+          <div class="hero-watermark text-hollow" aria-hidden="true">26</div>
+          <div class="container">
+            <div class="hero-meta anim anim--meta">
+              <span>Est. MMXXIII · Eighth Edition</span>
+              <span class="hero-regens">
+                <span class="live-dot"><span class="live-dot-ping"></span><span class="live-dot-core"></span></span>
+                Registrations Open
+              </span>
+            </div>
+
+            <h1 class="hero-title">
+              <span class="hero-title-line anim anim--t1">SOMUN</span>
+              <span class="hero-title-line anim anim--t2">
+                <em class="hero-title-year">&rsquo;26</em>
+                <span class="hero-title-side">
+                  <span>MODEL UNITED</span>
+                  <span class="hero-title-side2">NATIONS · HYDERABAD</span>
+                </span>
+              </span>
+            </h1>
+
+            <div class="hero-sub anim anim--sub">
+              <div class="hero-sub-left">
+                <p class="hero-tagline" data-copy="tagline"></p>
+                <p class="hero-about">Twelve committees. Five hundred delegates. Thirty institutions in one
+                chamber of ideas — where every clause is contested and every voice
+                counts until the final gavel falls.</p>
+
+                <div class="hero-meta-rows">
+                  <p class="meta-row"><i data-icon="calendar-days" data-cls="meta-icon"></i><span data-copy="dates"></span></p>
+                  <p class="meta-row"><i data-icon="map-pin" data-cls="meta-icon"></i><span data-copy="venue"></span></p>
+                </div>
+
+                <div class="hero-ctas">
+                  <button class="btn btn--crimson btn--arrow" data-nav="register">
+                    Delegate Registration <i data-icon="arrow-right" data-cls="btn-arrow-icon"></i>
+                  </button>
+                  <button class="btn btn--outline" data-nav="committees">Explore Committees</button>
+                </div>
+              </div>
+
+              <div class="countdown" id="countdown" aria-label="Countdown to SOMUN">
+                <div class="countdown-cell"><span class="countdown-num" id="cd-d">——</span><span class="countdown-label">Days</span></div>
+                <div class="countdown-cell"><span class="countdown-num" id="cd-h">——</span><span class="countdown-label">Hours</span></div>
+                <div class="countdown-cell"><span class="countdown-num" id="cd-m">——</span><span class="countdown-label">Mins</span></div>
+                <div class="countdown-cell"><span class="countdown-num" id="cd-s">——</span><span class="countdown-label">Secs</span></div>
+              </div>
+            </div>
+
+            <div class="stats-strip anim anim--stats">
+              <div class="stats-cell"><p class="stats-num">12</p><p class="stats-label">Committees</p></div>
+              <div class="stats-cell"><p class="stats-num">500+</p><p class="stats-label">Delegates</p></div>
+              <div class="stats-cell"><p class="stats-num">30+</p><p class="stats-label">Institutions</p></div>
+              <div class="stats-cell"><p class="stats-num">03</p><p class="stats-label">Unforgettable Days</p></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Ticker -->
+        <div class="ticker" aria-hidden="true">
+          <div class="marquee-track">
+            <div class="ticker-half" data-ticker></div>
+            <div class="ticker-half" data-ticker></div>
+          </div>
+        </div>
+
+        <!-- About -->
+        <section class="about">
+          <div class="about-grid">
+            <div class="section-head reveal">
+              <div class="section-head-row">
+                <span class="section-head-index">01</span>
+                <span class="section-head-rule"></span>
+                <span class="section-head-kicker">The Conference</span>
+              </div>
+              <h2 class="section-head-title">A chamber where<br />the world <em class="accent">argues</em><br />toward peace.</h2>
+            </div>
+            <div class="about-body reveal" data-delay="0.15">
+              <p class="about-p">SOMUN was founded on a simple conviction — that the students who
+              learn to negotiate today will refuse to escalate tomorrow. Over three
+              days each October, our committees replicate the pressure, procedure and
+              persuasion of the real United Nations, guided by an executive board of
+              champion delegates and former secretariat members.</p>
+              <p class="about-p about-p--mt">Delegates leave with more than certificates. They leave with a drafted
+              resolution they own, friendships across cities and schools, and the rare
+              confidence of having defended a position under fire — politely,
+              precisely and in perfect parliamentary order.</p>
+              <ul class="about-list">
+                <li class="about-item"><i data-icon="scroll-text" data-cls="about-icon"></i><p class="about-item-text"><span class="about-item-strong">Authentic UNA-USA procedure</span> — Formal rolls, moderated caucuses, amendment stacks — nothing is simulated halfway.</p></li>
+                <li class="about-item"><i data-icon="scroll-text" data-cls="about-icon"></i><p class="about-item-text"><span class="about-item-strong">Champion executive boards</span> — Every board has chaired or topped national circuits; feedback is written and personal.</p></li>
+                <li class="about-item"><i data-icon="scroll-text" data-cls="about-icon"></i><p class="about-item-text"><span class="about-item-strong">Crisis injections &amp; press influence</span> — The International Press publishes daily verdicts that can move committee dynamics.</p></li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Pillars -->
+        <section class="pillars">
+          <div class="container">
+            <div class="section-head section-head--center reveal">
+              <div class="section-head-row">
+                <span class="section-head-index">02</span>
+                <span class="section-head-rule"></span>
+                <span class="section-head-kicker">Why SOMUN</span>
+              </div>
+              <h2 class="section-head-title">Built like a summit.<br />Run like a <em class="accent">statecraft.</em></h2>
+            </div>
+            <div class="pillars-grid" id="pillars"></div>
+          </div>
+        </section>
+
+        <!-- Committees preview -->
+        <section class="preview">
+          <div class="container">
+            <div class="preview-head">
+              <div class="section-head reveal">
+                <div class="section-head-row">
+                  <span class="section-head-index">03</span>
+                  <span class="section-head-rule"></span>
+                  <span class="section-head-kicker">The Committees</span>
+                </div>
+                <h2 class="section-head-title">Twelve chambers,<br />one <em class="accent">charter.</em></h2>
+              </div>
+              <div class="reveal" data-delay="0.2">
+                <button class="link-arrow" data-nav="committees">View all twelve <i data-icon="arrow-right" data-cls="link-arrow-icon"></i></button>
+              </div>
+            </div>
+            <div class="preview-grid" id="preview-grid"></div>
+          </div>
+        </section>
+
+        <!-- Red quote band -->
+        <section class="quote-band">
+          <div class="quote-gradient" aria-hidden="true"></div>
+          <div class="quote-texture" aria-hidden="true"><img src="images/textures/red-texture.jpg" alt="" /></div>
+          <div class="quote-mark" aria-hidden="true"><img src="images/somun-mark.png" alt="" /></div>
+          <div class="quote-quote-icon" aria-hidden="true"><i data-icon="quote" data-cls="quote-quote-svg" data-sw="1.2"></i></div>
+          <div class="quote-center">
+            <div class="reveal">
+              <p class="quote-kicker">The SOMUN Creed</p>
+              <blockquote class="quote-blockquote">“The gavel rewards the prepared,<br class="quote-br" /> but history remembers the persuasive.”</blockquote>
+              <p class="quote-attrib">— Secretariat Address, Opening Night MMXXV</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="cta">
+          <div class="cta-watermark text-hollow" aria-hidden="true">IV</div>
+          <div class="reveal cta-inner">
+            <i data-icon="landmark" data-cls="cta-landmark" data-sw="1.3"></i>
+            <h2 class="cta-title">Secure your seat<br />at the <em class="accent">table.</em></h2>
+            <p class="cta-copy">Seats are allotted portfolio-first and close when committees fill — the
+            crisis committees historically do within ten days. Delegate kits,
+            meals and ceremonies are included in every registration.</p>
+            <div class="cta-actions">
+              <button class="btn btn--crimson btn--arrow" data-nav="register">
+                Register for October '26 <i data-icon="arrow-right" data-cls="btn-arrow-icon"></i>
+              </button>
+              <button class="btn btn--outline" data-nav="itinerary">View the Itinerary</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </section>
+    <!-- ———————— VIEW: COMMITTEES ———————— -->
+    <section class="view" data-view="committees">
+      <main>
+        <div class="page-wrap">
+          <div class="section-head reveal">
+            <div class="section-head-row">
+              <span class="section-head-index">II</span>
+              <span class="section-head-rule"></span>
+              <span class="section-head-kicker">Committees · MMXXVI</span>
+            </div>
+            <h2 class="section-head-title">Choose your <em class="accent">arena.</em></h2>
+            <p class="section-head-intro">Twelve chambers of the United Nations system, India's political theatre and
+            beyond, catalogued as a gallery of dossiers — one on stage at a time. Scroll, and
+            each takes its turn; every portfolio is allotted after preference review by the
+            secretariat.</p>
+          </div>
+          <div class="reveal" data-delay="0.1">
+            <div class="scroll-hint">
+              <span class="scroll-hint-item">scroll to advance <i data-icon="move-down" data-cls="scroll-hint-icon"></i></span>
+              <span class="scroll-hint-rule" aria-hidden="true"></span>
+              <span>or leaf through with the numerals below</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- pinned deck: one dossier on stage at a time -->
+        <section class="deck" id="deck" aria-label="Committees deck">
+          <div class="deck-sticky">
+            <div class="deck-backdrop" aria-hidden="true">
+              <img src="images/textures/hero-collage.jpg" alt="" class="deck-backdrop-img" />
+              <div class="deck-backdrop-shade"></div>
+            </div>
+
+            <div class="deck-rail">
+              <span class="deck-rail-num" id="deck-current">01</span>
+              <div class="deck-rail-track">
+                <div class="deck-rail-bar" id="deck-bar"></div>
+              </div>
+              <span class="deck-rail-count"><span id="deck-total">/ 12</span> chambers</span>
+            </div>
+
+            <div class="deck-viewport">
+              <div class="deck-track" id="deck-track"><!-- slides rendered by js/main.js from js/data.js --></div>
+            </div>
+
+            <div class="deck-nav">
+              <div class="deck-nav-inner">
+                <button class="deck-nav-chevron" id="deck-prev" aria-label="Previous committee"><i data-icon="chevron-left" data-cls="deck-nav-chevron-icon"></i></button>
+                <div class="deck-nav-numerals" id="deck-numerals"><!-- numerals rendered by js --></div>
+                <button class="deck-nav-chevron" id="deck-next" aria-label="Next committee"><i data-icon="chevron-right" data-cls="deck-nav-chevron-icon"></i></button>
+              </div>
+            </div>
+
+            <div class="edge-fade edge-fade--left" aria-hidden="true"></div>
+            <div class="edge-fade edge-fade--right" aria-hidden="true"></div>
+          </div>
+        </section>
+
+        <!-- executive boards: releasing soon -->
+        <div class="page-wrap">
+          <section aria-label="Executive boards">
+            <div class="reveal">
+              <div class="exec-head">
+                <div>
+                  <div class="section-head-row">
+                    <span class="section-head-rule"></span>
+                    <p class="mini-kicker">Executive Boards · XII Chambers</p>
+                  </div>
+                  <h2 class="exec-title">Meet the chairs, <em class="accent">soon.</em></h2>
+                  <p class="exec-intro">Every chamber is run by a three-member executive board. Chair, vice chair and
+                  committee secretary — the full line-up is being finalised and will be unveiled
+                  chamber by chamber.</p>
+                </div>
+                <span class="stamp"><span class="stamp-diamond"></span>Releasing Soon</span>
+              </div>
+            </div>
+            <div class="exec-grid" id="exec-grid"><!-- cards rendered by js --></div>
+          </section>
+        </div>
+
+        <!-- bottom note -->
+        <div class="page-wrap">
+          <div class="note-panel reveal" data-delay="0.1">
+            <div class="note-texture" aria-hidden="true"><img src="images/textures/red-texture.jpg" alt="" /></div>
+            <span class="note-para">§</span>
+            <div class="note-body">
+              <h3 class="note-title">Not sure which chamber suits you?</h3>
+              <p class="note-copy">First-timers are strongest in ECOSOC, UNOOSA or ICC where procedure is taught live; seasoned delegates
+              should aim at HCC/CCC or AIPPM, where crisis updates arrive without warning. Every applicant submits three
+              committee preferences — the secretariat matches portfolios to keep competition balanced. Questions? Write
+              to us any time before allocations are published.</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ———————— VIEW: SECRETARIAT ———————— -->
+    <section class="view" data-view="secretariat">
+      <main>
+        <div class="page-wrap">
+          <div class="section-head reveal">
+            <div class="section-head-row">
+              <span class="section-head-index">III</span>
+              <span class="section-head-rule"></span>
+              <span class="section-head-kicker">Secretariat · MMXXVI</span>
+            </div>
+            <h2 class="section-head-title">The hands behind<br />the <em class="accent">gavel.</em></h2>
+            <p class="section-head-intro">Every SOMUN edition is steered by a core secretariat of seven, backed by a corps of
+            Under-Secretaries-General. The Eighth Secretariat is already at work — names, faces and
+            portfolios will be unveiled right here, seat by seat.</p>
+          </div>
+          <div class="reveal" data-delay="0.1">
+            <div class="stamp-row">
+              <span class="stamp"><span class="stamp-diamond"></span>Releasing Soon</span>
+              <span class="stamp-note">announcements begin shortly</span>
+            </div>
+          </div>
+        </div>
+
+        <section class="band" aria-label="The core seven">
+          <div class="reveal">
+            <div class="band-head">
+              <div>
+                <div class="section-head-row">
+                  <span class="section-head-rule"></span>
+                  <p class="mini-kicker">The Core · VII Seats</p>
+                </div>
+                <h2 class="band-title">Seven seats, <em class="accent">one gavel.</em></h2>
+              </div>
+              <span class="stamp"><span class="stamp-diamond"></span>Releasing Soon</span>
+            </div>
+          </div>
+          <div class="seats-grid" id="core-seats"><!-- 7 seat cards rendered by js --></div>
+        </section>
+
+        <section class="band" aria-label="Under-Secretaries-General">
+          <div class="reveal">
+            <div class="band-head">
+              <div>
+                <div class="section-head-row">
+                  <span class="section-head-rule"></span>
+                  <p class="mini-kicker">The Corps · USGs</p>
+                </div>
+                <h2 class="band-title band-title--sm">The machinery behind <em class="accent">every session.</em></h2>
+              </div>
+              <span class="stamp"><span class="stamp-diamond"></span>Releasing Soon</span>
+            </div>
+          </div>
+          <div class="usg-grid" id="usg-grid"><!-- 6 USG cards rendered by js --></div>
+        </section>
+
+        <div class="page-wrap">
+          <div class="note-panel reveal" data-delay="0.1">
+            <div class="note-texture" aria-hidden="true"><img src="images/textures/red-texture.jpg" alt="" /></div>
+            <span class="note-para">§</span>
+            <div class="note-body">
+              <p class="sec-quote">“The Eighth Secretariat is already at work — agendas, background guides and the
+              machinery of diplomacy are being built for you.”</p>
+              <p class="sec-quote-attrib">— The SOMUN Secretariat</p>
+              <a class="btn btn--outline btn--mail" href="mailto:secretariat@somun.in">
+                <i data-icon="mail" data-cls="mail-icon"></i> Write to the secretariat
+              </a>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ———————— VIEW: ITINERARY ———————— -->
+    <section class="view" data-view="itinerary">
+      <main>
+        <div class="page-wrap">
+          <div class="section-head reveal">
+            <div class="section-head-row">
+              <span class="section-head-index">IV</span>
+              <span class="section-head-rule"></span>
+              <span class="section-head-kicker">Itinerary · Oct 30 – Nov 1</span>
+            </div>
+            <h2 class="section-head-title">Three days,<br />choreographed to the <em class="accent">minute.</em></h2>
+            <p class="section-head-intro" id="itin-intro"></p>
+          </div>
+
+          <!-- "releasing soon" teaser — swap for the full programme via js/data.js (SHOW_ITINERARY) -->
+          <div class="reveal" data-delay="0.12" id="itin-soon">
+            <div class="soon-panel">
+              <div class="note-texture" aria-hidden="true"><img src="images/textures/red-texture.jpg" alt="" /></div>
+              <div class="soon-inner">
+                <span class="soon-badge"><i data-icon="calendar-clock" data-cls="soon-badge-icon"></i></span>
+                <p class="soon-kicker">Full programme</p>
+                <p class="soon-title">Releasing soon</p>
+                <p class="soon-copy">Day-wise ceremonies, committee sessions, meals and socials are being finalised by
+                the secretariat. Delegates also receive the printed programme in their kits on Day
+                One.</p>
+                <div class="soon-stamp"><span class="stamp"><span class="stamp-diamond"></span>Releasing Soon</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- full programme (hidden until SHOW_ITINERARY = true in js/data.js) -->
+          <div id="itin-full" hidden>
+            <div class="itin-tabs reveal" data-delay="0.1" id="itin-tabs" role="tablist" aria-label="Conference days"></div>
+            <div class="itin-body">
+              <ol class="itin-timeline" id="itin-timeline" aria-label="Day schedule"></ol>
+              <div class="itin-side reveal" data-delay="0.15">
+                <div class="protocol-card">
+                  <h3 class="protocol-title"><i data-icon="calendar-days" data-cls="protocol-icon"></i> Protocol Notes</h3>
+                  <ul class="protocol-list">
+                    <li><span class="protocol-diamond"></span>Western business attire is mandatory for all sessions; badges must be worn at all times inside the venue.</li>
+                    <li><span class="protocol-diamond"></span>Crisis updates and IP bulletins drop without notice — staying plugged in is part of the game.</li>
+                    <li><span class="protocol-diamond"></span>Country policy documents are permitted; pre-written resolutions are grounds for disqualification.</li>
+                    <li><span class="protocol-diamond"></span>Meals listed on this itinerary are included with every delegate pass.</li>
+                  </ul>
+                </div>
+                <div class="doors-card">
+                  <p class="doors-quote">“Be early. The doors close exactly when the gavel says so.”</p>
+                  <p class="doors-attrib">— Under-Secretary-General, Procedure</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ———————— VIEW: RESOURCES ———————— -->
+    <section class="view" data-view="resources">
+      <main>
+        <div class="page-wrap">
+          <div class="section-head reveal">
+            <div class="section-head-row">
+              <span class="section-head-index">V</span>
+              <span class="section-head-rule"></span>
+              <span class="section-head-kicker">Resources · MMXXVI</span>
+            </div>
+            <h2 class="section-head-title">Arm yourself with<br /><em class="accent">knowledge.</em></h2>
+            <p class="section-head-intro">The archive holds every document a delegate needs — study guides, procedure, formats
+            and handbooks. Each release lands here as a downloadable brief, announced the moment
+            it goes live.</p>
+          </div>
+          <div class="reveal" data-delay="0.1">
+            <div class="stamp-row">
+              <span class="stamp"><span class="stamp-diamond"></span>Releasing Soon</span>
+              <span class="stamp-note">the archive opens soon</span>
+            </div>
+          </div>
+
+          <div class="res-grid" id="res-grid"><!-- archive cards rendered by js (Supabase-aware) --></div>
+
+          <div class="reveal" data-delay="0.12">
+            <div class="guides-panel">
+              <div class="note-texture" aria-hidden="true"><img src="images/textures/red-texture.jpg" alt="" /></div>
+              <div class="guides-body">
+                <div class="guides-head">
+                  <div>
+                    <p class="mini-kicker mini-kicker--crimson">Study Guides · XII Chambers</p>
+                    <h3 class="guides-title">One guide per committee, chamber by chamber.</h3>
+                  </div>
+                  <span class="stamp" id="guides-stamp"><span class="stamp-diamond"></span>Releasing Soon</span>
+                </div>
+                <ul class="guides-list" id="guides-list"><!-- one row per committee, rendered by js --></ul>
+                <p class="guides-note">Guides are authored by each committee's executive board and vetted by the
+                secretariat. When a guide goes live, its row above unlocks into a direct download —
+                no sign-in, no paywall, just the dossier.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ———————— VIEW: REGISTER ———————— -->
+    <section class="view" data-view="register">
+      <main>
+        <!-- success state (hidden until a successful submission) -->
+        <div class="page-wrap" id="reg-success" hidden>
+          <div class="success-box">
+            <i data-icon="party-popper" data-cls="success-icon" data-sw="1.3"></i>
+            <h1 class="success-title">You're on the roll, <em class="accent">delegate.</em></h1>
+            <p class="success-copy">Your application has been recorded and forwarded to the secretariat.
+            Allocations are announced over email within ten working days of the
+            early-bird deadline. Watch your inbox — and start reading your study guide.</p>
+            <div class="refcode-box">
+              <p class="refcode-label">Your Reference Code</p>
+              <p class="refcode" id="refcode">SM26-XXXXX</p>
+              <p class="refcode-note">Quote this code in every email to the secretariat.</p>
+            </div>
+            <div class="success-next">
+              <div class="about-item"><i data-icon="badge-check" data-cls="about-icon"></i><p class="about-item-text"><span class="about-item-strong">Payment</span> — The invoice attached to your allocation email is payable via UPI or bank transfer.</p></div>
+              <div class="about-item"><i data-icon="badge-check" data-cls="about-icon"></i><p class="about-item-text"><span class="about-item-strong">Study guides</span> — Background guides release on October 1, 2026 under the Resources page.</p></div>
+              <div class="about-item"><i data-icon="badge-check" data-cls="about-icon"></i><p class="about-item-text"><span class="about-item-strong">Amendments</span> — Committee and portfolio change requests close October 5, 2026.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- form state -->
+        <div class="page-wrap" id="reg-form-wrap">
+          <div class="section-head reveal">
+            <div class="section-head-row">
+              <span class="section-head-index">VI</span>
+              <span class="section-head-rule"></span>
+              <span class="section-head-kicker">Registration · Oct '26</span>
+            </div>
+            <h2 class="section-head-title">Take your seat<br />at the <em class="accent">table.</em></h2>
+            <p class="section-head-intro" id="reg-intro"></p>
+          </div>
+
+          <div class="reg-grid">
+            <div class="reveal" data-delay="0.05">
+              <form class="reg-form" id="reg-form" novalidate>
+                <fieldset class="reg-fieldset">
+                  <legend class="reg-legend">
+                    <span class="reg-legend-index">i</span>
+                    <span class="reg-legend-label">Delegate Identity</span>
+                  </legend>
+                  <div class="reg-fields">
+                    <div class="field">
+                      <label class="field-label" for="fullName">Full Name <span class="req">*</span></label>
+                      <input class="input" id="fullName" name="fullName" required placeholder="e.g. Aarav Sharma" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="email">Email <span class="req">*</span></label>
+                      <input class="input" id="email" name="email" type="email" required placeholder="you@school.edu" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="phone">Phone (WhatsApp preferred) <span class="req">*</span></label>
+                      <input class="input" id="phone" name="phone" required inputmode="tel" placeholder="+91 …" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="institution">Institution / Organisation <span class="req">*</span></label>
+                      <input class="input" id="institution" name="institution" required placeholder="School / college / IP house" />
+                    </div>
+                    <div class="field field--wide">
+                      <label class="field-label" for="gradeOrTitle">Class / Year / Professional Title</label>
+                      <input class="input" id="gradeOrTitle" name="gradeOrTitle" placeholder="e.g. Grade XI · B.A. LL.B., 2nd year" />
+                    </div>
+                  </div>
+                </fieldset>
+
+                <div class="reg-divider"></div>
+
+                <fieldset class="reg-fieldset">
+                  <legend class="reg-legend">
+                    <span class="reg-legend-index">ii</span>
+                    <span class="reg-legend-label">Experience &amp; Preferences</span>
+                  </legend>
+                  <div class="field field--exp">
+                    <label class="field-label" for="experience">MUN Experience</label>
+                    <div class="select-wrap">
+                      <select class="select" id="experience" name="experience">
+                        <option value="novice" selected>Novice — 0 conferences</option>
+                        <option value="intermediate">Intermediate — 1–4 conferences</option>
+                        <option value="veteran">Veteran — 5+ conferences</option>
+                      </select>
+                      <i data-icon="chevron-down" data-cls="select-chevron"></i>
+                    </div>
+                  </div>
+
+                  <div class="reg-prefs">
+                    <div class="field">
+                      <label class="field-label" for="pref1">Preference I <span class="req">*</span></label>
+                      <div class="select-wrap">
+                        <select class="select" id="pref1" name="committeePref1" data-committee-select required><option value="">Select a committee</option></select>
+                        <i data-icon="chevron-down" data-cls="select-chevron"></i>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="pref2">Preference II</label>
+                      <div class="select-wrap">
+                        <select class="select" id="pref2" name="committeePref2" data-committee-select><option value="">Select a committee</option></select>
+                        <i data-icon="chevron-down" data-cls="select-chevron"></i>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="pref3">Preference III</label>
+                      <div class="select-wrap">
+                        <select class="select" id="pref3" name="committeePref3" data-committee-select><option value="">Select a committee</option></select>
+                        <i data-icon="chevron-down" data-cls="select-chevron"></i>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label class="field-label" for="portfolio">Preferred Country / Leader Portfolio</label>
+                    <input class="input" id="portfolio" name="portfolio" placeholder="e.g. France in UNHRC · PM in Lok Sabha" />
+                  </div>
+
+                  <div class="switch-row">
+                    <div>
+                      <label class="switch-label" for="accommodation">Accommodation needed</label>
+                      <p class="switch-note">Twin-sharing rooms near the venue at ₹2,400 per night for outstation delegates.</p>
+                    </div>
+                    <button type="button" class="switch" id="accommodation" role="switch" aria-checked="false" aria-labelledby="accommodation">
+                      <span class="switch-thumb"></span>
+                    </button>
+                  </div>
+
+                  <div class="field">
+                    <label class="field-label" for="notes">Anything the secretariat should know?</label>
+                    <textarea class="input textarea" id="notes" name="notes" rows="4" placeholder="Dietary requirements, prior achievements, delegation groupings…"></textarea>
+                  </div>
+                </fieldset>
+
+                <button type="submit" class="btn btn--crimson btn--submit" id="reg-submit">
+                  <i data-icon="loader-2" data-cls="submit-spinner"></i><span id="reg-submit-label">Submit Application</span>
+                </button>
+              </form>
+            </div>
+
+            <div class="reveal" data-delay="0.15">
+              <div class="reg-side">
+                <div class="fees-card">
+                  <h3 class="fees-title">Registration Fees</h3>
+                  <ul class="fees-list" id="fees-list"><!-- fees rendered by js --></ul>
+                  <p class="fees-note"><i data-icon="shield-alert" data-cls="fees-note-icon"></i>Every pass includes delegate kit, all three days of meals, socials entry and certificates.</p>
+                </div>
+                <div class="deadlines-card">
+                  <p class="deadlines-kicker">Deadlines</p>
+                  <ul class="deadlines-list">
+                    <li><span>Early-bird pricing</span><span class="dl-strong">Sep 30</span></li>
+                    <li><span>Allocations announced</span><span class="dl-strong">Oct 4</span></li>
+                    <li><span>Study guides released</span><span class="dl-strong">Oct 1</span></li>
+                    <li><span>Final changes</span><span class="dl-strong">Oct 5</span></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ———————— FOOTER ———————— -->
+    <footer class="footer">
+      <div class="footer-top">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <div class="footer-brand-row">
+              <img src="images/somun-mark.png" alt="SOMUN mark" class="footer-mark" />
+              <div>
+                <p class="footer-name">SOMUN</p>
+                <p class="footer-est">MODEL UNITED NATIONS · EST. MMXXIII</p>
+              </div>
+            </div>
+            <p class="footer-about">SOMUN convenes young diplomats for three days of rigorous debate at
+            the Hyderabad International Convention Centre. Words, not war —
+            resolve, don't rally.</p>
+            <div class="footer-socials">
+              <a href="#/" class="social-btn" aria-label="Instagram" onclick="return false"><i data-icon="instagram" data-cls="social-icon"></i></a>
+              <a href="#/" class="social-btn" aria-label="Twitter" onclick="return false"><i data-icon="twitter" data-cls="social-icon"></i></a>
+              <a href="mailto:secretariat@somun.in" class="social-btn" aria-label="Email"><i data-icon="mail" data-cls="social-icon"></i></a>
+            </div>
+          </div>
+
+          <nav class="footer-nav" aria-label="Footer">
+            <h3 class="footer-heading">Explore</h3>
+            <ul class="footer-links">
+              <li><button class="footer-link" data-nav="home"><span class="footer-link-diamond"></span>Home</button></li>
+              <li><button class="footer-link" data-nav="committees"><span class="footer-link-diamond"></span>Committees</button></li>
+              <li><button class="footer-link" data-nav="secretariat"><span class="footer-link-diamond"></span>Secretariat</button></li>
+              <li><button class="footer-link" data-nav="itinerary"><span class="footer-link-diamond"></span>Itinerary</button></li>
+              <li><button class="footer-link" data-nav="resources"><span class="footer-link-diamond"></span>Resources</button></li>
+              <li><button class="footer-link" data-nav="register"><span class="footer-link-diamond"></span>Register</button></li>
+            </ul>
+          </nav>
+
+          <div class="footer-contact">
+            <h3 class="footer-heading">Contact</h3>
+            <ul class="footer-contact-list">
+              <li class="footer-contact-item"><i data-icon="map-pin" data-cls="footer-contact-icon"></i><span>Hyderabad International Convention Centre,<br />Hyderabad, India</span></li>
+              <li class="footer-contact-item"><i data-icon="mail" data-cls="footer-contact-icon"></i><span>secretariat@somun.in</span></li>
+              <li class="footer-phone">+91 98480 22123 · Responses within 24 hours on weekdays.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div class="footer-bottom-texture" aria-hidden="true"><img src="images/textures/red-texture.jpg" alt="" /></div>
+        <div class="footer-bottom-row">
+          <p>© <span id="year">2026</span> SOMUN — Model United Nations</p>
+          <p>Eighth Edition · MMXXVI</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
