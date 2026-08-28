@@ -6,7 +6,7 @@
    resources (Supabase) · itinerary
    ———————————————————————————————————————————————————————— */
 
-import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS } from "./data.js";
+import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, ALLOCATION_MATRIX } from "./data.js";
 import { CONFIG, supabaseConfigured } from "./config.js";
 import { icon, hydrateIcons } from "./icons.js";
 
@@ -58,7 +58,7 @@ $('[data-copy="venue"]').textContent = `${CONFERENCE.venue} · ${CONFERENCE.city
 $("#itin-intro").textContent =
   `From the first roll call to the final gavel — the full three-day programme at ${CONFERENCE.venue} will be published right here, day by day.`;
 $("#reg-intro").textContent =
-  `Complete the form below and the secretariat will respond with your portfolio allotment and payment link. Early-bird rates apply until September 30, 2026 — for assistance write to ${CONFERENCE.email}.`;
+  `Complete the four short stages below — information, experience and preferences, payment and extra notes — and the secretariat will respond with your portfolio allotment. For assistance write to ${CONFERENCE.email}.`;
 $("#year").textContent = new Date().getFullYear();
 
 /* ————————————————— Ticker ————————————————— */
@@ -481,6 +481,7 @@ function showView(view, { animate = true } = {}) {
     const f = $("#reg-form-wrap");
     if (s) s.hidden = true;
     if (f) f.hidden = false;
+    if (window.__regReset) window.__regReset(); /* wizard back to stage I */
   }
   setActiveNav(view);
   if (view === "home" && window.__litText) requestAnimationFrame(window.__litText);
@@ -900,13 +901,16 @@ if (SHOW_ITINERARY) {
   renderDay();
 }
 
-/* ————————————————— Register form (Supabase) ————————————————— */
+/* ————————————————— Register form — 4-stage wizard (Supabase) ————— */
 
 {
   const form = $("#reg-form");
   const submitBtn = $("#reg-submit");
   const label = $("#reg-submit-label");
+  const stages = $$(".reg-stage", form);
+  const steps = $$("#reg-stages .stage-step");
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  let cur = 0;
 
   function makeRefCode() {
     const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -915,15 +919,50 @@ if (SHOW_ITINERARY) {
     return `SM26-${code}`;
   }
 
-  /* accommodation switch */
-  const sw = $("#accommodation");
-  sw.addEventListener("click", () => {
-    const on = sw.getAttribute("aria-checked") !== "true";
-    sw.setAttribute("aria-checked", String(on));
+  /* ——— stage engine ——— */
+  function validateStage(n) {
+    const val = (id) => $(`#${id}`).value.trim();
+    if (n === 0) {
+      if (val("fullName").length < 3) return "Please enter your full name.";
+      if (!EMAIL_RE.test(val("email"))) return "Please enter a valid email address.";
+      if (!$("#email-confirm").checked) return "Please confirm your email is correct — it is the only way we can reach you.";
+      if (val("phone").replace(/\D/g, "").length < 8) return "Please enter a valid phone number.";
+      if (!val("institution")) return "Institution / organisation is required.";
+    }
+    if (n === 1 && !$("#pref1").value) return "Please choose at least one committee preference.";
+    return null;
+  }
+
+  function show(n) {
+    cur = Math.max(0, Math.min(stages.length - 1, n));
+    stages.forEach((s, i) => s.classList.toggle("is-active", i === cur));
+    steps.forEach((st, i) => {
+      st.classList.toggle("is-current", i === cur);
+      st.classList.toggle("is-done", i < cur);
+    });
+  }
+
+  /* click delegation for Continue / Back (submit button excluded) */
+  form.addEventListener("click", (e) => {
+    const next = e.target.closest("[data-next]");
+    const back = e.target.closest("[data-back]");
+    if (next) {
+      const err = validateStage(cur);
+      if (err) return showToast(`<strong>Almost there</strong>${err}`, true);
+      show(cur + 1);
+    }
+    if (back) show(cur - 1);
   });
 
+  /* Enter key anywhere advances like Continue; the real submit only
+     fires from the last stage */
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (cur < stages.length - 1) {
+      const err = validateStage(cur);
+      if (err) return showToast(`<strong>Almost there</strong>${err}`, true);
+      return show(cur + 1);
+    }
     if (submitBtn.classList.contains("submitting")) return;
 
     const val = (id) => $(`#${id}`).value.trim();
@@ -938,16 +977,8 @@ if (SHOW_ITINERARY) {
       committeePref2: $("#pref2").value,
       committeePref3: $("#pref3").value,
       portfolio: val("portfolio"),
-      accommodation: sw.getAttribute("aria-checked") === "true",
       notes: val("notes"),
     };
-
-    /* same validation rules as the original API route */
-    if (payload.fullName.length < 3) return showToast("<strong>Could not submit</strong>Please enter your full name.", true);
-    if (!EMAIL_RE.test(payload.email)) return showToast("<strong>Could not submit</strong>Please enter a valid email address.", true);
-    if (payload.phone.replace(/\D/g, "").length < 8) return showToast("<strong>Could not submit</strong>Please enter a valid phone number.", true);
-    if (!payload.institution) return showToast("<strong>Could not submit</strong>Institution / organisation is required.", true);
-    if (!payload.committeePref1) return showToast("<strong>Could not submit</strong>Please choose at least one committee preference.", true);
 
     if (!supabaseConfigured()) {
       return showToast(
@@ -973,7 +1004,6 @@ if (SHOW_ITINERARY) {
       committee_pref2: payload.committeePref2 || null,
       committee_pref3: payload.committeePref3 || null,
       portfolio: payload.portfolio || null,
-      accommodation: payload.accommodation,
       notes: payload.notes || null,
     };
 
@@ -996,6 +1026,53 @@ if (SHOW_ITINERARY) {
       submitBtn.disabled = false;
       label.textContent = "Submit Application";
     }
+  });
+
+  /* re-entering the register view remounts the wizard at stage I */
+  window.__regReset = () => show(0);
+
+  /* ——— allocation matrix modal ——— */
+  const overlay = $("#matrix-overlay");
+  const body = $("#matrix-body");
+
+  const listFor = (slug) => {
+    const raw = ALLOCATION_MATRIX[slug] || [];
+    const arr = Array.isArray(raw) ? raw : String(raw).split(",");
+    return arr.map((s) => s.trim()).filter(Boolean);
+  };
+
+  function renderMatrix() {
+    body.innerHTML = COMMITTEES.map((c) => {
+      const list = listFor(c.slug);
+      const right = list.length
+        ? `<div class="matrix-chips">${list.map((p) => `<span class="matrix-chip">${p}</span>`).join("")}</div>`
+        : `<span class="matrix-releasing">Releasing soon</span>`;
+      return `<div class="matrix-row">
+        <div class="matrix-acronym">${c.acronym}</div>
+        <div><p class="matrix-row-name">${c.name}</p>${right}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function openMatrix() {
+    renderMatrix();
+    overlay.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function closeMatrix() {
+    overlay.hidden = true;
+    document.body.style.overflow = "";
+  }
+
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-matrix]")) openMatrix();
+  });
+  $("#matrix-close").addEventListener("click", closeMatrix);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeMatrix();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !overlay.hidden) closeMatrix();
   });
 }
 

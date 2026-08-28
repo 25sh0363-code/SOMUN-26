@@ -185,23 +185,39 @@ export const COMMITTEES = [
 export const FEES = [
   {
     label: "Delegate",
-    early: "₹1,500",
-    standard: "₹1,800",
-    note: "Early bird closes September 30, 2026",
+    early: "₹ XXXX",
+    standard: "₹ XXXX",
+    note: "To be disclosed — payment opens as soon as registrations do",
   },
   {
     label: "International Press",
-    early: "₹1,200",
-    standard: "₹1,500",
-    note: "Portfolio review may apply for journalists",
-  },
-  {
-    label: "Faculty Observer",
-    early: "₹900",
-    standard: "₹900",
-    note: "Includes all meals and ceremonies",
+    early: "₹ XXXX",
+    standard: "₹ XXXX",
+    note: "Same fee as delegates — to be disclosed",
   },
 ];
+
+/* ————— Allocation matrix (viewer on the Register page) —————
+   The "View the allocation matrix" modal on the registration form
+   reads this BEFORE delegates lock their preferences. Fill each
+   committee with its portfolio/country list — an array, or a plain
+   string that will be split on commas. While a list is empty the
+   modal shows "Releasing soon" for that chamber.
+   e.g. unhrc: "India, France, Japan, Brazil, Kenya" */
+export const ALLOCATION_MATRIX = {
+  unhrc: [],
+  disec: [],
+  unoosa: [],
+  uncsw: [],
+  unodc: [],
+  ecosoc: [],
+  unctc: [],
+  "hcc-ccc": [],
+  ip: [],
+  aippm: [],
+  icc: [],
+  mcu: [],
+};
 
 /* ————— Day-wise programme —————
    The public itinerary page currently shows "Releasing Soon".
@@ -260,11 +276,11 @@ export const FAQS = [
   },
   {
     q: "How do I choose my committee?",
-    a: "You list three committee preferences and an optional preferred portfolio while registering. The secretariat matches portfolios to keep competition fair — allotments arrive by email after the early-bird deadline.",
+    a: "You list three committee preferences and an optional preferred portfolio while registering. The secretariat matches portfolios to keep competition fair — use the allocation matrix on the form to see each chamber's portfolios before you choose. Allotments arrive by email once processing begins; dates releasing soon.",
   },
   {
     q: "What does the registration fee include?",
-    a: "Every pass covers the delegate kit, all three days of meals, socials entry and certificates. Accommodation is optional and billed separately at ₹2,400 per night, twin-sharing, for outstation delegates.",
+    a: "Every pass covers the delegate kit, all three days of meals, socials entry and certificates. Accommodation is not provided — outstation delegates can write to the secretariat for hotel suggestions near the venue.",
   },
   {
     q: "What should I bring on conference days?",
@@ -272,6 +288,6 @@ export const FAQS = [
   },
   {
     q: "Can requests for committee or portfolio changes be made later?",
-    a: "Yes. Change requests open after allocations and close on October 5, 2026. Write to the secretariat from your registered email and the dais will accommodate wherever the chamber balance allows.",
+    a: "Yes. Change requests open after allocations and the window closes soon — dates releasing soon. Write to the secretariat from your registered email and the dais will accommodate wherever the chamber balance allows.",
   },
 ];
