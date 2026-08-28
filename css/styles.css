@@ -807,6 +807,9 @@ em.accent {
   cursor: pointer;
   background: none;
   border: none;
+  /* kill the browser's stock focus ring (green/blue square) — keyboard users
+     still get a clear affordance: the disc fills crimson + arrow nudges right */
+  outline: none;
   opacity: 0;
   animation: fadeUpBig 0.85s var(--ease-out) 1.35s both;
 }
