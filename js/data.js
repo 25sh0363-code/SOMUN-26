@@ -28,7 +28,6 @@ export const COMMITTEES = [
     acronym: "UNHRC",
     name: "United Nations Human Rights Council",
     difficulty: "Intermediate",
-    delegates: 47,
     agendas: [
       "Human rights in active conflict zones",
       "Protecting digital privacy and freedom of expression",
@@ -42,7 +41,6 @@ export const COMMITTEES = [
     acronym: "DISEC",
     name: "Disarmament and International Security Committee",
     difficulty: "Intermediate",
-    delegates: 60,
     agendas: [
       "Regulating lethal autonomous weapons systems",
       "Preventing an arms race in outer space",
@@ -56,7 +54,6 @@ export const COMMITTEES = [
     acronym: "UNOOSA",
     name: "United Nations Office on Outer Space Affairs",
     difficulty: "Beginner",
-    delegates: 40,
     agendas: [
       "Governance of satellite mega-constellations and orbital debris",
       "Who owns the Moon? — legal regimes for space resources",
@@ -70,7 +67,6 @@ export const COMMITTEES = [
     acronym: "UNCSW",
     name: "United Nations Commission on the Status of Women",
     difficulty: "Intermediate",
-    delegates: 45,
     agendas: [
       "Advancing the Women, Peace and Security agenda",
       "Closing the gender digital divide",
@@ -84,7 +80,6 @@ export const COMMITTEES = [
     acronym: "UNODC",
     name: "United Nations Office on Drugs and Crime",
     difficulty: "Intermediate",
-    delegates: 40,
     agendas: [
       "Dismantling transnational drug trafficking networks",
       "A global framework against cybercrime and the dark web",
@@ -98,7 +93,6 @@ export const COMMITTEES = [
     acronym: "ECOSOC",
     name: "Economic and Social Council",
     difficulty: "Beginner",
-    delegates: 54,
     agendas: [
       "Financing sustainable development in the Global South",
       "Closing the inequality gap within and among nations",
@@ -112,7 +106,6 @@ export const COMMITTEES = [
     acronym: "UNCTC",
     name: "United Nations Counter Terrorism Committee",
     difficulty: "Advanced",
-    delegates: 35,
     agendas: [
       "Suppressing terrorist financing and online recruitment",
       "Border security, watchlists and the privacy trade-off",
@@ -126,7 +119,6 @@ export const COMMITTEES = [
     acronym: "HCC/CCC",
     name: "Historical Crisis Committee · Continuous Crisis Committee",
     difficulty: "Advanced",
-    delegates: 25,
     agendas: [
       "Closed agenda — crisis updates drop without notice",
       "Initiative under fire — arcs judged live by the board",
@@ -140,7 +132,6 @@ export const COMMITTEES = [
     acronym: "IP",
     name: "International Press — Journalism and Photojournalism",
     difficulty: "Intermediate",
-    delegates: 24,
     agendas: [
       "Live coverage and critique of committee proceedings",
       "Editorial board meeting — the SOMUN Charter",
@@ -154,7 +145,6 @@ export const COMMITTEES = [
     acronym: "AIPPM",
     name: "Lok Sabha — All India Political Parties Meet",
     difficulty: "Advanced",
-    delegates: 32,
     agendas: [
       "Simultaneous elections — 'One Nation, One Poll'",
       "Deliberation on comprehensive electoral reforms",
@@ -168,7 +158,6 @@ export const COMMITTEES = [
     acronym: "ICC",
     name: "International Cricket Council",
     difficulty: "Beginner",
-    delegates: 30,
     agendas: [
       "The Future Tours Programme — calendars, formats and wallets",
       "Growing the global game — governance beyond the Big Three",
@@ -182,7 +171,6 @@ export const COMMITTEES = [
     acronym: "MCU",
     name: "Marvel Cinematic Universe",
     difficulty: "Intermediate",
-    delegates: 30,
     agendas: [
       "The Sokovia Accords — superhuman registration and oversight",
       "Sovereignty vs. the Avengers — who polices the heroes?",

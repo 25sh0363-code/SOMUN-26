@@ -105,7 +105,7 @@ $("#year").textContent = new Date().getFullYear();
         </div>
         <p class="preview-name">${c.name}</p>
         <p class="preview-desc">${c.description}</p>
-        <p class="preview-foot">${c.delegates} seats · ${c.agendas.length} agendas →</p>
+        <p class="preview-foot">Nº ${String(i + 1).padStart(2, "0")} · ${c.agendas.length} agendas →</p>
       </button>
     </div>`).join("");
 }
@@ -167,7 +167,7 @@ $("#year").textContent = new Date().getFullYear();
                 </div>
                 <div class="dossier-foot stagger-item" style="${stag(7)}">
                   <div class="dossier-foot-row">
-                    <span class="delegations"><i data-icon="users"></i>${c.delegates} delegations</span>
+                    <span class="dossier-meta"><i data-icon="scroll-text"></i>${c.agendas.length} agenda items</span>
                     <button class="take-seat" data-nav="register" aria-label="Register for ${c.acronym}">
                       <span class="take-seat-fill"></span>
                       <span class="take-seat-label">Take the seat <i data-icon="arrow-right"></i></span>

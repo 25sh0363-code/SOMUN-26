@@ -1875,7 +1875,7 @@ em.accent {
   row-gap: 0.625rem;
   column-gap: 0.75rem;
 }
-.delegations {
+.dossier-meta {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -1884,8 +1884,8 @@ em.accent {
   letter-spacing: 0.25em;
   color: var(--beige-dim);
 }
-@media (min-width: 640px) { .delegations { font-size: 10px; } }
-.delegations svg { width: 14px; height: 14px; }
+@media (min-width: 640px) { .dossier-meta { font-size: 10px; } }
+.dossier-meta svg { width: 14px; height: 14px; }
 .take-seat {
   position: relative;
   overflow: hidden;
