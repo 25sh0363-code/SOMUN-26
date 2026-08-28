@@ -12,8 +12,7 @@ export const CONFERENCE = {
   dates: "OCTOBER 30 — NOVEMBER 1, 2026",
   venue: "Hyderabad International Convention Centre",
   city: "Hyderabad, India",
-  email: "secretariat@somun.in",
-  phone: "+91 98480 22123",
+  email: "somundelaffairs@gmail.com",
   countdownTarget: "2026-10-30T09:00:00+05:30",
 };
 
