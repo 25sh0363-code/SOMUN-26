@@ -1,0 +1,916 @@
+     1→/* ————————————————————————————————————————————————————————————————
+     2→   SOMUN '26 — SITE BEHAVIOUR
+     3→   Vanilla JS. No frameworks, no build step.
+     4→   Sections: helpers · content render · router · gate · countdown ·
+     5→   reveal-on-scroll · committees deck · register form (Supabase) ·
+     6→   resources (Supabase) · itinerary
+     7→   ———————————————————————————————————————————————————————— */
+     8→
+     9→import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS } from "./data.js";
+    10→import { CONFIG, supabaseConfigured } from "./config.js";
+    11→import { icon, hydrateIcons } from "./icons.js";
+    12→
+    13→const $ = (sel, root = document) => root.querySelector(sel);
+    14→const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+    15→const pad2 = (n) => String(n).padStart(2, "0");
+    16→const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+    17→const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+    18→
+    19→/* stagger delays for the dossier entrance choreography (0.08 + i·0.085s) */
+    20→const stag = (i) => `transition-delay:${(0.08 + i * 0.085).toFixed(3)}s`;
+    21→
+    22→/* ————————————————— Supabase REST helper ————————————————— */
+    23→
+    24→async function sb(path, opts = {}) {
+    25→  const res = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${path}`, {
+    26→    ...opts,
+    27→    headers: {
+    28→      apikey: CONFIG.SUPABASE_ANON_KEY,
+    29→      Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+    30→      "Content-Type": "application/json",
+    31→      ...(opts.headers || {}),
+    32→    },
+    33→  });
+    34→  if (!res.ok) {
+    35→    const data = await res.json().catch(() => ({}));
+    36→    throw new Error(data.message || `Supabase request failed (${res.status})`);
+    37→  }
+    38→  return res.json();
+    39→}
+    40→
+    41→/* ————————————————— Toast ————————————————— */
+    42→
+    43→let toastTimer;
+    44→function showToast(html, isErr = false) {
+    45→  const t = $("#toast");
+    46→  t.innerHTML = html;
+    47→  t.classList.toggle("err", isErr);
+    48→  t.classList.add("show");
+    49→  clearTimeout(toastTimer);
+    50→  toastTimer = setTimeout(() => t.classList.remove("show"), 5200);
+    51→}
+    52→
+    53→/* ————————————————— Static copy fill ————————————————— */
+    54→
+    55→$('[data-copy="tagline"]').textContent = CONFERENCE.tagline;
+    56→$('[data-copy="dates"]').textContent = CONFERENCE.dates;
+    57→$('[data-copy="venue"]').textContent = `${CONFERENCE.venue} · ${CONFERENCE.city}`;
+    58→$("#itin-intro").textContent =
+    59→  `From the first roll call to the final gavel — the full three-day programme at ${CONFERENCE.venue} will be published right here, day by day.`;
+    60→$("#reg-intro").textContent =
+    61→  `Complete the form below and the secretariat will respond with your portfolio allotment and payment link. Early-bird rates apply until September 30, 2026 — for assistance write to ${CONFERENCE.email}.`;
+    62→$("#year").textContent = new Date().getFullYear();
+    63→
+    64→/* ————————————————— Ticker ————————————————— */
+    65→
+    66→{
+    67→  const words = ["DIPLOMACY", "DEBATE", "NEGOTIATION", "RESOLUTION", "CAUCUS", "CONSENSUS"];
+    68→  const row = words.map(
+    69→    (w) => `<span class="ticker-word">${w}</span><span class="ticker-diamond"></span>`
+    70→  ).join("");
+    71→  $$("[data-ticker]").forEach((el) => (el.innerHTML = row + row));
+    72→}
+    73→
+    74→/* ————————————————— Pillars ————————————————— */
+    75→
+    76→{
+    77→  const PILLARS = [
+    78→    { ic: "gavel", title: "Rigorous Debate", body: "Agendas chosen to bite — autonomous weapons, electoral reform, pandemic treaties. No soft topics, no free passes." },
+    79→    { ic: "globe-2", title: "Global Perspective", body: "Committees span six continents' worth of crises. Delegates argue positions they did not choose — and understand better for it." },
+    80→    { ic: "users", title: "Elite Boards", body: "Hand-picked executive boards that keep sessions fast, fair and fierce — with written feedback after every session." },
+    81→    { ic: "trophy", title: "Coveted Awards", body: "Best Delegate gavels, delegation trophies and IP laurels — decided transparently against published scoring rubrics." },
+    82→  ];
+    83→  $("#pillars").innerHTML = PILLARS.map((p, i) => `
+    84→    <div class="pillar-cell reveal" data-delay="${(i * 0.08).toFixed(2)}">
+    85→      <div class="pillar-box">
+    86→        <div class="pillar-top">
+    87→          <i data-icon="${p.ic}" data-cls="pillar-icon" data-sw="1.4"></i>
+    88→          <span class="pillar-num">${pad2(i + 1)}</span>
+    89→        </div>
+    90→        <h3 class="pillar-title">${p.title}</h3>
+    91→        <p class="pillar-body">${p.body}</p>
+    92→      </div>
+    93→    </div>`).join("");
+    94→}
+    95→
+    96→/* ————————————————— Home committees preview (first four) ————————————————— */
+    97→
+    98→{
+    99→  $("#preview-grid").innerHTML = COMMITTEES.slice(0, 4).map((c, i) => `
+   100→    <div class="reveal" data-delay="${(i * 0.07).toFixed(2)}">
+   101→      <button class="preview-card" data-committee="${c.slug}" aria-label="Explore ${c.acronym}">
+   102→        <div class="preview-top">
+   103→          <span class="preview-acronym">${c.acronym}</span>
+   104→          <span class="preview-diff">${c.difficulty}</span>
+   105→        </div>
+   106→        <p class="preview-name">${c.name}</p>
+   107→        <p class="preview-desc">${c.description}</p>
+   108→        <p class="preview-foot">Nº ${String(i + 1).padStart(2, "0")} · ${c.agendas.length} agendas →</p>
+   109→      </button>
+   110→    </div>`).join("");
+   111→}
+   112→
+   113→/* ————————————————— Committees deck slides ————————————————— */
+   114→
+   115→{
+   116→  const track = $("#deck-track");
+   117→  track.innerHTML = COMMITTEES.map((c, i) => {
+   118→    const roman = ROMAN[i];
+   119→    const plateInner = c.photo
+   120→      ? `<img class="plate-art" src="${c.photo}" alt="${c.acronym} — ${c.name}" loading="${i <= 1 ? "eager" : "lazy"}" />
+   121→         <div class="plate-shade"></div>
+   122→         <div class="plate-tint"></div>`
+   123→      : `<div class="plate-empty">
+   124→           <span class="plate-empty-num">${roman}</span>
+   125→           <span class="plate-empty-text">Chamber artwork — coming soon</span>
+   126→         </div>`;
+   127→    return `
+   128→    <article class="deck-slide" data-idx="${i}" aria-label="${c.acronym} — ${c.name}">
+   129→      <div class="watermark-wrap"><span class="watermark text-hollow">${c.acronym}</span></div>
+   130→      <div class="seam seam--left"></div>
+   131→      <div class="seam seam--right"></div>
+   132→      <div class="dossier-wrap">
+   133→        <div class="dossier">
+   134→          <div class="wax-seal stagger-item" style="${stag(0)}" aria-hidden="true">
+   135→            <div class="wax-disc"><span class="wax-ring-1"></span><span class="wax-ring-2"></span><span class="wax-num">${roman}</span></div>
+   136→          </div>
+   137→          <svg class="corner-frame corner--tl" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M2 46 V14 Q2 2 14 2 H46" stroke="currentColor" stroke-width="2"/><path d="M10 46 V20 Q10 10 20 10 H46" stroke="currentColor" stroke-width="0.75"/><rect x="15.5" y="15.5" width="6" height="6" transform="rotate(45 18.5 18.5)" fill="currentColor"/></svg>
+   138→          <svg class="corner-frame corner--tr" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M2 46 V14 Q2 2 14 2 H46" stroke="currentColor" stroke-width="2"/><path d="M10 46 V20 Q10 10 20 10 H46" stroke="currentColor" stroke-width="0.75"/><rect x="15.5" y="15.5" width="6" height="6" transform="rotate(45 18.5 18.5)" fill="currentColor"/></svg>
+   139→          <svg class="corner-frame corner--bl" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M2 46 V14 Q2 2 14 2 H46" stroke="currentColor" stroke-width="2"/><path d="M10 46 V20 Q10 10 20 10 H46" stroke="currentColor" stroke-width="0.75"/><rect x="15.5" y="15.5" width="6" height="6" transform="rotate(45 18.5 18.5)" fill="currentColor"/></svg>
+   140→          <svg class="corner-frame corner--br" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M2 46 V14 Q2 2 14 2 H46" stroke="currentColor" stroke-width="2"/><path d="M10 46 V20 Q10 10 20 10 H46" stroke="currentColor" stroke-width="0.75"/><rect x="15.5" y="15.5" width="6" height="6" transform="rotate(45 18.5 18.5)" fill="currentColor"/></svg>
+   141→          <div class="dossier-inner-frame" aria-hidden="true"></div>
+   142→
+   143→          <div class="dossier-grid">
+   144→            <div class="plate">
+   145→              ${plateInner}
+   146→              <div class="plate-caption">
+   147→                <p class="plate-credit">Official chamber dossier · artwork to follow</p>
+   148→                <span class="plate-num">${pad2(i + 1)}</span>
+   149→              </div>
+   150→            </div>
+   151→
+   152→            <div class="dossier-body">
+   153→              <div class="dossier-content">
+   154→                <div class="dossier-top stagger-item" style="${stag(1)}">
+   155→                  <p class="dossier-no">Dossier Nº ${roman}</p>
+   156→                  <span class="diff-chip diff-chip--${c.difficulty}">${c.difficulty}</span>
+   157→                </div>
+   158→                <h3 class="dossier-acronym stagger-item" style="${stag(2)}">${c.acronym}</h3>
+   159→                <p class="dossier-name stagger-item" style="${stag(3)}">${c.name}</p>
+   160→                <div class="fleuron-rule stagger-item" style="${stag(4)}" aria-hidden="true">
+   161→                  <span class="fleuron-rule-l"></span><span class="fleuron-rule-d"></span><span class="fleuron-rule-r"></span>
+   162→                </div>
+   163→                <p class="dossier-desc stagger-item" style="${stag(5)}">${c.description}</p>
+   164→                <div class="agendas stagger-item" style="${stag(6)}">
+   165→                  <p class="agendas-kicker">Before the house</p>
+   166→                  ${c.agendas.map((a) => `<p class="agenda"><span class="agenda-diamond"></span>${a}</p>`).join("")}
+   167→                </div>
+   168→                <div class="dossier-foot stagger-item" style="${stag(7)}">
+   169→                  <div class="dossier-foot-row">
+   170→                    <span class="dossier-meta"><i data-icon="scroll-text"></i>${c.agendas.length} agenda items</span>
+   171→                    <button class="take-seat" data-committee="${c.slug}" aria-label="Explore ${c.acronym}">
+   172→                      <span class="take-seat-fill"></span>
+   173→                      <span class="take-seat-label">Explore the committee <i data-icon="arrow-right"></i></span>
+   174→                    </button>
+   175→                  </div>
+   176→                </div>
+   177→              </div>
+   178→            </div>
+   179→          </div>
+   180→        </div>
+   181→      </div>
+   182→    </article>`;
+   183→  }).join("");
+   184→
+   185→  /* numerals rail */
+   186→  $("#deck-numerals").innerHTML = COMMITTEES.map((c, i) =>
+   187→    `<button class="deck-num" data-goto="${i}" aria-label="Go to committee ${i + 1}">${ROMAN[i]}<span class="deck-num-diamond"></span></button>`
+   188→  ).join("");
+   189→  $("#deck-total").textContent = `/ ${String(COMMITTEES.length).padStart(2, "0")}`;
+   190→}
+   191→
+   192→/* ————————————————— Committee detail page (#/committees/<slug>) ————————————————— */
+   193→
+   194→function renderCommitteePage(slug) {
+   195→  const idx = COMMITTEES.findIndex((c) => c.slug === slug);
+   196→  if (idx === -1) return false;
+   197→  const c = COMMITTEES[idx];
+   198→  const roman = ROMAN[idx];
+   199→  const plateInner = c.photo
+   200→    ? `<img class="plate-art" src="${c.photo}" alt="${c.acronym} — ${c.name}" loading="eager" />
+   201→       <div class="plate-shade"></div>
+   202→       <div class="plate-tint"></div>`
+   203→    : `<div class="plate-empty">
+   204→         <span class="plate-empty-num">${roman}</span>
+   205→         <span class="plate-empty-text">Chamber artwork — coming soon</span>
+   206→       </div>`;
+   207→  $("#committee-view").innerHTML = `
+   208→    <div class="page-wrap">
+   209→      <button class="crumb reveal" data-nav="committees" aria-label="Back to all committees">
+   210→        <i data-icon="chevron-left"></i> All committees
+   211→      </button>
+   212→
+   213→      <header class="committee-head reveal" data-delay="0.05">
+   214→        <div class="committee-kicker-row">
+   215→          <p class="committee-kicker">Committee ${roman} · ${pad2(idx + 1)} of ${pad2(COMMITTEES.length)}</p>
+   216→          <span class="diff-chip diff-chip--${c.difficulty}">${c.difficulty}</span>
+   217→        </div>
+   218→        <h1 class="committee-acronym text-hollow">${c.acronym}</h1>
+   219→        <p class="committee-name">${c.name}</p>
+   220→        <div class="fleuron-rule" aria-hidden="true">
+   221→          <span class="fleuron-rule-l"></span><span class="fleuron-rule-d"></span><span class="fleuron-rule-r"></span>
+   222→        </div>
+   223→      </header>
+   224→
+   225→      <div class="committee-grid">
+   226→        <div class="committee-plate-col reveal" data-delay="0.1">
+   227→          <div class="plate committee-plate">
+   228→            ${plateInner}
+   229→            <div class="plate-caption">
+   230→              <p class="plate-credit">Official chamber dossier · artwork to follow</p>
+   231→              <span class="plate-num">${pad2(idx + 1)}</span>
+   232→            </div>
+   233→          </div>
+   234→          <p class="committee-plate-note"><i data-icon="gavel"></i> Rule of procedure and dais assignments release with the study guides.</p>
+   235→        </div>
+   236→
+   237→        <div class="committee-body">
+   238→          <p class="committee-desc reveal" data-delay="0.12">${c.description}</p>
+   239→          <div class="agendas committee-agendas reveal" data-delay="0.16">
+   240→            <p class="agendas-kicker">Before the house</p>
+   241→            ${c.agendas.map((a, ai) => `<p class="agenda"><span class="agenda-diamond"></span><span class="agenda-roman">${ROMAN[ai]}.</span> ${a}</p>`).join("")}
+   242→          </div>
+   243→          <div class="committee-cta reveal" data-delay="0.2">
+   244→            <button class="btn btn--crimson btn--arrow" data-nav="register">
+   245→              Take your seat <i data-icon="arrow-right"></i>
+   246→            </button>
+   247→            <button class="btn btn--outline" data-nav="committees">Browse all committees</button>
+   248→          </div>
+   249→        </div>
+   250→      </div>
+   251→    </div>`;
+   252→  hydrateIcons();
+   253→  return true;
+   254→}
+   255→
+   256→/* ————————————————— FAQ list (data.js · FAQS) ————————————————— */
+   257→
+   258→{
+   259→  const el = $("#faq-list");
+   260→  if (el) {
+   261→    el.innerHTML = FAQS.map((f, i) => `
+   262→      <details class="faq-item reveal" data-delay="${(i * 0.05).toFixed(2)}"${i === 0 ? " open" : ""}>
+   263→        <summary class="faq-q">
+   264→          <span class="faq-num">${pad2(i + 1)}</span>
+   265→          <span class="faq-q-text">${f.q}</span>
+   266→          <i data-icon="chevron-down" data-cls="faq-chev"></i>
+   267→        </summary>
+   268→        <div class="faq-a"><p>${f.a}</p></div>
+   269→      </details>`).join("");
+   270→  }
+   271→}
+   272→
+   273→/* ————————————————— Executive board cards (all TBA) ————————————————— */
+   274→
+   275→{
+   276→  $("#exec-grid").innerHTML = COMMITTEES.map((c, i) => `
+   277→    <div class="reveal" data-delay="${(i * 0.04).toFixed(2)}">
+   278→      <div class="exec-card">
+   279→        <div class="exec-card-top">
+   280→          <div>
+   281→            <h3 class="exec-acronym">${c.acronym}</h3>
+   282→            <p class="exec-name">${c.name}</p>
+   283→          </div>
+   284→          <span class="exec-num" aria-hidden="true">${ROMAN[i]}</span>
+   285→        </div>
+   286→        <div class="exec-divider"></div>
+   287→        <ul class="exec-roles">
+   288→          ${["Chair", "Vice Chair", "Secretary"].map((r) => `
+   289→            <li class="exec-role">
+   290→              <span class="exec-role-name">${r}</span>
+   291→              <span class="exec-role-tba"><i data-icon="lock"></i>to be announced</span>
+   292→            </li>`).join("")}
+   293→        </ul>
+   294→      </div>
+   295→    </div>`).join("");
+   296→}
+   297→
+   298→/* ————————————————— Secretariat seats + USG corps ————————————————— */
+   299→
+   300→{
+   301→  const seatCard = (i) => `
+   302→    <div class="reveal" data-delay="${(i * 0.05).toFixed(2)}">
+   303→      <div class="seat-card">
+   304→        <span class="seat-watermark" aria-hidden="true">${ROMAN[i]}</span>
+   305→        <span class="seat-lock"><i data-icon="lock"></i></span>
+   306→        <p class="seat-kicker">Seat ${ROMAN[i]}</p>
+   307→        <h3 class="seat-title">To be announced</h3>
+   308→        <p class="seat-sub">Revealed with the first secretariat release.</p>
+   309→      </div>
+   310→    </div>`;
+   311→  $("#core-seats").innerHTML = Array.from({ length: 7 }, (_, i) => seatCard(i)).join("");
+   312→
+   313→  $("#usg-grid").innerHTML = Array.from({ length: 6 }, (_, i) => `
+   314→    <div class="reveal" data-delay="${(i * 0.05).toFixed(2)}">
+   315→      <div class="seat-card">
+   316→        <div class="usg-top">
+   317→          <span class="seat-lock"><i data-icon="lock"></i></span>
+   318→          <span class="usg-num" aria-hidden="true">${pad2(i + 1)}</span>
+   319→        </div>
+   320→        <p class="usg-kicker">Under-Secretary-General</p>
+   321→        <h3 class="seat-title">Portfolio to be announced</h3>
+   322→        <p class="seat-sub">Delegation affairs, procedure, press, logistics and more.</p>
+   323→      </div>
+   324→    </div>`).join("");
+   325→}
+   326→
+   327→/* ————————————————— Resources archive cards + guides index ————————————————— */
+   328→
+   329→const RES_META = [
+   330→  { ic: "book-open", no: "01", title: "Study Guides", cat: "study-guides", desc: "Committee-wise background guides and agenda briefs in depth — everything you need before the first roll call." },
+   331→  { ic: "scroll-text", no: "02", title: "Rules of Procedure", cat: "rules", desc: "The SOMUN rules of procedure — motions, precedence and draft-resolution mechanics, the fine print of every chamber." },
+   332→  { ic: "file-text", no: "03", title: "Position Paper Brief", cat: "brief", desc: "Format, deadlines and assessment criteria for position papers across all nine committees." },
+   333→  { ic: "book-marked", no: "04", title: "Delegate Handbook", cat: "handbook", desc: "Venue maps, dress code, kit details and conference etiquette — your pocket companion for the three days." },
+   334→];
+   335→
+   336→/* released[key] = { url, label } filled from Supabase (or left empty) */
+   337→const releasedRes = {};
+   338→
+   339→function renderResourceCards() {
+   340→  $("#res-grid").innerHTML = RES_META.map((r, i) => {
+   341→    const rel = releasedRes[r.cat];
+   342→    const foot = rel
+   343→      ? `<a class="res-dl" href="${rel.url}" target="_blank" rel="noopener">Download</a>`
+   344→      : `<span class="res-foot-label">PDF · coming to this shelf</span>
+   345→         <span class="stamp stamp--sm"><span class="stamp-diamond"></span>Soon</span>`;
+   346→    return `
+   347→    <div class="reveal" data-delay="${(i * 0.06).toFixed(2)}">
+   348→      <div class="res-card">
+   349→        <div class="res-top">
+   350→          <span class="res-icon"><i data-icon="${r.ic}"></i></span>
+   351→          <span class="res-num" aria-hidden="true">${r.no}</span>
+   352→        </div>
+   353→        <h3 class="res-title">${r.title}</h3>
+   354→        <p class="res-desc">${r.desc}</p>
+   355→        <div class="res-foot">${foot}</div>
+   356→      </div>
+   357→    </div>`;
+   358→  }).join("");
+   359→  hydrateIcons($("#res-grid"));
+   360→}
+   361→
+   362→function renderGuidesIndex(guides) {
+   363→  $("#guides-list").innerHTML = COMMITTEES.map((c) => {
+   364→    const url = guides[c.acronym];
+   365→    const status = url
+   366→      ? `<a class="guide-dl" href="${url}" target="_blank" rel="noopener">Download guide ↓</a>`
+   367→      : `<span class="guide-status"><span class="guide-diamond"></span>releasing soon</span>`;
+   368→    return `<li class="guide-row"><span class="guide-acronym">${c.acronym}</span>${status}</li>`;
+   369→  }).join("");
+   370→}
+   371→
+   372→renderResourceCards();
+   373→renderGuidesIndex({});
+   374→
+   375→/* pull released resources from Supabase when configured */
+   376→if (supabaseConfigured()) {
+   377→  sb(`${CONFIG.RESOURCES_TABLE}?released=eq.true&select=*`)
+   378→    .then((rows) => {
+   379→      const guides = {};
+   380→      for (const r of rows || []) {
+   381→        if (r.committee) guides[r.committee] = r.file_url;
+   382→        if (r.category && RES_META.some((m) => m.cat === r.category)) {
+   383→          releasedRes[r.category] = { url: r.file_url };
+   384→        }
+   385→      }
+   386→      renderResourceCards();
+   387→      renderGuidesIndex(guides);
+   388→      const any = (rows || []).length > 0;
+   389→      if (any) $("#guides-stamp")?.remove();
+   390→    })
+   391→    .catch(() => {/* silently keep placeholders if the table is missing */});
+   392→}
+   393→
+   394→/* ————————————————— Fees sidebar ————————————————— */
+   395→
+   396→{
+   397→  $("#fees-list").innerHTML = FEES.map((f) => `
+   398→    <li class="fee-item">
+   399→      <div class="fee-row">
+   400→        <span class="fee-label">${f.label}</span>
+   401→        <span class="fee-price">${f.standard !== f.early ? `<s class="fee-strike">${f.standard}</s>` : ""}${f.early}</span>
+   402→      </div>
+   403→      <p class="fee-note">${f.note}</p>
+   404→    </li>`).join("");
+   405→}
+   406→
+   407→/* ————————————————— Committee selects ————————————————— */
+   408→
+   409→$$("[data-committee-select]").forEach((sel) => {
+   410→  sel.innerHTML =
+   411→    `<option value="">Select a committee</option>` +
+   412→    COMMITTEES.map((c) => `<option value="${c.slug}">${c.acronym} — ${c.name}</option>`).join("");
+   413→});
+   414→
+   415→/* ————————————————— Router ————————————————— */
+   416→
+   417→const VIEWS = ["home", "committees", "committee", "secretariat", "itinerary", "resources", "register", "faqs"];
+   418→const HASHES = {
+   419→  home: "#/",
+   420→  committees: "#/committees",
+   421→  secretariat: "#/secretariat",
+   422→  itinerary: "#/itinerary",
+   423→  resources: "#/resources",
+   424→  register: "#/register",
+   425→  faqs: "#/faqs",
+   426→};
+   427→
+   428→let currentCommittee = null; // slug for the #/committees/<slug> detail view
+   429→
+   430→function viewFromHash() {
+   431→  const h = window.location.hash.replace(/^#\/?/, "").split("?")[0];
+   432→  const seg = h.split("/").filter(Boolean);
+   433→  if (seg[0] === "committees" && seg[1]) {
+   434→    currentCommittee = seg[1];
+   435→    return "committee";
+   436→  }
+   437→  if (seg[0] === "faqs") return "faqs";
+   438→  return VIEWS.includes(h) ? h : "home";
+   439→}
+   440→
+   441→let currentView = viewFromHash();
+   442→
+   443→function setActiveNav(view) {
+   444→  const navKey = view === "committee" ? "committees" : view; // detail page keeps the deck's nav item lit
+   445→  $$(".nav-link, .drawer-link").forEach((el) => {
+   446→    el.classList.toggle("active", el.dataset.nav === navKey);
+   447→  });
+   448→}
+   449→
+   450→function showView(view, { animate = true } = {}) {
+   451→  const target = $(`.view[data-view="${view}"]`);
+   452→  if (!target) return;
+   453→  /* a previous exit left a fill:forwards opacity:0 on this view (Web
+   454→     Animations hold their effect until cancelled) — clear it or the
+   455→     page would re-enter invisible */
+   456→  target.getAnimations().forEach((a) => a.cancel());
+   457→  if (view === "committee") {
+   458→    /* render the requested dossier before the entrance runs; unknown
+   459→       slugs fall back to the deck */
+   460→    if (!renderCommitteePage(currentCommittee)) {
+   461→      window.location.replace("#/committees");
+   462→      showView("committees", { animate });
+   463→      return;
+   464→    }
+   465→    /* the page's reveals were rendered just now (boot observed before
+   466→       this content existed) — observe them or they stay invisible */
+   467→    if (window.__observeReveals) window.__observeReveals();
+   468→  }
+   469→  $$(".view").forEach((v) => v.classList.remove("active", "view-enter"));
+   470→  target.classList.add("active");
+   471→  if (animate) {
+   472→    target.classList.remove("view-enter");
+   473→    void target.offsetWidth; // restart the entrance animation
+   474→    target.classList.add("view-enter");
+   475→    /* replays scroll-reveals on every visit, like the remount did */
+   476→    if (window.__rearmReveals) window.__rearmReveals(target);
+   477→  }
+   478→  /* register remounted fresh each visit in the original — same here */
+   479→  if (view === "register") {
+   480→    const s = $("#reg-success");
+   481→    const f = $("#reg-form-wrap");
+   482→    if (s) s.hidden = true;
+   483→    if (f) f.hidden = false;
+   484→  }
+   485→  setActiveNav(view);
+   486→  requestAnimationFrame(() => window.scrollTo({ top: 0 }));
+   487→  if (view === "committees") deckOnShow();
+   488→}
+   489→
+   490→function transitionTo(view) {
+   491→  if (view === currentView) {
+   492→    window.scrollTo({ top: 0, behavior: "smooth" });
+   493→    setActiveNav(view);
+   494→    return;
+   495→  }
+   496→  const from = $(`.view[data-view="${currentView}"]`);
+   497→  currentView = view;
+   498→  if (!from) {
+   499→    showView(view);
+   500→    return;
+   501→  }
+   502→  /* replicate the old AnimatePresence "wait": exit 450ms, then enter */
+   503→  from.animate(
+   504→    [
+   505→      { opacity: 1, transform: "none" },
+   506→      { opacity: 0, transform: "translateY(-8px)" },
+   507→    ],
+   508→    { duration: 450, easing: EASE, fill: "forwards" }
+   509→  ).addEventListener("finish", () => {
+   510→    showView(view);
+   511→  });
+   512→}
+   513→
+   514→window.addEventListener("hashchange", () => transitionTo(viewFromHash()));
+   515→
+   516→/* all [data-nav] buttons navigate */
+   517→document.addEventListener("click", (e) => {
+   518→  const btn = e.target.closest("[data-nav]");
+   519→  if (!btn) return;
+   520→  const view = btn.dataset.nav;
+   521→  closeDrawer();
+   522→  const targetHash = HASHES[view];
+   523→  if (window.location.hash === targetHash || (view === "home" && (window.location.hash === "" || window.location.hash === "#"))) {
+   524→    transitionTo(view);
+   525→  } else {
+   526→    window.location.hash = targetHash;
+   527→  }
+   528→});
+   529→
+   530→/* [data-committee] buttons open that committee's own page */
+   531→document.addEventListener("click", (e) => {
+   532→  const btn = e.target.closest("[data-committee]");
+   533→  if (!btn) return;
+   534→  closeDrawer();
+   535→  const hash = `#/committees/${btn.dataset.committee}`;
+   536→  if (window.location.hash === hash) {
+   537→    transitionTo("committee");
+   538→  } else {
+   539→    window.location.hash = hash;
+   540→  }
+   541→});
+   542→
+   543→/* ————————————————— Nav scrolled state + drawer ————————————————— */
+   544→
+   545→const navEl = $("#nav");
+   546→const onScroll = () => navEl.classList.toggle("scrolled", window.scrollY > 24);
+   547→onScroll();
+   548→window.addEventListener("scroll", onScroll, { passive: true });
+   549→
+   550→const drawerEl = $("#drawer");
+   551→const toggleBtn = $("#nav-toggle");
+   552→function closeDrawer() {
+   553→  drawerEl.classList.remove("open");
+   554→  toggleBtn.classList.remove("open");
+   555→  toggleBtn.setAttribute("aria-expanded", "false");
+   556→}
+   557→toggleBtn.addEventListener("click", () => {
+   558→  const open = !drawerEl.classList.contains("open");
+   559→  drawerEl.classList.toggle("open", open);
+   560→  toggleBtn.classList.toggle("open", open);
+   561→  toggleBtn.setAttribute("aria-expanded", String(open));
+   562→});
+   563→$("#drawer-overlay").addEventListener("click", closeDrawer);
+   564→
+   565→/* ————————————————— Countdown ————————————————— */
+   566→
+   567→{
+   568→  const target = new Date(CONFERENCE.countdownTarget).getTime();
+   569→  const cells = { d: $("#cd-d"), h: $("#cd-h"), m: $("#cd-m"), s: $("#cd-s") };
+   570→  const tick = () => {
+   571→    const diff = Math.max(0, target - Date.now());
+   572→    cells.d.textContent = pad2(Math.floor(diff / 86400000));
+   573→    cells.h.textContent = pad2(Math.floor((diff % 86400000) / 3600000));
+   574→    cells.m.textContent = pad2(Math.floor((diff % 3600000) / 60000));
+   575→    cells.s.textContent = pad2(Math.floor((diff % 60000) / 1000));
+   576→  };
+   577→  tick();
+   578→  setInterval(tick, 1000);
+   579→}
+   580→
+   581→/* ————————————————— Reveal on scroll ————————————————— */
+   582→
+   583→{
+   584→  const io = new IntersectionObserver(
+   585→    (entries) => {
+   586→      for (const en of entries) {
+   587→        if (en.isIntersecting) {
+   588→          en.target.style.setProperty("--rv-delay", `${en.target.dataset.delay || 0}s`);
+   589→          en.target.classList.add("in-view");
+   590→          io.unobserve(en.target);
+   591→        }
+   592→      }
+   593→    },
+   594→    { rootMargin: "0px 0px -60px 0px" }
+   595→  );
+   596→  const observeAll = () => $$(".reveal:not(.in-view)").forEach((el) => io.observe(el));
+   597→  observeAll();
+   598→  window.__observeReveals = observeAll; // re-run after dynamic renders
+   599→  /* the original remounted each view on every visit, so scroll-reveals replayed
+   600→     each time a page was entered — re-arm them to keep that choreography */
+   601→  window.__rearmReveals = (scope) => {
+   602→    $$(".reveal.in-view", scope).forEach((el) => {
+   603→      el.classList.remove("in-view");
+   604→      io.observe(el);
+   605→    });
+   606→  };
+   607→}
+   608→
+   609→/* ————————————————— Committees deck (pinned scroll) ————————————————— */
+   610→
+   611→const deck = {
+   612→  el: $("#deck"),
+   613→  track: $("#deck-track"),
+   614→  slides: [],
+   615→  n: COMMITTEES.length,
+   616→  current: 0,
+   617→  active: 0,
+   618→  pos: 0,
+   619→  vel: 0,
+   620→  target: 0,
+   621→  running: false,
+   622→};
+   623→
+   624→function deckSetCurrent(idx) {
+   625→  deck.current = idx;
+   626→  $("#deck-current").textContent = pad2(idx + 1);
+   627→  $("#deck-bar").style.width = `${((idx + 1) / deck.n) * 100}%`;
+   628→  deck.slides.forEach((s, i) => {
+   629→    s.classList.toggle("on-stage", i === idx);
+   630→    if (i === idx) {
+   631→      s.removeAttribute("aria-hidden");
+   632→      s.removeAttribute("inert");
+   633→    } else {
+   634→      s.setAttribute("aria-hidden", "true");
+   635→      s.setAttribute("inert", "");
+   636→    }
+   637→  });
+   638→  $$(".deck-num").forEach((b, i) => b.classList.toggle("active", i === idx));
+   639→  $("#deck-prev").disabled = idx === 0;
+   640→  $("#deck-next").disabled = idx === deck.n - 1;
+   641→}
+   642→
+   643→function deckOnShow() {
+   644→  /* the deck remounted on every visit — strip the stage so the cascade
+   645→     (stagger, art zoom, watermark) replays from the top like before */
+   646→  deck.slides.forEach((s) => s.classList.remove("on-stage"));
+   647→  void deck.track.offsetWidth; // flush styles so transitions restart
+   648→  /* re-anchor when the view becomes visible (widths are measurable only now) */
+   649→  deck.pos = deck.target = deck.active * slideWidth();
+   650→  deck.vel = 0;
+   651→  deckSetCurrent(deck.active);
+   652→  deckOnScroll();
+   653→}
+   654→
+   655→/* slides are 100% of the sticky viewport, which excludes the page scrollbar —
+   656→   never use window.innerWidth for the spring target */
+   657→function slideWidth() {
+   658→  return deck.slides[0] ? deck.slides[0].offsetWidth : window.innerWidth;
+   659→}
+   660→
+   661→function deckOnScroll() {
+   662→  if (!deck.el) return;
+   663→  const rect = deck.el.getBoundingClientRect();
+   664→  const total = deck.el.offsetHeight - window.innerHeight;
+   665→  if (total <= 0) return;
+   666→  const p = Math.min(0.99999, Math.max(0, -rect.top / total));
+   667→  const t = Math.round(p * (deck.n - 1));
+   668→  if (t !== deck.active) {
+   669→    deck.active = t;
+   670→    deck.target = t * slideWidth();
+   671→    deckSetCurrent(t);
+   672→  }
+   673→}
+   674→
+   675→/* spring integrator — stiffness 110, damping 24, mass 0.9 (as before) */
+   676→function deckFrame(t) {
+   677→  const last = deckFrame.last || t;
+   678→  const dt = Math.min(0.05, (t - last) / 1000);
+   679→  deckFrame.last = t;
+   680→  const k = 110, c = 24, m = 0.9;
+   681→  const F = -k * (deck.pos - deck.target) - c * deck.vel;
+   682→  deck.vel += (F / m) * dt;
+   683→  deck.pos += deck.vel * dt;
+   684→  deck.track.style.transform = `translate3d(${-deck.pos}px,0,0)`;
+   685→  requestAnimationFrame(deckFrame);
+   686→}
+   687→
+   688→function deckInit() {
+   689→  deck.slides = $$(".deck-slide", deck.track);
+   690→  deck.el.style.height = `${Math.max(280, deck.n * 78)}vh`;
+   691→  deckSetCurrent(0);
+   692→  window.addEventListener("scroll", deckOnScroll, { passive: true });
+   693→  window.addEventListener("resize", () => {
+   694→    deck.pos = deck.target = deck.active * slideWidth();
+   695→    deck.vel = 0;
+   696→  });
+   697→  requestAnimationFrame(deckFrame);
+   698→  $$(".deck-num").forEach((b) =>
+   699→    b.addEventListener("click", () => deckGoTo(Number(b.dataset.goto)))
+   700→  );
+   701→  $("#deck-prev").addEventListener("click", () => deckGoTo(deck.current - 1));
+   702→  $("#deck-next").addEventListener("click", () => deckGoTo(deck.current + 1));
+   703→}
+   704→
+   705→function deckGoTo(idx) {
+   706→  const i = Math.min(deck.n - 1, Math.max(0, idx));
+   707→  const top = deck.el.offsetTop + (i / (deck.n - 1)) * (deck.el.offsetHeight - window.innerHeight);
+   708→  window.scrollTo({ top, behavior: "smooth" });
+   709→}
+   710→
+   711→deckInit();
+   712→
+   713→/* ————————————————— Entry gate ————————————————— */
+   714→
+   715→{
+   716→  const gate = $("#gate");
+   717→  const site = $("#site");
+   718→  const enterBtn = $("#gate-enter");
+   719→  const crest = $("#gate-crest");
+   720→
+   721→  let opened = false;
+   722→  try {
+   723→    opened = sessionStorage.getItem("somun-entered") === "1";
+   724→  } catch {
+   725→    opened = false;
+   726→  }
+   727→
+   728→  if (opened) {
+   729→    gate.remove();
+   730→    site.hidden = false;
+   731→    showView(currentView, { animate: false });
+   732→  } else {
+   733→    document.body.style.overflow = "hidden";
+   734→    setTimeout(() => enterBtn.focus({ preventScroll: true }), 1700);
+   735→
+   736→    /* mouse parallax on the crest (spring-smoothed) */
+   737→    let tx = 0, ty = 0, cx = 0, cy = 0;
+   738→    gate.addEventListener("mousemove", (e) => {
+   739→      if (opened) return;
+   740→      const r = gate.getBoundingClientRect();
+   741→      tx = (e.clientX - r.left) / r.width;
+   742→      ty = (e.clientY - r.top) / r.height;
+   743→    });
+   744→    (function tilt() {
+   745→      cx += (tx - cx) * 0.08;
+   746→      cy += (ty - cy) * 0.08;
+   747→      crest.style.transform = `rotateX(${(0.5 - cy) * 9}deg) rotateY(${(cx - 0.5) * 9}deg)`;
+   748→      requestAnimationFrame(tilt);
+   749→    })();
+   750→
+   751→    enterBtn.addEventListener("click", () => {
+   752→      if (opened) return;
+   753→      opened = true;
+   754→      try {
+   755→        sessionStorage.setItem("somun-entered", "1");
+   756→      } catch { /* private mode */ }
+   757→      gate.classList.add("open");
+   758→      document.body.style.overflow = "";
+   759→      site.hidden = false;
+   760→      showView(currentView, { animate: false });
+   761→      setTimeout(() => gate.remove(), 1550);
+   762→    });
+   763→  }
+   764→}
+   765→
+   766→/* ————————————————— Itinerary (teaser vs full) ————————————————— */
+   767→
+   768→if (SHOW_ITINERARY) {
+   769→  $("#itin-soon").hidden = true;
+   770→  $("#itin-full").hidden = false;
+   771→  let dayIdx = 0;
+   772→
+   773→  const TYPE_META = {
+   774→    ceremony: { label: "Ceremony", cls: "event-chip--ceremony", ic: "flag" },
+   775→    session: { label: "Committee Session", cls: "event-chip--session", ic: "gavel" },
+   776→    break: { label: "Meal / Break", cls: "event-chip--break", ic: "coffee" },
+   777→    social: { label: "Socials & Press", cls: "event-chip--social", ic: "party-popper" },
+   778→  };
+   779→
+   780→  function renderDay() {
+   781→    const d = ITINERARY[dayIdx];
+   782→    $("#itin-timeline").innerHTML = d.events.map((e, i) => {
+   783→      const m = TYPE_META[e.type] || TYPE_META.session;
+   784→      return `
+   785→      <li class="itin-event" style="animation: fadeUpSm .4s ${EASE} ${(i * 0.06).toFixed(2)}s both">
+   786→        <div class="event-head">
+   787→          <span class="event-time">${e.time}</span>
+   788→          <span class="event-chip ${m.cls}">${m.label}</span>
+   789→        </div>
+   790→        <h3 class="event-title">${e.title}</h3>
+   791→        <p class="event-detail">${e.detail}</p>
+   792→      </li>`;
+   793→    }).join("");
+   794→    $$(".itin-tab").forEach((t, i) => {
+   795→      t.classList.toggle("active", i === dayIdx);
+   796→      t.setAttribute("aria-selected", String(i === dayIdx));
+   797→    });
+   798→  }
+   799→
+   800→  $("#itin-tabs").innerHTML = ITINERARY.map((d, i) => `
+   801→    <button class="itin-tab" role="tab" data-day="${i}">
+   802→      <span class="itin-tab-day">${d.day}</span>
+   803→      <span class="itin-tab-meta">${d.weekday} · ${d.date}</span>
+   804→    </button>`).join("");
+   805→  $("#itin-tabs").addEventListener("click", (e) => {
+   806→    const t = e.target.closest("[data-day]");
+   807→    if (t) { dayIdx = Number(t.dataset.day); renderDay(); }
+   808→  });
+   809→  renderDay();
+   810→}
+   811→
+   812→/* ————————————————— Register form (Supabase) ————————————————— */
+   813→
+   814→{
+   815→  const form = $("#reg-form");
+   816→  const submitBtn = $("#reg-submit");
+   817→  const label = $("#reg-submit-label");
+   818→  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+   819→
+   820→  function makeRefCode() {
+   821→    const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+   822→    let code = "";
+   823→    for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
+   824→    return `SM26-${code}`;
+   825→  }
+   826→
+   827→  /* accommodation switch */
+   828→  const sw = $("#accommodation");
+   829→  sw.addEventListener("click", () => {
+   830→    const on = sw.getAttribute("aria-checked") !== "true";
+   831→    sw.setAttribute("aria-checked", String(on));
+   832→  });
+   833→
+   834→  form.addEventListener("submit", async (e) => {
+   835→    e.preventDefault();
+   836→    if (submitBtn.classList.contains("submitting")) return;
+   837→
+   838→    const val = (id) => $(`#${id}`).value.trim();
+   839→    const payload = {
+   840→      fullName: val("fullName"),
+   841→      email: val("email").toLowerCase(),
+   842→      phone: val("phone"),
+   843→      institution: val("institution"),
+   844→      gradeOrTitle: val("gradeOrTitle"),
+   845→      experience: $("#experience").value || "novice",
+   846→      committeePref1: $("#pref1").value,
+   847→      committeePref2: $("#pref2").value,
+   848→      committeePref3: $("#pref3").value,
+   849→      portfolio: val("portfolio"),
+   850→      accommodation: sw.getAttribute("aria-checked") === "true",
+   851→      notes: val("notes"),
+   852→    };
+   853→
+   854→    /* same validation rules as the original API route */
+   855→    if (payload.fullName.length < 3) return showToast("<strong>Could not submit</strong>Please enter your full name.", true);
+   856→    if (!EMAIL_RE.test(payload.email)) return showToast("<strong>Could not submit</strong>Please enter a valid email address.", true);
+   857→    if (payload.phone.replace(/\D/g, "").length < 8) return showToast("<strong>Could not submit</strong>Please enter a valid phone number.", true);
+   858→    if (!payload.institution) return showToast("<strong>Could not submit</strong>Institution / organisation is required.", true);
+   859→    if (!payload.committeePref1) return showToast("<strong>Could not submit</strong>Please choose at least one committee preference.", true);
+   860→
+   861→    if (!supabaseConfigured()) {
+   862→      return showToast(
+   863→        "<strong>Service not configured</strong>Registration opens shortly — meanwhile write to " + CONFERENCE.email + ".",
+   864→        true
+   865→      );
+   866→    }
+   867→
+   868→    submitBtn.classList.add("submitting");
+   869→    submitBtn.disabled = true;
+   870→    label.textContent = "Submitting…";
+   871→
+   872→    const refCode = makeRefCode();
+   873→    const row = {
+   874→      ref_code: refCode,
+   875→      full_name: payload.fullName,
+   876→      email: payload.email,
+   877→      phone: payload.phone,
+   878→      institution: payload.institution,
+   879→      grade_or_title: payload.gradeOrTitle || null,
+   880→      experience: payload.experience,
+   881→      committee_pref1: payload.committeePref1,
+   882→      committee_pref2: payload.committeePref2 || null,
+   883→      committee_pref3: payload.committeePref3 || null,
+   884→      portfolio: payload.portfolio || null,
+   885→      accommodation: payload.accommodation,
+   886→      notes: payload.notes || null,
+   887→    };
+   888→
+   889→    try {
+   890→      const inserted = await sb(CONFIG.REGISTRATIONS_TABLE, {
+   891→        method: "POST",
+   892→        headers: { Prefer: "return=representation" },
+   893→        body: JSON.stringify(row),
+   894→      });
+   895→      const code = (Array.isArray(inserted) && inserted[0] && inserted[0].ref_code) || refCode;
+   896→      $("#refcode").textContent = code;
+   897→      $("#reg-form-wrap").hidden = true;
+   898→      $("#reg-success").hidden = false;
+   899→      showToast(`<strong>Registration received</strong>Your reference code is ${code}.`);
+   900→      window.scrollTo({ top: 0, behavior: "smooth" });
+   901→    } catch (err) {
+   902→      showToast(`<strong>Could not submit</strong>${err.message || "Unexpected error. Please retry."}`, true);
+   903→    } finally {
+   904→      submitBtn.classList.remove("submitting");
+   905→      submitBtn.disabled = false;
+   906→      label.textContent = "Submit Application";
+   907→    }
+   908→  });
+   909→}
+   910→
+   911→/* ————————————————— Boot ————————————————— */
+   912→
+   913→hydrateIcons();
+   914→window.__observeReveals();
+   915→showView(currentView, { animate: false });
+   916→

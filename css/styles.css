@@ -1213,6 +1213,16 @@ em.accent {
 .about-item-text { font-size: 0.875rem; line-height: 1.625; color: var(--beige-dim); }
 .about-item-strong { color: var(--beige); font-weight: 500; }
 
+/* ————— Scroll-lit text (The Conference section) —————
+   main.js splits each paragraph into word + char spans and toggles .on
+   in reading order as the section travels through the viewport: every
+   character starts grey + translucent and types back to its own colour
+   (beige / crimson / strong — nothing is hardcoded here, .on simply
+   removes the override so the natural cascade shows through). */
+.stt-w { display: inline-block; }
+.stt-char { transition: color 0.22s linear, opacity 0.22s linear; }
+.stt-char:not(.on) { color: #8a8175 !important; opacity: 0.5; }
+
 /* pillars */
 .pillars {
   border-top: 1px solid var(--line);

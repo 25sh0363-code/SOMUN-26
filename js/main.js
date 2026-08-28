@@ -483,6 +483,7 @@ function showView(view, { animate = true } = {}) {
     if (f) f.hidden = false;
   }
   setActiveNav(view);
+  if (view === "home" && window.__litText) requestAnimationFrame(window.__litText);
   requestAnimationFrame(() => window.scrollTo({ top: 0 }));
   if (view === "committees") deckOnShow();
 }
@@ -604,6 +605,96 @@ $("#drawer-overlay").addEventListener("click", closeDrawer);
       io.observe(el);
     });
   };
+}
+
+/* ————————————————— Scroll-lit text — The Conference —————————————————
+   Every character in the home "The Conference" section starts grey +
+   translucent and lights back to its own colour in reading order while
+   the user scrolls — a scroll-scrubbed typing pass. Words are wrapped
+   whole (inline-block) so line-wrapping is identical to plain text, and
+   the original copy is exposed via aria-label for screen readers. */
+
+{
+  const root = $(".about");
+  if (root) {
+    const targets = $$(".section-head-title, .about-p, .about-item-text", root);
+    const chars = [];
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const splitWords = (node) => {
+      [...node.childNodes].forEach((child) => {
+        if (child.nodeType === 3) {
+          const frag = document.createDocumentFragment();
+          child.textContent.split(/(\s+)/).forEach((part) => {
+            if (!part) return;
+            if (/^\s+$/.test(part)) {
+              frag.appendChild(document.createTextNode(" "));
+              return;
+            }
+            const w = document.createElement("span");
+            w.className = "stt-w";
+            for (const ch of part) {
+              const c = document.createElement("span");
+              c.className = "stt-char";
+              c.textContent = ch;
+              w.appendChild(c);
+              chars.push(c);
+            }
+            frag.appendChild(w);
+          });
+          node.replaceChild(frag, child);
+        } else if (child.nodeType === 1 && child.tagName !== "BR") {
+          splitWords(child); /* recurse into em/strong so their colour still owns the chars */
+        }
+      });
+    };
+
+    targets.forEach((el) => {
+      el.setAttribute("aria-label", (el.textContent || "").replace(/\s+/g, " ").trim());
+      const veil = document.createElement("span");
+      veil.setAttribute("aria-hidden", "true");
+      while (el.firstChild) veil.appendChild(el.firstChild);
+      el.appendChild(veil);
+      splitWords(veil);
+    });
+
+    if (reduceMotion) {
+      chars.forEach((c) => c.classList.add("on"));
+    } else {
+      let lit = 0;
+      const render = (target) => {
+        target = Math.max(0, Math.min(chars.length, target));
+        if (target === lit) return;
+        if (target > lit) for (let i = lit; i < target; i++) chars[i].classList.add("on");
+        else for (let i = lit - 1; i >= target; i--) chars[i].classList.remove("on");
+        lit = target;
+      };
+      const update = () => {
+        const r = root.getBoundingClientRect();
+        if (!r.height) return render(0); /* another view is on stage — reset for the replay */
+        const vh = window.innerHeight || 1;
+        const enter = vh * 0.85; /* first chars light as the section top clears the fold */
+        const exit = vh * 0.3;   /* the last char lands when the section bottom reaches the top third */
+        const p = (enter - r.top) / (enter - exit + r.height);
+        render(Math.round(Math.max(0, Math.min(1, p)) * chars.length));
+      };
+      let queued = false;
+      const onLit = () => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => {
+          queued = false;
+          update();
+        });
+      };
+      window.addEventListener("scroll", onLit, { passive: true });
+      window.addEventListener("resize", onLit);
+      window.addEventListener("hashchange", () => requestAnimationFrame(onLit));
+      window.addEventListener("load", onLit);
+      window.__litText = update; /* showView nudges this when home re-enters */
+      update();
+    }
+  }
 }
 
 /* ————————————————— Committees deck (pinned scroll) ————————————————— */

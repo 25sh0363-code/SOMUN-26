@@ -1,0 +1,396 @@
+     1→# Worklog
+     2→
+     3→---
+     4→Task ID: 4
+     5→Agent: main (Super Z)
+     6→Task: Remove committee filters, adopt SOMUN-mark.png as logo, redesign deck panels as ultra-fancy museum dossier cards using user-uploaded art assets.
+     7→
+     8→Work Log:
+     9→- Copied uploads into public/: somun-mark.png, committees/justice.png (Lady Justice, transparent), committees/relic.png (ceremonial axe, transparent), committees/unesco-art.jpg (ArtExpo Tehran), committees/ip-collage.jpg (torn paper), committees/unhrc-uprising.jpg (corporatocracy painting), textures/red-texture.jpg (footer.jpg), textures/hero-collage.jpg (hero.jpg); Corporatocracy 2.jpg = byte-identical duplicate, skipped; src/app/icon.png = SOMUN mark favicon
+    10→- data.ts: added CommitteeArt interface + COMMITTEE_ART map (photo/figure/credit per chamber); uploaded art mapped thematically (justice→UNSC, axe→DISEC, uprising→UNHRC, ArtExpo→UNESCO, collage→IP); credits rendered as plate captions
+    11→- CommitteesView rebuild: filters + pickFilter removed entirely; deck shows all 9; panels are now framed dossier cards — outer beige border + 4 SVG filigree corners + inner crimson hairline, crimson wax-seal medallion with roman numeral straddling top edge, dashed ticket perforation seam between plate (left) and particulars (right), duotone photo treatment (grayscale+sepia+multiply crimson), transparent figure PNGs float over UNSC/DISEC plates, DOSSIER Nº kicker + rotated difficulty stamp, fleuron rule, diamond agenda bullets, "Take the seat" button with crimson sweep hover, giant hollow acronym watermark per panel, hero-collage.jpg as darkened section backdrop; card entrance = rotateY perspective + staggered children; clickable roman-numeral rail + prev/next chevrons (goTo scrolls runway proportionally)
+    12→- Logo: Navigation Seal → somun-mark img (mix-blend-screen, size 44/48) + tagline only (mark already contains SOMUN wordmark); Footer brand mark size-16; removed unused Seal imports (Nav/Footer/HomeView)
+    13→- Textures: QuoteBand gained red-texture.jpg multiply overlay + somun-mark watermark; footer bottom bar got faint red-texture strip; § note card uses red-texture at 8%
+    14→- Bug fixes: (1) mobile description collapsed to height 0 — overflow:hidden from line-clamp made flex min-size 0 under squeezed grid % rows; fixed with auto rows on mobile + fixed plate height h-44/52 + shrink-0 on description; (2) roman-numeral rail overflowed 390px — tighter min-widths/gaps
+    15→- Verified via agent-browser: dossier card desktop (I UNSC w/ justice, II DISEC w/ axe, III UNHRC painting, V UNESCO art, IX IP collage), rail jump + chevrons, counter/progress updates, mobile 390px full layout + no horizontal overflow, home navbar/footer/QuoteBand branding, lint green, no console errors
+    16→
+    17→Stage Summary:
+    18→- Committees deck is now a cinematic museum-dossier experience: one framed card per chamber with wax seals, filigree corners, duotone plates and floating relics; filters gone; numeral rail navigation
+    19→- SOMUN mark is now the site-wide logo + favicon; uploaded red/collage textures woven into QuoteBand, footer and deck backdrop
+    20→
+    21→---
+    22→Task ID: 3
+    23→Agent: main (Super Z)
+    24→Task: Rebuild Committees deck per user feedback — ONE chamber on screen at a time, details LEFT, image RIGHT, scroll snaps chamber by chamber.
+    25→
+    26→Work Log:
+    27→- Generated 9 consistent dark-academia committee photos via image-generation skill (scripts/gen-committee-images.mjs, 864x1152, black/red/beige, chiaroscuro): UNSC horseshoe table, DISEC assembly hall, UNHRC raised hand, WHO globe+stethoscope, UNESCO heritage vase, UNCSW speaker silhouette, UNICEF school desk, AIPPM parliament chamber, IP typewriter → public/images/committees/{slug}.png (~950KB total)
+    28→- Rewrote CommitteesView as pinned full-screen slide deck: sticky h-screen viewport inside runway section (height = max(280vh, n*78vh)), track = flex of w-full panels, useMotionValue x + animate() spring (stiffness 110/damping 24); useScroll progress rounds to nearest chamber index (one snap per scroll gesture, works both directions)
+    29→- Each panel: LEFT details column (CHAMBER NN · difficulty kicker, huge acronym, badge, org name, description, agendas, seats + Delegate CTA) / RIGHT full-bleed photo with ink gradient + caption strip + index numeral; mobile stacks image-top/details-bottom (34%/66% rows)
+    30→- Per-chamber staggered reveal: panelVariants staggerChildren 0.09, whileInView amount 0.35/0.45 → text items rise in sequence + image scale 1.07→1 each time a chamber takes the stage; track re-keys on filter change
+    31→- Fixed lint set-state-in-effect: filter reset moved into pickFilter handler (x.jump(0), instant scroll to section start)
+    32→- Fixed resize bug: stale x from old viewport width stranded deck between panels → resize listener re-anchors x to -activeIdx*innerWidth
+    33→- Restored useEffect import accidentally dropped during edit (caused client exception, caught via agent-browser)
+    34→- Verified: chamber 01 UNSC render, scroll→03 UNHRC snap, Beginner filter→01/03 WHO rewind, mobile 390px layout fits viewport, backward scroll returns to 04, post-resize alignment fixed (05 UNESCO perfect), bottom § note reachable, home hero regression-free, lint green
+    35→
+    36→Stage Summary:
+    37→- Committees is now a cinematic one-at-a-time slide deck (details left / photo right) with per-chamber staggered reveals on scroll; resize-safe, filter-safe, mobile-safe
+    38→- 9 AI-generated committee photographs added under public/images/committees/
+    39→
+    40→---
+    41→Task ID: 2
+    42→Agent: main (Super Z)
+    43→Task: Revision pass — rename SOVEREIGN → SOMUN, remove duplicate Register in navbar, rebuild Committees as scroll-driven horizontal gallery.
+    44→
+    45→Work Log:
+    46→- Renamed all SOVEREIGN MUN references to SOMUN: layout.tsx metadata (title/description/OG/keywords), Navigation brand + aria, Footer brand/description/copyright, HomeView hero ("SOMUN / '26" + stacked MODEL UNITED NATIONS · HYDERABAD label), About copy, Pillars kicker, QuoteBand kicker, data.ts (CONFERENCE.name, email secretariat@somun.in, SOMUN Socials Night, SOMUN Charter, SOMUN '27), globals.css comment
+    47→- Removed duplicate Register: dropped "register" from Navigation LINKS (desktop + mobile drawer show Home/Committees/Itinerary + Register Now CTA); footer sitemap keeps Register entry
+    48→- Rebuilt CommitteesView as pinned horizontal scroll gallery: section height scales with card count (30vh/card, min 160vh), sticky h-screen viewport, track x driven by useScroll+useTransform (measured scrollWidth - innerWidth), cards reveal sequentially via whileInView (once, -70px right margin) with alternating vertical offsets, crimson progress rail + live "NN / NN chambers" counter (useMotionValueEvent), edge fade gradients, "scroll to advance" hint
+    49→- Filter UX: filtered list re-keys track (fresh reveal), always glides scroll to gallery start (section.offsetTop) so filtered chambers lead the view
+    50→- Fixed mobile card footer overflow (flex-wrap, tighter tracking, "Delegate UNSC" wording)
+    51→- Verified via agent-browser: SOMUN title/hero/footer, nav 3 links + CTA (no duplicate), gallery slides 03/09→07/09 with progress bar, Beginner=3 Intermediate=4 filters re-anchor to scrollY=579 (gallery start), mobile gallery + hero + menu verified, lint clean
+    52→
+    53→Stage Summary:
+    54→- SOMUN branding consistent site-wide; single Register CTA in nav
+    55→- Committees page is now a cinematic scroll-driven horizontal reveal gallery, works desktop + mobile
+    56→
+    57→---
+    58→Task ID: 1
+    59→Agent: main (Super Z)
+    60→Task: Build MUN conference website (Home / Committees / Itinerary / Register) with black-red-beige theme, inspired by a dark-academia Pinterest poster style.
+    61→
+    62→Work Log:
+    63→- Initialized fullstack env (Next.js 16 + TS + Tailwind 4 + shadcn/ui + Prisma/SQLite)
+    64→- Updated prisma/schema.prisma → Registration model (refCode unique, 3 committee prefs, accommodation flag); ran db:push
+    65→- Design system in globals.css: ink (#0d0a08) / beige (#ece1cb) / crimson (#c8102e) palette tokens, grain overlay, marquee keyframes, hollow text watermark, custom scrollbar
+    66→- layout.tsx: Playfair Display (display serif) + Inter via next/font/google
+    67→- src/components/mun/: data.ts (9 committees + 3-day itinerary + fees), Seal.tsx (SVG laurel-globe emblem), Navigation (fixed, blur-on-scroll, hash router, mobile drawer), Footer (sticky, mt-auto), shared.tsx (Reveal/SectionHead/PageWrap)
+    68→- Views: HomeView (hero + countdown to Oct 16 2026 + stats, ticker, about, pillars, committee preview, red quote band, CTA), CommitteesView (difficulty filter + animated grid), ItineraryView (day tabs + timeline + protocol notes), RegisterView (validated form → POST /api/register → success screen with ref code; fees/deadlines sidebar)
+    69→- API: src/app/api/register/route.ts — validation + unique SM26-XXXXX ref codes + Prisma insert
+    70→- page.tsx: single-page shell with hash-based routing (#/, #/committees, #/itinerary, #/register) + AnimatePresence transitions
+    71→- Verification via agent-browser: all 4 views render, committee filter works (Beginner→3), day tabs work, form submitted end-to-end (toast + success screen, DB record SM26-ARTD5 confirmed, then deleted for clean start), mobile viewport + hamburger menu verified, hero overflow on mobile fixed (15vw)
+    72→
+    73→Stage Summary:
+    74→- Site fully working at / with black-red-beige editorial MUN branding ("SOVEREIGN MUN '26", Oct 16–18 2026, Hyderabad)
+    75→- Registrations persist to SQLite via /api/register with reference codes
+    76→- All lint/browser checks green
+    77→
+    78→---
+    79→Task ID: 5
+    80→Agent: main (Super Z)
+    81→Task: Add cinematic "ENTER" intro gate shown once when opening the website (user request) without changing anything else on the site.
+    82→
+    83→Work Log:
+    84→- New src/components/mun/EnterGate.tsx fixed overlay z-[80]: ink screen over subtle hero-collage backdrop (grayscale/sepia, screen blend 14%) + slow ambient zoom + travelling sheen sweep
+    85→- Idle sequence (~1.6s): hairline frame w/ crimson diamond studs fades in, corner metas (SOMUN '26 / SESSION IV / OCTOBER XVI–XVIII · MMXXVI / HYDERABAD, IN), crimson kicker "THE SECRETARIAT INVITES YOU TO" tracking-in, SOMUN mark rises blur→sharp with breathing crimson glow + mouse-parallax tilt (useSpring rotateX/Y), fleuron divider, MUN · HYDERABAD subtitle, ENTER seal = rotating SVG textPath ring "TAKE YOUR SEAT · THE CHAMBER AWAITS" + counter-spinning dashed crimson ring + arrow core disc that fills crimson on hover/focus, "ENTER_" caption; button auto-focuses at 1.7s for keyboard Enter
+    86→- Entry transition: content blows back (scale+blur+fade .42s), beige shutter flash, crimson keyhole beam ignites down center seam (scaleY keyframes + boxShadow bloom), two door halves (clipped copies of full-width backdrop, seam-gradient motion-blur edges) slide apart ±102% at delay .2s dur 1.15s ease [0.76,0,0.24,1]; sessionStorage 'somun-entered' set → skipped for rest of browser session; body scroll locked while gated, restored at click; timers cleaned up on unmount
+    87→- page.tsx state machine: phase checking|gated|live + gateUp flag; site tree (Navigation/views/Footer) renders only when live — mounts AT click so hero countdown/reveals animate while doors part; hash router, views and all other components untouched; rAF-deferred setState in effect satisfies react-hooks/set-state-in-effect
+    88→- globals.css additive utilities: .spin-slower (+group-hover speed-up), @keyframes spin-rev/.spin-reverse
+    89→- Fixed MultiEdit-mangled page.tsx tail by rewriting render block cleanly
+    90→- Verified via agent-browser: fresh load gate desktop 1440x900 (idle settle shot), click → mid-door split with glowing seam over animating hero → intact home; same-session reload skips gate (gate count 0); about:blank→#/committees deep link fresh doc → gate → committees "Choose your arena" deck intact; mobile 390px gate fits with no overflow, enter works, hero/countdown live behind doors; bun lint green; no console errors; tsc has zero errors in new files (remaining tsc items pre-existing in CommitteesView/examples/skills, untouched per user instruction)
+    91→
+    92→Stage Summary:
+    93→- Website now opens on a cinematic chamber-gate that plays once per session and splits open like doors on ENTER; all existing pages/behavior unchanged
+    94→
+    95→---
+    96→Task ID: 6
+    97→Agent: main (Super Z)
+    98→Task: Fix ENTER seal misalignment reported by user screenshot (rotating word ring spilled off-center below the button).
+    99→
+   100→Work Log:
+   101→- Root cause: button box auto-sized to only the static core disc (74/86px) while the 128/144px SVG word-ring used absolute inset-0 → anchored top-left of the small box, sticking out down-right; dashed ring inherited same off-center frame
+   102→- Fix: ENTER button now a fixed square grid (size-32 sm:size-36, grid place-items-center) so every layer shares one center: SVG ring inset-0 size-full, dashed crimson ring re-radiused (inset-[20px] sm:inset-6) to nest between disc edge and text path without collision, core disc centered by grid; bumped ring font 11→12 units for legibility
+   103→- Verified via agent-browser fresh sessions at 1440x900 and 390x844: ring concentric around disc, no overlap with ENTER_ caption; bun lint green
+   104→
+   105→Stage Summary:
+   106→- Gate ENTER control renders as a single aligned medallion on all viewports
+   107→
+   108→---
+   109→Task ID: 7
+   110→Agent: main (Super Z)
+   111→Task: Diagnose and recover from full workspace rollback — site was serving the original SOVEREIGN MUN version (Tasks 2–6 gone from disk).
+   112→
+   113→Work Log:
+   114→- User reported SOVEREIGN branding + old version live; grep confirmed src/ had regressed to pre-rebrand state: EnterGate.tsx deleted, somun-mark/logo/art/textures gone from src+public, page.tsx gate wiring gone; a platform auto-commit (93e6f17, 17:16 UTC) had snapshotted the rolled-back tree
+   115→- Found a complete newer-state copy at /tmp/my-project (EnterGate.tsx mtime 13:37 = includes Task 6 seal fix; worklog 106 lines; public/images with somun-mark + 14 committee photos + textures; icon.png favicon; DB byte-identical)
+   116→- Restored src/, public/, scripts/, worklog.md from /tmp/my-project via cp -a (merge, node_modules/.next/db untouched)
+   117→- Post-restore checks: 0 stray SOVEREIGN refs (only legit 'sovereignty' in WHO agenda), layout 5×SOMUN, page.tsx EnterGate wired, favicon back
+   118→- Browser verification: server HTML has 12× SOMUN / 0× SOVEREIGN; gate shows with concentric fixed seal; enter → home title "SOMUN '26 | Model United Nations Conference"; committees dossier deck intact with SOMUN nav; bun lint green
+   119→- Safety: committed restored state to git ("Restore SOMUN v2...") so any future rollback can be reverted via git
+   120→
+   121→Stage Summary:
+   122→- Full SOMUN experience recovered 1:1 (rebrand + dossier deck + art/logo/textures + ENTER gate with seal alignment fix)
+   123→- Recovery source: /tmp/my-project; new git commit = future restore point
+   124→
+   125→---
+   126→Task ID: 8
+   127→Agent: main (Super Z)
+   128→Task: Add subtle "8th edition" text + fix ugly grey spot between dossier cards in the committees deck (user report).
+   129→
+   130→Work Log:
+   131→- Eighth Edition marks (small, non-distracting, consistent with brand voice): HomeView hero meta "Est. MMXXIII · Eighth Edition" (was Fourth Session), EnterGate corner meta "EIGHTH EDITION" (was SESSION IV), Footer bottom bar "Eighth Edition · MMXXVI"; data.ts itinerary "Committee Session IV" left as-is (day-3 agenda item, different meaning)
+   132→- Deck grey-spot fix in CommitteesView: (a) backdrop collage opacity 0.11→0.07 + ink gradient via-ink/70→via-ink/85 so inter-card gap reads near-black; (b) giant hollow acronym watermarks now motion.div dimming to opacity 0.14 on non-active panels (0.5s fade) so mid-slide fragments vanish; (c) added seam vignettes inside each panel — inset-y-0 w-16 sm:w-36 ink gradients at left/right edges (z-5, under card) so panels melt into darkness at their seams
+   133→- Verified: hero/footer/gate screenshots show Eighth Edition marks; deck transition frame (I→II mid-slide) shows clean dark seams, only faint ghost of neighboring watermark; bun lint green; git commit snapshot
+   134→
+   135→Stage Summary:
+   136→- "Eighth Edition" branding woven into hero, gate and footer
+   137→- Committee deck transitions are ink-clean: no more grey collage/watermark fragments between dossier cards
+   138→
+   139→---
+   140→Task ID: 9
+   141→Agent: main (Super Z)
+   142→Task: Fix ugly grey spot between UNSC and UNHRC cards in home "Nine chambers" grid (user screenshot 2026-08-28 12.35.48 PM)
+   143→
+   144→Work Log:
+   145→- Reproduced live at 1440x900: grey band = grid container bg-line (#2a211a) showing under UNSC card
+   146→- Root cause: CommitteePreview grid uses gap-px bg-line for hairlines; row height = tallest card (DISEC 256px) but UNSC button was 238px with no h-full -> grey backing exposed
+   147→- Fix: added h-full to preview card button (HomeView.tsx line 376) so every card fills its cell
+   148→- Verified: card heights now equal per row (256/256, 238/238); desktop + mobile screenshots clean; Pillars grid audited (safe, wrapper painted bg-ink)
+   149→- bun run lint green; tsc note pre-existing (CommitteesView variants, untouched)
+   150→
+   151→Stage Summary:
+   152→- Grey spot eliminated; home chambers grid now shows only clean 1px hairline seams
+   153→- Commit: "Fix grey band between chamber cards..."
+   154→
+   155→---
+   156→Task ID: 10
+   157→Agent: main (Super Z)
+   158→Task: Clean repo for GitHub publish — remove template junk, trim deps, fix pre-existing type errors, UI must stay ditto
+   159→
+   160→Work Log:
+   161→- Traced real imports: site uses only 8 of 50 ui components (button,input,label,select,switch,textarea,toast,toaster)
+   162→- Deleted 39 unused ui components + hooks/use-mobile.ts; kept platform files (.zscripts, Caddyfile, mini-services, examples, tests) on disk but untracked + gitignored
+   163→- bun remove: 49 unused packages (dnd-kit, mdxeditor, 27 radix pkgs, tanstack, recharts, vaul, sonner, zod, zustand, next-auth, etc.)
+   164→- Fixed pre-existing TS errors type-only: Variants annotations in CommitteesView (5 variant consts), removed transformPerspective from transition (verified ignored at runtime via motion-dom source), rewrote circular self-importing types.ts stub to define View union
+   165→- Verified: bun run lint clean; tsc 0 errors in site code; bun run build passes; 4 screenshots (hero/chambers/register + layout) pixel-identical to pre-cleanup baselines
+   166→- Amended single clean commit 94cb758-lineage for publish
+   167→
+   168→Stage Summary:
+   169→- Repo shrunk from ~180 to ~90 tracked files; deps from 60 to 17; site code typechecks clean
+   170→- UI 100% unchanged (verified by screenshot diff)
+   171→- GitHub push still pending user token permission fix (403 earlier)
+   172→
+   173→---
+   174→Task ID: 11
+   175→Agent: main (Super Z)
+   176→Task: Second cleanup pass — user flagged remaining config files as possibly unused
+   177→
+   178→Work Log:
+   179→- Audited each config: tailwind.config.ts NOT referenced anywhere (Tailwind v4 CSS-first, theme lives in globals.css @theme) -> deleted + removed tailwindcss-animate dep
+   180→- components.json only used by shadcn CLI (not the build) -> deleted
+   181→- Verified in-use and kept: next.config.ts, tsconfig.json, postcss.config.mjs, eslint.config.mjs, prisma/ (register API), bun.lock
+   182→- lint clean, build passes, dev 200, hero screenshot identical
+   183→
+   184→Stage Summary:
+   185→- Repo now 56 files, every one load-bearing; UI ditto
+   186→
+   187→---
+   188→Task ID: 12
+   189→Agent: main (Super Z)
+   190→Task: User restructure requests — delete scripts/, rename prisma/ to backend/, questions on bun.lock + root files; Supabase planned as DB
+   191→
+   192→Work Log:
+   193→- Deleted scripts/ (gen-committee-images.mjs) from repo and disk (local screenshot baselines cleaned too)
+   194→- git mv prisma -> backend; updated all db:* npm scripts with --schema backend/schema.prisma
+   195→- Added Supabase switch instructions as schema comment (provider sqlite -> postgresql + DATABASE_URL, when user creates Supabase project)
+   196→- .env uses absolute DB path so no DB path breakage; verified db:generate, register API validation, lint, build all green
+   197→- bun.lock kept (pins exact versions for reproducible installs/deploys); root config files kept (tools require them at root by convention)
+   198→- Amended single commit; final repo = 55 files
+   199→
+   200→Stage Summary:
+   201→- Structure: src/ (site) + backend/ (schema) + public/ (assets) + 6 root configs
+   202→- Supabase migration documented in backend/schema.prisma for later; UI untouched
+   203→- GitHub push still blocked on token Contents:Read-and-write permission
+   204→
+   205→---
+   206→Task ID: 12
+   207→Agent: main (Super Z)
+   208→Task: Force-push clean single-commit main to GitHub SOMUN-26 with new token
+   209→
+   210→Work Log:
+   211→- Verified remote already configured with new token; local main = 466f640 (single orphan commit)
+   212→- git push --force origin main → fd5538d...466f640 (forced update) SUCCESS
+   213→- Immediately removed token from remote URL (git remote set-url)
+   214→- Verified: git ls-remote origin main = 466f640, matches local
+   215→- Verified: 55 tracked files, zero sensitive files (no .env/.db/worklog/upload)
+   216→
+   217→Stage Summary:
+   218→- GitHub repo 25sh0363-code/SOMUN-26 now contains single clean commit 466f640
+   219→- Old leaked history still accessible by SHA on GitHub (force-push does not purge)
+   220→- Pending user decisions: repo delete+recreate for full purge; revoke old token
+   221→
+   222→---
+   223→Task ID: 13
+   224→Agent: main (Super Z)
+   225→Task: Add Secretariat + Resources pages, Itinerary 'Releasing Soon', Executive Board TBA section
+   226→
+   227→Work Log:
+   228→- types.ts: View union extended with "secretariat" | "resources"
+   229→- page.tsx: hashes #/secretariat #/resources, viewFromHash cases, render branches
+   230→- Navigation.tsx: 5 links (Home/Committees/Secretariat/Itinerary/Resources); desktop nav md->lg breakpoint (5 links + CTA need width); drawer auto lg:hidden
+   231→- shared.tsx: new SoonStamp rubber-stamp chip component
+   232→- SecretariatView.tsx NEW: hero + "Core Seven" seats (Seat I-VII, To be announced, lock icons) + 6 USG placeholder cards + quote/contact panel
+   233→- ResourcesView.tsx NEW: 4 archive cards (Study Guides/Rules of Procedure/Position Paper Brief/Delegate Handbook, all Soon) + 9-committee study-guide index (each "releasing soon")
+   234→- ItineraryView.tsx: rewritten to 'Releasing Soon' panel (ITINERARY data kept in data.ts for future release)
+   235→- CommitteesView.tsx: new Executive Board section after deck — all 9 committees with Chair/Vice Chair/Secretary rows, each "to be announced" + lock
+   236→- RegisterView: section index IV->VI; footer contact heading "Secretariat"->"Contact"
+   237→- Verified: eslint clean, src/ tsc clean, next build passes, browser-tested all pages desktop+mobile, 0 console errors
+   238→
+   239→Stage Summary:
+   240→- New pages: #/secretariat, #/resources; Itinerary now teaser; Exec Board TBA grid on Committees
+   241→- Ready to commit + push
+   242→
+   243→---
+   244→Task ID: 14
+   245→Agent: main (Super Z)
+   246→Task: Convert entire site to pure HTML/CSS/JS (0 loss) + Supabase integration
+   247→
+   248→Work Log:
+   249→- Restore point BEFORE conversion: git tag nextjs-v1-restore-point + branch backup/nextjs + download/somun26-nextjs-backup.zip
+   250→- Built static site at repo root: index.html (6 views), css/styles.css (~2000 lines handwritten design system), js/data.js (editable data: 12 committees, dates Oct30-Nov1), js/config.js (Supabase keys placeholder), js/main.js (router/gate/countdown/deck-spring/form/resources), js/icons.js (30 pixel-exact lucide SVGs extracted via scripts/gen-icons.mjs), supabase-setup.sql (registrations+resources tables, RLS, storage bucket)
+   251→- 12 finalised committees: UNHRC DISEC UNOOSA UNCSW UNODC ECOSOC UNCTC HCC/CCC IP LokSabha/AIPPM ICC MCU (photo fields empty → framed placeholder plates)
+   252→- Dates updated everywhere: Oct 30 — Nov 1 2026, countdown target 2026-10-30, gate corner October XXX–November I, itinerary kicker
+   253→- images/committees/* deleted (public/); site images copied to root images/
+   254→- Supabase: form posts to registrations (refCode SM26-XXXXX, same validation as old API); resources page reads released rows → unlock guide rows + download buttons; graceful "not configured" fallback
+   255→- Verified vs Next (localhost:3100) side-by-side at 1440px: home/deck/exec/resources/register/itinerary identical; fixed countdown align-self bug + deck spring slide-width (scrollbar) bug; mobile 390px identical; 0 console errors
+   256→- NOTE: platform auto-snapshot created commit f0f4ef2 mid-build; reset it (git reset HEAD~1) — nothing committed per user request; HEAD stays at 7b79a6e
+   257→- Servers for review: Next ref on :3100, static on :3200 (python http.server)
+   258→
+   259→Stage Summary:
+   260→- Static conversion complete, pending user review → then commit + push (needs token)
+   261→- Restore point intact (tag + branch + zip)
+   262→
+   263→---
+   264→Task ID: 15
+   265→Agent: main (Super Z)
+   266→Task: "remove the old files bro" — strip the entire old Next.js stack now that static conversion is approved
+   267→
+   268→Work Log:
+   269→- Verified restore point BEFORE removal: tag nextjs-v1-restore-point = branch backup/nextjs = 7b79a6e (full Next.js version); download/somun26-nextjs-backup.zip also intact
+   270→- git rm: src/, backend/, public/, scripts/, package.json, bun.lock, next.config.ts, tsconfig.json, postcss.config.mjs, eslint.config.mjs
+   271→- rm -rf (untracked): node_modules/, .next/, db/ (old SQLite), .env (old DATABASE_URL), next-env.d.ts, tsconfig.tsbuildinfo, dev.log, server.log, examples/, tests/
+   272→- Killed next-server (:3000), bun standalone (:3100), old python static (:3200)
+   273→- .gitignore rewritten for the static era (worklog/upload/download/skills/platform files ignored; .env* still blocked)
+   274→- Squashed platform auto-commit 7281bdd away: git reset --soft 7b79a6e -> one clean commit e3c2f0a "Convert site to pure HTML/CSS/JS + Supabase wiring; remove Next.js stack"
+   275→- History now: 466f640 (Next.js site) -> 7b79a6e (pages) -> e3c2f0a (pure static, 12 files tracked: index.html, css/, js/ x4, images/ x3, robots.txt, supabase-setup.sql, .gitignore)
+   276→- Serving: python3 http.server on :3000 via (setsid ... &) survivor pattern (Caddy preview proxies -> :3000); first two nohup attempts died between tool calls, setsid+disown also died, (setsid cmd &) survives
+   277→- Browser-verified after removal: gate ENTER, countdown 10d to Oct 30, OCT 30 dates, all 12 committees on Committees page, Resources fallback when Supabase unconfigured, Register form 11 fields + supabaseLoaded=false (placeholders), 0 console errors
+   278→
+   279→Stage Summary:
+   280→- Repo is now pure HTML/CSS/JS only — no Node, no build step, no backend code on disk
+   281→- Next.js version fully recoverable: backup/nextjs branch, nextjs-v1-restore-point tag, download/somun26-nextjs-backup.zip
+   282→- Pending: user's Supabase project URL + anon key (js/config.js) + run supabase-setup.sql; token to push e3c2f0a + 7b79a6e to GitHub
+   283→
+   284→---
+   285→Task ID: 16
+   286→Agent: main (Super Z)
+   287→Task: "keep backend folder empty for now and remove robot.txt and supabase-setpu and wt is use of posts.config tsconfig when we deleted the old stuff"
+   288→
+   289→Work Log:
+   290→- Removed robots.txt + supabase-setup.sql from git and disk; SQL copy preserved at download/supabase-setup.sql (gitignored, needed when user creates Supabase project)
+   291→- js/config.js setup instructions updated to point at download/supabase-setup.sql; node --check syntax OK
+   292→- Created backend/ as empty placeholder with .gitkeep (git can't track truly empty dirs) — user wants it for future backend work
+   293→- postcss.config.mjs + tsconfig.json were ALREADY deleted in e3c2f0a (last cleanup); user likely seeing them on GitHub because repo there is still at 466f640 — everything updates once token push happens
+   294→- Commit on top of e3c2f0a; site re-verified 200 on :3000
+   295→
+   296→Stage Summary:
+   297→- Repo tree now: index.html, css/, js/ x4, images/ x3, backend/.gitkeep, .gitignore
+   298→- Static site unaffected; Supabase wiring instructions intact via config.js comments
+   299→
+   300→---
+   301→Task ID: 17
+   302→Agent: main (Super Z)
+   303→Task: "why that green square" — user screenshot showed a lime focus outline around the gate ENTER seal
+   304→
+   305→Work Log:
+   306→- Root cause: main.js auto-focuses #gate-enter at 1.7s (keyboard Enter support); CSS styled :focus-visible on the inner disc but never zeroed the button's outline, so Safari/Chrome painted their stock lime/blue focus ring square
+   307→- Fix: outline: none on .gate-enter base rule (comment explains keyboard affordance lives on the disc: crimson fill + arrow nudge via existing :focus-visible rules)
+   308→- Verified via agent-browser fresh session: activeElement===button, computed outlineStyle none, screenshot shows no green box, seal renders normally
+   309→- Bonus confirmation: user's screenshot URL proves platform preview (preview-chat-1acaad53-...space-z.ai) serves the static site correctly via Caddy->:3000
+   310→
+   311→Stage Summary:
+   312→- Gate ENTER seal no longer shows a browser focus square; keyboard affordance preserved (crimson disc)
+   313→- Committed on top of the trim commit; preview pipeline (public URL -> Caddy -> python :3000) confirmed working
+   314→
+   315→---
+   316→Task ID: 18
+   317→Agent: main (Super Z)
+   318→Task: "do not mention no of delegates anywhere alr?? just replace it with smthing else" (screenshot showed deck chip "40 DELEGATIONS")
+   319→
+   320→Work Log:
+   321→- Hunted all count mentions: index.html meta + hero + stats strip; main.js preview foot + deck chip; data.js per-committee delegates fields
+   322→- Replacements: hero "Three charged days."; stats cell "01 Chamber of Ideas"; preview foot "Nº 01 · 2 agendas →" (Nº matches deck kickers); deck chip "2 agenda items" with scroll-text icon, CSS class renamed .delegations -> .dossier-meta; data.js delegates fields deleted (12 lines)
+   323→- Kept generic 'delegate' words (Delegate pass ₹1,500, kit notes, outstation delegates) — user objected to NUMBERS only
+   324→- Verified via agent-browser: stats strip 12/01/30+/03, preview feet Nº XX · 2 AGENDAS, deck chip "2 AGENDA ITEMS", zero 'delegations'/'five hundred' hits; deck foot layout intact (screenshot)
+   325→- Note: browser served stale cached index.html once — hard reload fixed; python http.server + mtime revalidation handles it for real users after refresh
+   326→
+   327→Stage Summary:
+   328→- Site carries zero delegate-count numbers; committee docket size + dossier numbering used instead
+   329→- Committed; pending unchanged (Supabase keys, push token)
+   330→
+   331→---
+   332→Task ID: 19
+   333→Agent: main (Super Z)
+   334→Task: "well being honest lots of animations were changed or removed completely why?" — full animation audit vs backup/nextjs
+   335→
+   336→Work Log:
+   337→- Extracted Next.js reference (git archive backup/nextjs) and diffed EVERY motion: gate (doors/beam/flash/sheen/breath/kicker-tracking/corner-stagger/mark-blur-rise/parallax-tilt/glow/ring-spins/underscore-blink/autofocus), hero timing chain (0.15/0.25/0.4/0.55/0.75), deck (spring k110/c24/m0.9, card rotateY+y64, stag() 0.085s stagger, art 1.08->1 1.05s, watermark 0.14<->1, deck-bar spring), reveals (y28/0.7s/-60px/once), drawer fade 0.3s, nav blur 0.5s, hovers, ticker, itinerary stagger, view enter+exit (AnimatePresence mode=wait replicated via WAAPI)
+   338→- Verdict: ~95% was faithful; REAL deltas = remount semantics (React remounted views every visit -> reveals/deck cascade/register form replayed EVERY entry; static ran once per session = the "animations removed" feel) + register success screen lost its rise-in + stale-cache trap hiding new JS
+   339→- Fixes: window.__rearmReveals(scope) re-arms .reveal on entering view; deckOnShow strips .on-stage + reflow + re-add (cascade replays); register resets to fresh form each visit; #reg-success:not([hidden]) fadeUpSm 0.6s; showView cancels fill:forwards WAAPI residue (view could re-enter invisible - headless never auto-removes replaceable animations); .dev/serve.py no-cache preview server (gitignored)
+   340→- Verified via agent-browser (no-cache server, fresh context): home->secretariat->home renders + reveals re-fire; committees re-entry replays cascade (DISEC dossier + wax seal + rail 02/12 after scroll); register form/success reset; 0 console errors
+   341→- Note: headless frame throttling makes mid-animation captures flaky (IO/transitions only advance on rendered frames); real browsers render continuously - verified logic via computed styles + burst screenshots
+   342→
+   343→Stage Summary:
+   344→- Static site now replays page choreography on EVERY entry like the original remount behavior; invisible-reentry guard in place
+   345→- Commit on main; preview serving fresh content reliably
+   346→
+   347→---
+   348→Task ID: 20
+   349→Agent: main (Super Z)
+   350→Task: "we dont got twitter only insta and mail, somundelaffairs@gmail.com thats the mail id and remove phone no" + restore register fee-box scroll-follow behavior
+   351→
+   352→Work Log:
+   353→- Contact: footer socials now Instagram (https://www.instagram.com/somun.hyd/, target=_blank rel=noopener) + mailto:somundelaffairs@gmail.com; Twitter button deleted; site email swapped to somundelaffairs@gmail.com in footer contact, secretariat mail button, and CONFERENCE.email (register intro picks it up via template); phone number removed from footer + CONFERENCE data; dead .footer-phone CSS rule dropped
+   354→- Sticky root-cause: .reg-side (position:sticky top:7rem, already present) sat INSIDE a .reveal wrapper that was the actual grid item sized to the sidebar's own 641px (align-items:start) -> sticky child had zero travel room, scrolled off (measured sideTop -223 at scrollY 724). Ruled out viewIn fill-both transform + .reveal will-change empirically (both neutralized, still broken)
+   355→- Fix: merged wrapper into <div class="reveal reg-side" data-delay="0.15"> so the sticky element IS the grid item -> containing block = full grid row (matches original Reveal lg:sticky lg:top-28). One div level removed, closing tags rebalanced
+   356→- Verified (agent-browser, instant-scroll stops): sideTop 501 natural -> PINNED 112px at scrollY 400-600 -> releases at column end (13px @900) exactly like original column-sticky; reveal fires on merged element; mobile 390px = static flow (matches original <lg); instagram/mailto hrefs correct, twitter/phone/old-email zero hits, 0 console errors; node --check OK
+   357→
+   358→Stage Summary:
+   359→- Site contact = Instagram @somun.hyd + somundelaffairs@gmail.com only; no phone, no Twitter
+   360→- Register fee/deadlines sidebar follows scroll on desktop like the Next.js original
+   361→- Commit 996b6fd on main (7 commits ahead of remote; push still awaiting fresh PAT)
+   362→
+   363→---
+   364→Task ID: 21
+   365→Agent: main (Super Z)
+   366→Task: "small error with the countdown in mobile view and the box below doesnt have the right boarder" (user screenshots from live 25sh0363-code.github.io at 471px)
+   367→
+   368→Work Log:
+   369→- Discovered remote main is now 5a55e3c: site is LIVE on GitHub Pages (user pushed themselves); local is ahead with 996b6fd (contacts/sticky) + this fix
+   370→- Countdown phantom slot reproduced at 471px: .countdown is block-level flex -> full content width (431px) while 4 cells stayed natural size (292px total) leaving ~140px empty after SECS; desktop never showed it (parent hugs content)
+   371→- Fix 1: .countdown-cell flex:1 1 0 -> cells split strip evenly (107/108/108/108 at 471px), screenshot-verified edge-to-edge
+   372→- Fix 2: .stats-cell border-right was >=768px only, so the 2-col mobile stats grid had no right edge and no inner vertical divider; made border-right unconditional, box now fully enclosed 2x2
+   373→- Verified 471/390 mobile + 1440 desktop unchanged (385px strip, 4 cols); 0 console errors
+   374→- git push from sandbox failed (no credentials): remote updates when user syncs or provides PAT
+   375→
+   376→Stage Summary:
+   377→- Commit 18e9fd1 on main (2 commits ahead of deployed 5a55e3c: contacts+sticky, mobile fixes)
+   378→- Live Pages site shows old version until sync
+   379→
+   380→---
+   381→Task ID: 22
+   382→Agent: main (Super Z)
+   383→Task: replace deck "Take the seat" with "Explore the committee" -> per-committee pages; FAQs link in footer + mobile drawer only (placeholder copy user will edit)
+   384→
+   385→Work Log:
+   386→- Router: added "committee" + "faqs" views; viewFromHash parses #/committees/<slug> into currentCommittee; unknown slug redirects to deck; setActiveNav maps committee -> committees so the deck nav item stays lit
+   387→- renderCommitteePage(): crumb back-link, kicker (Committee <roman> · NN of 12 + diff chip), hollow clamp(3.5-8.5rem) acronym, fleuron, dossier plate (reuses .plate + artwork-slot empty state), description, roman-numbered agendas, Take-your-seat (register) + Browse-all CTAs; hydrateIcons after render
+   388→- Fixed invisible-page bug: fresh .reveal elements after render were never IO-observed (rearm only touches .in-view; boot observes before committee content exists) -> showView calls __observeReveals() after renderCommitteePage
+   389→- Deck .take-seat CTA + home .preview-card now carry data-committee=<slug> with a click delegation that routes to #/committees/<slug>; CTA label "Explore the committee"
+   390→- FAQs: FAQS[6] placeholders in data.js (comment: edit freely); details/summary accordion styled (numerals, chevron rotate, open-on-first); section VII head; footer link + drawer link 06 only, desktop nav untouched
+   391→- Verified (agent-browser 1440 + 390): deck CTA->unhrc page, preview card->unoosa, crumb->deck, bogus slug->deck, direct loads reveal (opacity 1), register CTA->#/register, accordion toggles, drawer FAQs->#/faqs + closes, mobile 1-col 56px acronym no h-overflow, 0 console errors; node --check OK
+   392→
+   393→Stage Summary:
+   394→- Commit be9a53b on main; local now 3 commits ahead of deployed 5a55e3c (contacts+sticky, mobile fixes, committee pages+FAQs)
+   395→- User edits FAQ copy in js/data.js FAQS array only
+   396→
