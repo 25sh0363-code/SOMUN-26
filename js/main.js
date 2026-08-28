@@ -6,7 +6,7 @@
    resources (Supabase) · itinerary
    ———————————————————————————————————————————————————————— */
 
-import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY } from "./data.js";
+import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS } from "./data.js";
 import { CONFIG, supabaseConfigured } from "./config.js";
 import { icon, hydrateIcons } from "./icons.js";
 
@@ -98,7 +98,7 @@ $("#year").textContent = new Date().getFullYear();
 {
   $("#preview-grid").innerHTML = COMMITTEES.slice(0, 4).map((c, i) => `
     <div class="reveal" data-delay="${(i * 0.07).toFixed(2)}">
-      <button class="preview-card" data-nav="committees" aria-label="Explore ${c.acronym}">
+      <button class="preview-card" data-committee="${c.slug}" aria-label="Explore ${c.acronym}">
         <div class="preview-top">
           <span class="preview-acronym">${c.acronym}</span>
           <span class="preview-diff">${c.difficulty}</span>
@@ -168,9 +168,9 @@ $("#year").textContent = new Date().getFullYear();
                 <div class="dossier-foot stagger-item" style="${stag(7)}">
                   <div class="dossier-foot-row">
                     <span class="dossier-meta"><i data-icon="scroll-text"></i>${c.agendas.length} agenda items</span>
-                    <button class="take-seat" data-nav="register" aria-label="Register for ${c.acronym}">
+                    <button class="take-seat" data-committee="${c.slug}" aria-label="Explore ${c.acronym}">
                       <span class="take-seat-fill"></span>
-                      <span class="take-seat-label">Take the seat <i data-icon="arrow-right"></i></span>
+                      <span class="take-seat-label">Explore the committee <i data-icon="arrow-right"></i></span>
                     </button>
                   </div>
                 </div>
@@ -187,6 +187,87 @@ $("#year").textContent = new Date().getFullYear();
     `<button class="deck-num" data-goto="${i}" aria-label="Go to committee ${i + 1}">${ROMAN[i]}<span class="deck-num-diamond"></span></button>`
   ).join("");
   $("#deck-total").textContent = `/ ${String(COMMITTEES.length).padStart(2, "0")}`;
+}
+
+/* ————————————————— Committee detail page (#/committees/<slug>) ————————————————— */
+
+function renderCommitteePage(slug) {
+  const idx = COMMITTEES.findIndex((c) => c.slug === slug);
+  if (idx === -1) return false;
+  const c = COMMITTEES[idx];
+  const roman = ROMAN[idx];
+  const plateInner = c.photo
+    ? `<img class="plate-art" src="${c.photo}" alt="${c.acronym} — ${c.name}" loading="eager" />
+       <div class="plate-shade"></div>
+       <div class="plate-tint"></div>`
+    : `<div class="plate-empty">
+         <span class="plate-empty-num">${roman}</span>
+         <span class="plate-empty-text">Chamber artwork — coming soon</span>
+       </div>`;
+  $("#committee-view").innerHTML = `
+    <div class="page-wrap">
+      <button class="crumb reveal" data-nav="committees" aria-label="Back to all committees">
+        <i data-icon="chevron-left"></i> All committees
+      </button>
+
+      <header class="committee-head reveal" data-delay="0.05">
+        <div class="committee-kicker-row">
+          <p class="committee-kicker">Committee ${roman} · ${pad2(idx + 1)} of ${pad2(COMMITTEES.length)}</p>
+          <span class="diff-chip diff-chip--${c.difficulty}">${c.difficulty}</span>
+        </div>
+        <h1 class="committee-acronym text-hollow">${c.acronym}</h1>
+        <p class="committee-name">${c.name}</p>
+        <div class="fleuron-rule" aria-hidden="true">
+          <span class="fleuron-rule-l"></span><span class="fleuron-rule-d"></span><span class="fleuron-rule-r"></span>
+        </div>
+      </header>
+
+      <div class="committee-grid">
+        <div class="committee-plate-col reveal" data-delay="0.1">
+          <div class="plate committee-plate">
+            ${plateInner}
+            <div class="plate-caption">
+              <p class="plate-credit">Official chamber dossier · artwork to follow</p>
+              <span class="plate-num">${pad2(idx + 1)}</span>
+            </div>
+          </div>
+          <p class="committee-plate-note"><i data-icon="gavel"></i> Rule of procedure and dais assignments release with the study guides.</p>
+        </div>
+
+        <div class="committee-body">
+          <p class="committee-desc reveal" data-delay="0.12">${c.description}</p>
+          <div class="agendas committee-agendas reveal" data-delay="0.16">
+            <p class="agendas-kicker">Before the house</p>
+            ${c.agendas.map((a, ai) => `<p class="agenda"><span class="agenda-diamond"></span><span class="agenda-roman">${ROMAN[ai]}.</span> ${a}</p>`).join("")}
+          </div>
+          <div class="committee-cta reveal" data-delay="0.2">
+            <button class="btn btn--crimson btn--arrow" data-nav="register">
+              Take your seat <i data-icon="arrow-right"></i>
+            </button>
+            <button class="btn btn--outline" data-nav="committees">Browse all committees</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  hydrateIcons();
+  return true;
+}
+
+/* ————————————————— FAQ list (data.js · FAQS) ————————————————— */
+
+{
+  const el = $("#faq-list");
+  if (el) {
+    el.innerHTML = FAQS.map((f, i) => `
+      <details class="faq-item reveal" data-delay="${(i * 0.05).toFixed(2)}"${i === 0 ? " open" : ""}>
+        <summary class="faq-q">
+          <span class="faq-num">${pad2(i + 1)}</span>
+          <span class="faq-q-text">${f.q}</span>
+          <i data-icon="chevron-down" data-cls="faq-chev"></i>
+        </summary>
+        <div class="faq-a"><p>${f.a}</p></div>
+      </details>`).join("");
+  }
 }
 
 /* ————————————————— Executive board cards (all TBA) ————————————————— */
@@ -333,7 +414,7 @@ $$("[data-committee-select]").forEach((sel) => {
 
 /* ————————————————— Router ————————————————— */
 
-const VIEWS = ["home", "committees", "secretariat", "itinerary", "resources", "register"];
+const VIEWS = ["home", "committees", "committee", "secretariat", "itinerary", "resources", "register", "faqs"];
 const HASHES = {
   home: "#/",
   committees: "#/committees",
@@ -341,18 +422,28 @@ const HASHES = {
   itinerary: "#/itinerary",
   resources: "#/resources",
   register: "#/register",
+  faqs: "#/faqs",
 };
+
+let currentCommittee = null; // slug for the #/committees/<slug> detail view
 
 function viewFromHash() {
   const h = window.location.hash.replace(/^#\/?/, "").split("?")[0];
+  const seg = h.split("/").filter(Boolean);
+  if (seg[0] === "committees" && seg[1]) {
+    currentCommittee = seg[1];
+    return "committee";
+  }
+  if (seg[0] === "faqs") return "faqs";
   return VIEWS.includes(h) ? h : "home";
 }
 
 let currentView = viewFromHash();
 
 function setActiveNav(view) {
+  const navKey = view === "committee" ? "committees" : view; // detail page keeps the deck's nav item lit
   $$(".nav-link, .drawer-link").forEach((el) => {
-    el.classList.toggle("active", el.dataset.nav === view);
+    el.classList.toggle("active", el.dataset.nav === navKey);
   });
 }
 
@@ -363,6 +454,18 @@ function showView(view, { animate = true } = {}) {
      Animations hold their effect until cancelled) — clear it or the
      page would re-enter invisible */
   target.getAnimations().forEach((a) => a.cancel());
+  if (view === "committee") {
+    /* render the requested dossier before the entrance runs; unknown
+       slugs fall back to the deck */
+    if (!renderCommitteePage(currentCommittee)) {
+      window.location.replace("#/committees");
+      showView("committees", { animate });
+      return;
+    }
+    /* the page's reveals were rendered just now (boot observed before
+       this content existed) — observe them or they stay invisible */
+    if (window.__observeReveals) window.__observeReveals();
+  }
   $$(".view").forEach((v) => v.classList.remove("active", "view-enter"));
   target.classList.add("active");
   if (animate) {
@@ -421,6 +524,19 @@ document.addEventListener("click", (e) => {
     transitionTo(view);
   } else {
     window.location.hash = targetHash;
+  }
+});
+
+/* [data-committee] buttons open that committee's own page */
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-committee]");
+  if (!btn) return;
+  closeDrawer();
+  const hash = `#/committees/${btn.dataset.committee}`;
+  if (window.location.hash === hash) {
+    transitionTo("committee");
+  } else {
+    window.location.hash = hash;
   }
 });
 

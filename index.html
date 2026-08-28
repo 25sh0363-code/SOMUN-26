@@ -137,6 +137,7 @@
         <button class="drawer-link" data-nav="secretariat"><span class="drawer-link-label">Secretariat</span><span class="drawer-link-num">03</span></button>
         <button class="drawer-link" data-nav="itinerary"><span class="drawer-link-label">Itinerary</span><span class="drawer-link-num">04</span></button>
         <button class="drawer-link" data-nav="resources"><span class="drawer-link-label">Resources</span><span class="drawer-link-num">05</span></button>
+        <button class="drawer-link" data-nav="faqs"><span class="drawer-link-label">FAQs</span><span class="drawer-link-num">06</span></button>
         <button class="btn btn--crimson drawer-cta" data-nav="register">Register Now</button>
       </nav>
     </div>
@@ -742,6 +743,34 @@
       </main>
     </section>
 
+    <!-- ———————— COMMITTEE DETAIL (rendered by js/main.js) ———————— -->
+    <section class="view" data-view="committee">
+      <main id="committee-view"><!-- per-committee page rendered on route --></main>
+    </section>
+
+    <!-- ———————— FAQS ———————— -->
+    <section class="view" data-view="faqs">
+      <main class="page-wrap">
+        <header class="section-head reveal">
+          <div class="section-head-row">
+            <span class="section-head-index">VII</span>
+            <span class="section-head-rule"></span>
+            <span class="section-head-kicker">Frequently Asked</span>
+          </div>
+          <h2 class="section-head-title">Asked, <em class="accent">answered.</em></h2>
+          <p class="section-head-intro">Everything delegates and faculty advisors ask us most, in one place.
+          Can't find yours? The secretariat replies to every mail within a working day.</p>
+        </header>
+        <div class="faq-list" id="faq-list"><!-- items rendered by js from data.js --></div>
+        <div class="faq-cta reveal" data-delay="0.1">
+          <p class="faq-cta-line">Still stuck on something?</p>
+          <a class="btn btn--outline btn--mail" href="mailto:somundelaffairs@gmail.com">
+            <i data-icon="mail" data-cls="mail-icon"></i> Write to the secretariat
+          </a>
+        </div>
+      </main>
+    </section>
+
     <!-- ———————— FOOTER ———————— -->
     <footer class="footer">
       <div class="footer-top">
@@ -772,6 +801,7 @@
               <li><button class="footer-link" data-nav="itinerary"><span class="footer-link-diamond"></span>Itinerary</button></li>
               <li><button class="footer-link" data-nav="resources"><span class="footer-link-diamond"></span>Resources</button></li>
               <li><button class="footer-link" data-nav="register"><span class="footer-link-diamond"></span>Register</button></li>
+              <li><button class="footer-link" data-nav="faqs"><span class="footer-link-diamond"></span>FAQs</button></li>
             </ul>
           </nav>
 

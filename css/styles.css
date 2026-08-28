@@ -2929,3 +2929,57 @@ em.accent {
 .toast.err { border-color: rgba(200, 16, 46, 0.8); background: rgba(142, 11, 33, 0.4); }
 .toast strong { color: var(--beige); display: block; margin-bottom: 0.25rem; font-size: 0.9375rem; }
 
+
+/* ———————————————— COMMITTEE DETAIL PAGE ———————————————— */
+.crumb {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  margin-top: 2rem; padding: 0;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--beige-dim); background: none; border: 0; cursor: pointer;
+  transition: color 0.3s;
+}
+.crumb svg { width: 14px; height: 14px; }
+.crumb:hover { color: var(--crimson); }
+
+.committee-head { margin-top: 1.25rem; }
+.committee-kicker-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.committee-kicker { font-size: 10px; font-weight: 600; letter-spacing: 0.4em; text-transform: uppercase; color: var(--beige-dim); }
+.committee-acronym {
+  margin-top: 1.25rem;
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 12vw, 8.5rem);
+  font-weight: 800; line-height: 0.95; letter-spacing: 0.02em;
+}
+.committee-name { margin-top: 0.875rem; font-size: 1.05rem; color: var(--beige-dim); }
+.committee-head .fleuron-rule { margin-top: 1.75rem; }
+
+.committee-grid { margin-top: 3rem; padding-bottom: 4rem; display: grid; gap: 2.5rem; align-items: start; }
+@media (min-width: 900px) { .committee-grid { grid-template-columns: 380px 1fr; gap: 3.5rem; } }
+.committee-plate { height: 16rem; }
+@media (min-width: 900px) { .committee-plate { height: 22rem; } }
+.committee-plate-note { margin-top: 1rem; display: flex; gap: 0.6rem; font-size: 11px; line-height: 1.7; color: var(--beige-dim); }
+.committee-plate-note svg { width: 14px; height: 14px; margin-top: 2px; flex-shrink: 0; color: var(--crimson); }
+.committee-desc { font-size: 1.05rem; line-height: 1.85; color: var(--beige); }
+.committee-agendas { margin-top: 2rem; }
+.agenda-roman { font-family: var(--font-display); font-style: italic; color: var(--crimson); margin-right: 0.25rem; }
+.committee-cta { margin-top: 2.5rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+
+/* ———————————————— FAQS ———————————————— */
+.faq-list { margin-top: 3rem; border-top: 1px solid var(--line); }
+.faq-item { border-bottom: 1px solid var(--line); }
+.faq-q {
+  display: flex; align-items: center; gap: 1.25rem;
+  padding: 1.5rem 0.25rem; cursor: pointer; list-style: none;
+  font-size: 1.05rem; font-weight: 500; color: var(--beige);
+  transition: color 0.3s;
+}
+.faq-q::-webkit-details-marker { display: none; }
+.faq-q:hover { color: var(--crimson); }
+.faq-num { font-family: var(--font-display); font-style: italic; font-size: 0.95rem; color: var(--crimson); min-width: 2rem; }
+.faq-q-text { flex: 1; }
+.faq-chev { width: 16px; height: 16px; color: var(--beige-dim); transition: transform 0.3s var(--ease-out); flex-shrink: 0; }
+.faq-item[open] .faq-chev { transform: rotate(180deg); }
+.faq-a { padding: 0 0.25rem 1.5rem 3.25rem; }
+.faq-a p { max-width: 62ch; font-size: 0.95rem; line-height: 1.85; color: var(--beige-dim); }
+.faq-cta { margin: 3.5rem 0 5rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+.faq-cta-line { font-size: 11px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--beige-dim); }

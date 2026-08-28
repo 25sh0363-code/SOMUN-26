@@ -247,3 +247,31 @@ export const ITINERARY = [
     ],
   },
 ];
+
+/* ————— FAQs (PLACEHOLDER copy — edit freely, everything renders from here) ————— */
+export const FAQS = [
+  {
+    q: "Who can attend SOMUN '26?",
+    a: "Any student from grade VIII onward — school, undergraduate or postgraduate. Delegates register individually or as part of a school delegation; individual applicants are matched to balanced committees by the secretariat.",
+  },
+  {
+    q: "Do I need prior MUN experience?",
+    a: "No. First-timers are welcome and chambers are balanced across experience levels. Study guides release before the conference, and the dais briefs procedure on Day 01 before the first session gavels in.",
+  },
+  {
+    q: "How do I choose my committee?",
+    a: "You list three committee preferences and an optional preferred portfolio while registering. The secretariat matches portfolios to keep competition fair — allotments arrive by email after the early-bird deadline.",
+  },
+  {
+    q: "What does the registration fee include?",
+    a: "Every pass covers the delegate kit, all three days of meals, socials entry and certificates. Accommodation is optional and billed separately at ₹2,400 per night, twin-sharing, for outstation delegates.",
+  },
+  {
+    q: "What should I bring on conference days?",
+    a: "Your allotment email, a government or school ID, a laptop or printed research, and formal western or Indian business attire. Everything else — stationery, placards, water and coffee — is on us.",
+  },
+  {
+    q: "Can requests for committee or portfolio changes be made later?",
+    a: "Yes. Change requests open after allocations and close on October 5, 2026. Write to the secretariat from your registered email and the dais will accommodate wherever the chamber balance allows.",
+  },
+];
