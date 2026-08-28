@@ -24,6 +24,12 @@
    ———————————————————————————————————————————————————————— */
 
 export const CONFIG = {
+  /* Registration portal gate — flip to true when registrations open.
+     While false: every Register button is blurred with an "Opening Soon"
+     tag, clicks show a notice instead of navigating, and #/register
+     redirects home. */
+  REGISTRATIONS_OPEN: false,
+
   SUPABASE_URL: "",            // e.g. "https://abcdefgh.supabase.co"
   SUPABASE_ANON_KEY: "",       // e.g. "eyJhbGciOi..."
   REGISTRATIONS_TABLE: "registrations",
