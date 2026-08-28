@@ -1,2 +1,19 @@
-.git
+# macOS
 .DS_Store
+
+# Sandbox / environment files — not part of the website
+.env
+.env.*
+.next/
+.zscripts/
+node_modules/
+skills/
+scripts/
+download/
+downloads/
+upload/
+worklog.md
+Caddyfile
+package.json
+package-lock.json
+*.log
