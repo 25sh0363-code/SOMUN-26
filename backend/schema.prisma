@@ -1,0 +1,32 @@
+// Prisma schema — SOMUN '26
+// Database: local dev runs on SQLite. To switch to Supabase (PostgreSQL) later:
+//   1. change provider below to "postgresql"
+//   2. set DATABASE_URL in .env to your Supabase connection string
+//   3. run: npm run db:push
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Registration {
+  id              String   @id @default(cuid())
+  refCode         String   @unique
+  fullName        String
+  email           String
+  phone           String
+  institution     String
+  gradeOrTitle    String?
+  experience      String   @default("novice")
+  committeePref1  String
+  committeePref2  String?
+  committeePref3  String?
+  portfolio       String?
+  accommodation   Boolean  @default(false)
+  notes           String?
+  createdAt       DateTime @default(now())
+}
