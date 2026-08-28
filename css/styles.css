@@ -365,9 +365,9 @@ em.accent {
 @media (min-width: 640px) { .nav-brand-tag { font-size: 10px; } }
 .nav-brand:hover .nav-brand-tag { color: var(--beige); }
 
-.nav-links { display: none; }
+.nav-links { display: none; margin-left: auto; }
 @media (min-width: 1024px) {
-  .nav-links { display: flex; align-items: center; gap: 1.5rem; }
+  .nav-links { display: flex; align-items: center; gap: 1.5rem; margin-right: 1.75rem; }
 }
 @media (min-width: 1280px) {
   .nav-links { gap: 2.25rem; }
