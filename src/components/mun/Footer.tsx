@@ -62,7 +62,9 @@ export function Footer({
                 [
                   ["home", "Home"],
                   ["committees", "Committees"],
+                  ["secretariat", "Secretariat"],
                   ["itinerary", "Itinerary"],
+                  ["resources", "Resources"],
                   ["register", "Register"],
                 ] as [View, string][]
               ).map(([id, label]) => (
@@ -82,7 +84,7 @@ export function Footer({
           {/* Contact */}
           <div>
             <h3 className="text-[10px] font-semibold uppercase tracking-[0.4em] text-beige-dim">
-              Secretariat
+              Contact
             </h3>
             <ul className="mt-5 space-y-4 text-sm text-beige-dim">
               <li className="flex gap-3">

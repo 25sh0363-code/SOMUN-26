@@ -9,9 +9,9 @@ import {
   useScroll,
   type Variants,
 } from "framer-motion";
-import { ArrowRight, ChevronLeft, ChevronRight, MoveDown, Users } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Lock, MoveDown, Users } from "lucide-react";
 import { COMMITTEES, COMMITTEE_ART, type Difficulty } from "./data";
-import { PageWrap, Reveal, SectionHead } from "./shared";
+import { PageWrap, Reveal, SectionHead, SoonStamp } from "./shared";
 import type { View } from "./types";
 import { cn } from "@/lib/utils";
 
@@ -433,6 +433,70 @@ export function CommitteesView({ onNavigate }: { onNavigate: (v: View) => void }
           <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-10 w-4 bg-gradient-to-l from-ink to-transparent" />
         </div>
       </section>
+
+      {/* ————— executive boards: releasing soon ————— */}
+      <PageWrap>
+        <section aria-label="Executive boards">
+          <Reveal>
+            <div className="flex flex-wrap items-end justify-between gap-5">
+              <div>
+                <div className="flex items-center gap-4">
+                  <span className="h-px w-10 bg-crimson/70" aria-hidden />
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.45em] text-beige-dim">
+                    Executive Boards · IX Chambers
+                  </p>
+                </div>
+                <h2 className="mt-4 font-display font-bold text-beige leading-[1.05] text-3xl sm:text-4xl lg:text-5xl">
+                  Meet the chairs, <em className="italic text-crimson">soon.</em>
+                </h2>
+                <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed text-beige-dim">
+                  Every chamber is run by a three-member executive board. Chair, vice chair and
+                  committee secretary — the full line-up is being finalised and will be unveiled
+                  chamber by chamber.
+                </p>
+              </div>
+              <SoonStamp />
+            </div>
+          </Reveal>
+
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+            {COMMITTEES.map((c, i) => (
+              <Reveal key={c.slug} delay={0.04 * i} className="h-full">
+                <div className="relative h-full overflow-hidden border border-line bg-panel/60 p-6 transition-colors duration-500 hover:border-beige/30">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-display text-2xl font-bold text-beige">{c.acronym}</h3>
+                      <p className="mt-1.5 max-w-[26ch] text-[9px] uppercase leading-relaxed tracking-[0.18em] text-beige-dim">
+                        {c.name}
+                      </p>
+                    </div>
+                    <span
+                      aria-hidden
+                      className="select-none font-display text-2xl italic text-beige/15"
+                    >
+                      {ROMAN[i]}
+                    </span>
+                  </div>
+                  <div className="mt-5 h-px bg-line" aria-hidden />
+                  <ul className="mt-5 space-y-3">
+                    {["Chair", "Vice Chair", "Secretary"].map((role) => (
+                      <li key={role} className="flex items-center justify-between gap-3">
+                        <span className="text-[10px] uppercase tracking-[0.25em] text-beige/80">
+                          {role}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.22em] text-beige-dim/70">
+                          <Lock className="size-3 text-crimson/70" aria-hidden />
+                          to be announced
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+      </PageWrap>
 
       {/* bottom note */}
       <PageWrap>

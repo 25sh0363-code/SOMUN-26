@@ -85,3 +85,13 @@ export function PageWrap({
     </div>
   );
 }
+
+/** "Releasing soon" rubber-stamp chip used across teaser sections */
+export function SoonStamp({ label = "Releasing Soon" }: { label?: string }) {
+  return (
+    <span className="inline-flex rotate-[-1.5deg] items-center gap-2.5 border border-crimson/70 bg-crimson/10 px-4 py-2 text-[9px] font-semibold uppercase tracking-[0.32em] text-crimson">
+      <span className="size-1.5 rotate-45 bg-crimson/80" aria-hidden />
+      {label}
+    </span>
+  );
+}

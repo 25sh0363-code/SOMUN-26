@@ -194,7 +194,7 @@ export function RegisterView() {
     <main>
       <PageWrap>
         <SectionHead
-          index="IV"
+          index="VI"
           kicker="Registration · Oct '26"
           title={
             <>

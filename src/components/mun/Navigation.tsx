@@ -8,7 +8,9 @@ import type { View } from "./types";
 const LINKS: { id: View; label: string }[] = [
   { id: "home", label: "Home" },
   { id: "committees", label: "Committees" },
+  { id: "secretariat", label: "Secretariat" },
   { id: "itinerary", label: "Itinerary" },
+  { id: "resources", label: "Resources" },
 ];
 
 export function Navigation({
@@ -64,7 +66,7 @@ export function Navigation({
             </button>
 
             {/* Desktop links */}
-            <nav className="hidden md:flex items-center gap-9" aria-label="Primary">
+            <nav className="hidden lg:flex items-center gap-6 xl:gap-9" aria-label="Primary">
               {LINKS.map((l) => (
                 <button
                   key={l.id}
@@ -91,14 +93,14 @@ export function Navigation({
             <div className="flex items-center gap-3">
               <button
                 onClick={() => go("register")}
-                className="hidden md:inline-flex items-center gap-2 bg-crimson hover:bg-crimson-deep text-primary-foreground text-[11px] font-semibold uppercase tracking-[0.22em] px-5 py-2.5 transition-colors duration-300 min-h-[44px]"
+                className="hidden lg:inline-flex items-center gap-2 bg-crimson hover:bg-crimson-deep text-primary-foreground text-[11px] font-semibold uppercase tracking-[0.22em] px-5 py-2.5 transition-colors duration-300 min-h-[44px]"
               >
                 Register Now
               </button>
 
               {/* Mobile toggle */}
               <button
-                className="md:hidden inline-flex items-center justify-center size-11 border border-line text-beige"
+                className="lg:hidden inline-flex items-center justify-center size-11 border border-line text-beige"
                 onClick={() => setOpen((o) => !o)}
                 aria-label={open ? "Close menu" : "Open menu"}
                 aria-expanded={open}
@@ -113,7 +115,7 @@ export function Navigation({
       {/* Mobile drawer */}
       <div
         className={cn(
-          "fixed inset-0 z-40 md:hidden transition-opacity duration-300",
+          "fixed inset-0 z-40 lg:hidden transition-opacity duration-300",
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
       >
