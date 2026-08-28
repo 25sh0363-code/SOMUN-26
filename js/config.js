@@ -5,7 +5,8 @@
 
    HOW TO CONNECT (5 minutes, free):
    1. Create a project at https://supabase.com (free tier is enough).
-   2. Open the SQL Editor, paste the whole of supabase-setup.sql, Run.
+   2. Open the SQL Editor and run the setup SQL (a copy is kept in
+      download/supabase-setup.sql — creates the tables + security rules).
    3. In Project Settings → API copy two values into the quotes below:
         • Project URL            → SUPABASE_URL
         • anon / public API key  → SUPABASE_ANON_KEY
@@ -13,8 +14,8 @@
       and any rows you mark released = true in `resources` become
       live download links on the site automatically.
 
-   NOTE: the anon key is safe to publish — row security (see the .sql
-   file) only allows inserting registrations and reading released
+   NOTE: the anon key is safe to publish — row security in the setup
+   SQL only allows inserting registrations and reading released
    resources. Nothing else.
 
    Until the keys are filled in, the site still works perfectly:
