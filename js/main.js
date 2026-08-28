@@ -359,12 +359,25 @@ function setActiveNav(view) {
 function showView(view, { animate = true } = {}) {
   const target = $(`.view[data-view="${view}"]`);
   if (!target) return;
+  /* a previous exit left a fill:forwards opacity:0 on this view (Web
+     Animations hold their effect until cancelled) — clear it or the
+     page would re-enter invisible */
+  target.getAnimations().forEach((a) => a.cancel());
   $$(".view").forEach((v) => v.classList.remove("active", "view-enter"));
   target.classList.add("active");
   if (animate) {
     target.classList.remove("view-enter");
     void target.offsetWidth; // restart the entrance animation
     target.classList.add("view-enter");
+    /* replays scroll-reveals on every visit, like the remount did */
+    if (window.__rearmReveals) window.__rearmReveals(target);
+  }
+  /* register remounted fresh each visit in the original — same here */
+  if (view === "register") {
+    const s = $("#reg-success");
+    const f = $("#reg-form-wrap");
+    if (s) s.hidden = true;
+    if (f) f.hidden = false;
   }
   setActiveNav(view);
   requestAnimationFrame(() => window.scrollTo({ top: 0 }));
@@ -467,6 +480,14 @@ $("#drawer-overlay").addEventListener("click", closeDrawer);
   const observeAll = () => $$(".reveal:not(.in-view)").forEach((el) => io.observe(el));
   observeAll();
   window.__observeReveals = observeAll; // re-run after dynamic renders
+  /* the original remounted each view on every visit, so scroll-reveals replayed
+     each time a page was entered — re-arm them to keep that choreography */
+  window.__rearmReveals = (scope) => {
+    $$(".reveal.in-view", scope).forEach((el) => {
+      el.classList.remove("in-view");
+      io.observe(el);
+    });
+  };
 }
 
 /* ————————————————— Committees deck (pinned scroll) ————————————————— */
@@ -504,9 +525,14 @@ function deckSetCurrent(idx) {
 }
 
 function deckOnShow() {
+  /* the deck remounted on every visit — strip the stage so the cascade
+     (stagger, art zoom, watermark) replays from the top like before */
+  deck.slides.forEach((s) => s.classList.remove("on-stage"));
+  void deck.track.offsetWidth; // flush styles so transitions restart
   /* re-anchor when the view becomes visible (widths are measurable only now) */
   deck.pos = deck.target = deck.active * slideWidth();
   deck.vel = 0;
+  deckSetCurrent(deck.active);
   deckOnScroll();
 }
 

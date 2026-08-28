@@ -25,3 +25,4 @@ prompt
 
 # secrets / env (Supabase keys live in js/config.js as placeholders; never commit real keys)
 .env*
+.dev/
