@@ -876,7 +876,7 @@
         <div class="footer-bottom-texture" aria-hidden="true"><img src="images/textures/red-texture.jpg" alt="" /></div>
         <div class="footer-bottom-row">
           <p>© <span id="year">2026</span> SOMUN — Model United Nations</p>
-          <p>Eighth Edition · MMXXVI</p>
+          <p><button type="button" class="egg-hit" id="egg-hit">Eighth Edition</button> · MMXXVI</p>
         </div>
       </div>
     </footer>
@@ -896,6 +896,21 @@
       </div>
       <p class="matrix-intro">Browse every chamber's portfolio list before locking your preferences. Lists go live here as the secretariat finalises them.</p>
       <div class="matrix-body" id="matrix-body"><!-- rows rendered by js --></div>
+    </div>
+  </div>
+
+  <!-- ———————— EASTER EGG MODAL (footer "Eighth Edition" hitbox) ———————— -->
+  <div class="matrix-overlay" id="egg-overlay" hidden>
+    <div class="egg-modal" role="dialog" aria-modal="true" aria-labelledby="egg-title">
+      <button type="button" class="matrix-close egg-close" id="egg-close" aria-label="Close">
+        <i data-icon="x" data-cls="matrix-close-icon"></i>
+      </button>
+      <i data-icon="party-popper" data-cls="egg-icon" data-sw="1.4"></i>
+      <p class="egg-kicker">Hidden Easter Egg</p>
+      <h3 class="egg-title" id="egg-title">wow!! congrats you found the <em class="accent">hidden easter egg.</em></h3>
+      <p class="egg-caution">Caution — do not share this with anyone else</p>
+      <p class="egg-copy">Make a post showing off and surprise the secretariat.</p>
+      <p class="egg-sign">— USG Tech <span>(not bannu)</span></p>
     </div>
   </div>
 

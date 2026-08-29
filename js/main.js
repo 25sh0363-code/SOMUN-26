@@ -1102,6 +1102,25 @@ if (SHOW_ITINERARY) {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !overlay.hidden) closeMatrix();
   });
+
+  /* ——— footer easter egg — invisible hitbox over "Eighth Edition" ——— */
+  const eggOverlay = $("#egg-overlay");
+  const openEgg = () => {
+    eggOverlay.hidden = false;
+    document.body.style.overflow = "hidden";
+  };
+  const closeEgg = () => {
+    eggOverlay.hidden = true;
+    document.body.style.overflow = "";
+  };
+  $("#egg-hit").addEventListener("click", openEgg);
+  $("#egg-close").addEventListener("click", closeEgg);
+  eggOverlay.addEventListener("click", (e) => {
+    if (e.target === eggOverlay) closeEgg();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !eggOverlay.hidden) closeEgg();
+  });
 }
 
 /* ————————————————— Boot ————————————————— */
