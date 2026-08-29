@@ -9,6 +9,7 @@
 import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, ALLOCATION_MATRIX } from "./data.js";
 import { CONFIG, supabaseConfigured } from "./config.js";
 import { icon, hydrateIcons } from "./icons.js";
+import { makeConfetti } from "./confetti.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -1105,9 +1106,25 @@ if (SHOW_ITINERARY) {
 
   /* ——— footer easter egg — invisible hitbox over "Eighth Edition" ——— */
   const eggOverlay = $("#egg-overlay");
+  const eggConfetti = makeConfetti($("#egg-confetti"));
+
+  /* badge number: dealt once, then stable per visitor — flex material for the post */
+  let eggBadge;
+  try {
+    eggBadge = localStorage.getItem("somun-egg-badge");
+    if (!eggBadge) {
+      eggBadge = String(1 + ((Math.random() * 12) | 0)).padStart(2, "0");
+      localStorage.setItem("somun-egg-badge", eggBadge);
+    }
+  } catch {
+    eggBadge = String(1 + ((Math.random() * 12) | 0)).padStart(2, "0");
+  }
+  $("#egg-badge-no").textContent = `#${eggBadge}`;
+
   const openEgg = () => {
     eggOverlay.hidden = false;
     document.body.style.overflow = "hidden";
+    eggConfetti.burst(0.5, 0.42, 150);
   };
   const closeEgg = () => {
     eggOverlay.hidden = true;
@@ -1115,8 +1132,14 @@ if (SHOW_ITINERARY) {
   };
   $("#egg-hit").addEventListener("click", openEgg);
   $("#egg-close").addEventListener("click", closeEgg);
+  $("#egg-seal").addEventListener("click", closeEgg);
   eggOverlay.addEventListener("click", (e) => {
-    if (e.target === eggOverlay) closeEgg();
+    if (e.target === eggOverlay) {
+      closeEgg();
+    } else if (!e.target.closest("#egg-close")) {
+      /* party on every click — confetti pops from wherever you tap */
+      eggConfetti.burst(e.clientX / window.innerWidth, e.clientY / window.innerHeight, 55);
+    }
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !eggOverlay.hidden) closeEgg();
