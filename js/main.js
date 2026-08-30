@@ -145,7 +145,7 @@ $("#year").textContent = new Date().getFullYear();
             <div class="plate">
               ${plateInner}
               <div class="plate-caption">
-                <p class="plate-credit">Official chamber dossier · artwork to follow</p>
+                <p class="plate-credit">Official chamber dossier${c.photo ? "" : " · artwork to follow"}</p>
                 <span class="plate-num">${pad2(i + 1)}</span>
               </div>
             </div>
@@ -228,7 +228,7 @@ function renderCommitteePage(slug) {
           <div class="plate committee-plate">
             ${plateInner}
             <div class="plate-caption">
-              <p class="plate-credit">Official chamber dossier · artwork to follow</p>
+              <p class="plate-credit">Official chamber dossier${c.photo ? "" : " · artwork to follow"}</p>
               <span class="plate-num">${pad2(idx + 1)}</span>
             </div>
           </div>

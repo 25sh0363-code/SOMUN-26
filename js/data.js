@@ -33,7 +33,7 @@ export const COMMITTEES = [
     ],
     description:
       "Geneva's conscience arrives in Hyderabad. The Council examines state accountability where it is most contested — inside conflicts and across the open internet.",
-    photo: "",
+    photo: "images/committees/unhrc.jpg"
   },
   {
     slug: "disec",
@@ -46,7 +46,7 @@ export const COMMITTEES = [
     ],
     description:
       "The First Committee of the General Assembly tackles the weapons of tomorrow. Expect fierce bloc politics as delegates chart the future of global disarmament.",
-    photo: "",
+    photo: "images/committees/disec.jpg"
   },
   {
     slug: "unoosa",
@@ -59,7 +59,7 @@ export const COMMITTEES = [
     ],
     description:
       "The quiet office that governs the final frontier. UNOOSA asks who gets to orbit, who gets to land — and what happens when the junk above us multiplies faster than the law below.",
-    photo: "",
+    photo: "images/committees/unoosa.jpg"
   },
   {
     slug: "uncsw",
@@ -72,7 +72,7 @@ export const COMMITTEES = [
     ],
     description:
       "Since 1946 the Commission has driven the fight for equality. This session confronts the newest frontiers — conflict mediation and access to the digital economy.",
-    photo: "",
+    photo: "images/committees/uncsw.jpg"
   },
   {
     slug: "unodc",
@@ -85,7 +85,7 @@ export const COMMITTEES = [
     ],
     description:
       "Crime has gone borderless — narcotics routes, laundering pipelines and hacks that cross ten jurisdictions before breakfast. UNODC coordinates the response, one convention at a time.",
-    photo: "",
+    photo: "images/committees/unodc.jpg"
   },
   {
     slug: "ecosoc",
@@ -98,7 +98,7 @@ export const COMMITTEES = [
     ],
     description:
       "The UN's economic engine room. Fifty-four members, dozens of specialised agencies and one enormous question — how to fund a fair future for everyone, not just the fortunate.",
-    photo: "",
+    photo: "images/committees/ecosoc.jpg"
   },
   {
     slug: "unctc",
@@ -111,7 +111,7 @@ export const COMMITTEES = [
     ],
     description:
       "Counter-terrorism at the sharp end. Delegates balance hard security against civil liberties while drafting binding obligations that states must actually live with.",
-    photo: "",
+    photo: "images/committees/unctc.jpg"
   },
   {
     slug: "hcc-ccc",
@@ -124,7 +124,7 @@ export const COMMITTEES = [
     ],
     description:
       "The gavel never rests here. The Historical Crisis Committee rewinds time to the moments history got wrong; the Continuous Crisis Committee refuses to pause at all. Fast, chaotic, unforgettable.",
-    photo: "",
+    photo: "images/committees/hcc-ccc.jpg"
   },
   {
     slug: "ip",
@@ -137,7 +137,7 @@ export const COMMITTEES = [
     ],
     description:
       "Delegates who hold the diplomats accountable. Reporters and photojournalists publish daily bulletins that shape — and shake — every committee.",
-    photo: "",
+    photo: "images/committees/ip.jpg"
   },
   {
     slug: "aippm",
@@ -150,7 +150,7 @@ export const COMMITTEES = [
     ],
     description:
       "India's loudest political theatre, distilled. Party leaders cross the floor in a raucous hunt for consensus on the republic's most contested reform questions.",
-    photo: "",
+    photo: "images/committees/aippm.jpg"
   },
   {
     slug: "icc",
@@ -163,7 +163,7 @@ export const COMMITTEES = [
     ],
     description:
       "Diplomacy meets the gentleman's game. Delegates negotiate cricket's future — crowded calendars, new markets and a governance puzzle as tricky as any DRS review.",
-    photo: "",
+    photo: "images/committees/icc.jpg"
   },
   {
     slug: "mcu",
@@ -176,7 +176,7 @@ export const COMMITTEES = [
     ],
     description:
       "Fiction, weaponised. Delegates assume the roles of states and factions inside the Marvel Cinematic Universe, where every clause of the Accords is a plot twist waiting to happen.",
-    photo: "",
+    photo: "images/committees/mcu.jpg"
   },
 ];
 
