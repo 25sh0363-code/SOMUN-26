@@ -415,9 +415,10 @@ $$("[data-committee-select]").forEach((sel) => {
 
 /* ————————————————— Router ————————————————— */
 
-const VIEWS = ["home", "committees", "committee", "secretariat", "itinerary", "resources", "register", "faqs"];
+const VIEWS = ["home", "about", "committees", "committee", "secretariat", "itinerary", "resources", "register", "faqs"];
 const HASHES = {
   home: "#/",
+  about: "#/about",
   committees: "#/committees",
   secretariat: "#/secretariat",
   itinerary: "#/itinerary",
@@ -1146,8 +1147,47 @@ if (SHOW_ITINERARY) {
   });
 }
 
+/* ————————————————— Falling petals —————————————————
+   Ambient red accent (variant B from the user-picked preview): 16 petals
+   in brand crimson falling 14-22s with a lazy sway, a few blurred for
+   depth. Pure solid fills — no gradients — on a fixed layer that sits
+   under the film grain (z-34 vs grain z-35), so the texture stays on top
+   of everything. Never spawned for reduced-motion users. */
+
+function spawnPetals() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const layer = document.createElement("div");
+  layer.className = "petals";
+  layer.setAttribute("aria-hidden", "true");
+  const colors = ["var(--crimson)", "var(--crimson-deep)", "#6e0918"];
+  for (let i = 0; i < 16; i++) {
+    const lf = document.createElement("span");
+    lf.className = "petal";
+    const size = 8 + Math.random() * 8;          /* 8-16px */
+    const dur = 14 + Math.random() * 8;          /* 14-22s one-way */
+    const op = 0.16 + Math.random() * 0.16;      /* 0.16-0.32 */
+    const sway = 2.2 + Math.random() * 2.6;
+    lf.style.cssText =
+      `left:${(Math.random() * 100).toFixed(1)}vw;` +
+      `animation-duration:${dur.toFixed(1)}s;` +
+      `animation-delay:${(-Math.random() * dur).toFixed(1)}s;`; /* start mid-fall */
+    const leaf = document.createElement("i");
+    leaf.style.cssText =
+      `width:${size.toFixed(1)}px;height:${size.toFixed(1)}px;` +
+      `background:${colors[i % colors.length]};` +
+      `opacity:${op.toFixed(2)};` +
+      (Math.random() < 0.35 ? "filter:blur(1.3px);" : "") +
+      `animation-duration:${sway.toFixed(1)}s;` +
+      `animation-delay:${(-Math.random() * sway).toFixed(1)}s;`;
+    lf.appendChild(leaf);
+    layer.appendChild(lf);
+  }
+  document.body.appendChild(layer);
+}
+
 /* ————————————————— Boot ————————————————— */
 
 hydrateIcons();
 window.__observeReveals();
 showView(currentView, { animate: false });
+spawnPetals();

@@ -3440,3 +3440,38 @@ em.accent {
 @media (prefers-reduced-motion: reduce) {
   .egg-modal, .egg-icon { animation: none; }
 }
+
+/* ———————— Falling petals (v2 · ambient red accent, under the grain) ————————
+   Sixteen slow petals in brand crimson, pure solid fills — no gradients —
+   drifting beneath the film grain (grain z-35, petals z-34, nav above both).
+   Spawner lives in main.js; skipped entirely for reduced-motion users. */
+.petals {
+  position: fixed;
+  inset: 0;
+  z-index: 34;
+  pointer-events: none;
+  overflow: hidden;
+}
+.petal {
+  position: absolute;
+  top: 0;
+  will-change: transform;
+  animation: petal-fall linear infinite;
+}
+.petal > i {
+  display: block;
+  border-radius: 0 62% 0 62%;
+  transform-origin: 50% 50%;
+  animation: petal-sway ease-in-out infinite alternate;
+}
+@keyframes petal-fall {
+  0%   { transform: translate3d(0, -9vh, 0) rotate(0deg); }
+  100% { transform: translate3d(0, 109vh, 0) rotate(340deg); }
+}
+@keyframes petal-sway {
+  0%   { transform: translateX(-18px) rotate(-20deg); }
+  100% { transform: translateX(18px) rotate(22deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .petals { display: none; }
+}
