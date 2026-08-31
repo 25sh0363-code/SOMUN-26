@@ -18,3 +18,8 @@ package.json
 package-lock.json
 *.log
 tool-results/
+
+# platform checkpoint artifacts - never commit
+*.bak
+.syncwork/
+repo.tar.*
