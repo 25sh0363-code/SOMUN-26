@@ -113,16 +113,7 @@ $("#year").textContent = new Date().getFullYear();
 
 /* ————————————————— Committees deck slides ————————————————— */
 
-/* Shared "coming soon" panel — same visual language as the register veil */
-const soonPanel = (title, sub) => `
-  <div class="soon-panel reveal">
-    <span class="reg-veil-stamp">Coming Soon</span>
-    <p class="soon-panel-title">${title}</p>
-    <p class="soon-panel-sub">${sub}</p>
-  </div>`;
-
-if (CONFIG.COMMITTEES_REVEALED) {
-  const track = $("#deck-track");
+const track = $("#deck-track");
   track.innerHTML = COMMITTEES.map((c, i) => {
     const roman = ROMAN[i];
     const plateInner = c.photo
@@ -196,37 +187,32 @@ if (CONFIG.COMMITTEES_REVEALED) {
     `<button class="deck-num" data-goto="${i}" aria-label="Go to committee ${i + 1}">${ROMAN[i]}<span class="deck-num-diamond"></span></button>`
   ).join("");
   $("#deck-total").textContent = `/ ${String(COMMITTEES.length).padStart(2, "0")}`;
-} else {
-  /* Committees veiled — flip CONFIG.COMMITTEES_REVEALED in config.js to
-     restore the full dossier deck. Nothing else needs to change. */
+
+/* ————— Committees veiled: the deck renders in place, then gets the exact
+   treatment of the register wizard box — blurred + inert under a centered
+   "Coming Soon" stamp. Flip CONFIG.COMMITTEES_REVEALED in config.js to
+   release; the deck restores untouched, nothing else to change. ————— */
+if (!CONFIG.COMMITTEES_REVEALED) {
   const deckEl = $("#deck");
-  deckEl.classList.add("is-gated");
+  deckEl.classList.add("is-veiled");
   deckEl.setAttribute("inert", "");
-  $(".view[data-view='committees']").classList.add("is-gated");
-  deckEl.insertAdjacentHTML("beforeend", soonPanel(
-    "Twelve chambers. One wall of dossiers.",
-    "The deck — dossiers, daises and portfolios — unlocks with the first committees reveal."
-  ));
+  $(".view[data-view='committees']").classList.add("is-veiled");
+  const veil = document.createElement("div");
+  veil.className = "reg-veil";
+  const stamp = document.createElement("span");
+  stamp.className = "reg-veil-stamp";
+  stamp.textContent = "Coming Soon";
+  const sub = document.createElement("span");
+  sub.className = "reg-veil-sub";
+  sub.textContent = "The twelve chambers unveil with the committees reveal — dossiers, daises and portfolios unlock then.";
+  veil.append(stamp, sub);
+  $(".deck-sticky", deckEl).append(veil);
 }
+
 
 /* ————————————————— Committee detail page (#/committees/<slug>) ————————————————— */
 
 function renderCommitteePage(slug) {
-  /* Committees veiled — deep links meet a sealed notice, not the dossier */
-  if (!CONFIG.COMMITTEES_REVEALED) {
-    $("#committee-view").innerHTML = `
-      <div class="page-wrap">
-        <button class="crumb reveal" data-nav="committees" aria-label="Back to all committees">
-          <i data-icon="chevron-left"></i> All committees
-        </button>
-        ${soonPanel(
-          "This dossier is still sealed.",
-          "Committee reveals begin with the first secretariat release — the full dossier wall unlocks then."
-        )}
-      </div>`;
-    hydrateIcons($("#committee-view"));
-    return true;
-  }
   const idx = COMMITTEES.findIndex((c) => c.slug === slug);
   if (idx === -1) return false;
   const c = COMMITTEES[idx];
@@ -285,6 +271,26 @@ function renderCommitteePage(slug) {
       </div>
     </div>`;
   hydrateIcons();
+
+  /* Committees veiled — the dossier renders in place, blurred + inert under
+     a "Coming Soon" stamp (same treatment as the register wizard box). The
+     crumb stays live so visitors can head back to the committees page. */
+  if (!CONFIG.COMMITTEES_REVEALED) {
+    const wrap = $(".page-wrap", $("#committee-view"));
+    wrap.classList.add("is-veiled");
+    $(".committee-head", wrap).setAttribute("inert", "");
+    $(".committee-grid", wrap).setAttribute("inert", "");
+    const veil = document.createElement("div");
+    veil.className = "reg-veil";
+    const stamp = document.createElement("span");
+    stamp.className = "reg-veil-stamp";
+    stamp.textContent = "Coming Soon";
+    const sub = document.createElement("span");
+    sub.className = "reg-veil-sub";
+    sub.textContent = "This dossier unseals with the committees reveal.";
+    veil.append(stamp, sub);
+    wrap.append(veil);
+  }
   return true;
 }
 
@@ -854,7 +860,11 @@ function deckFrame(t) {
 
 function deckInit() {
   deck.slides = $$(".deck-slide", deck.track);
-  deck.el.style.height = `${Math.max(280, deck.n * 78)}vh`;
+  /* veiled: single-screen section — no pin run, the spring idles on slide 1
+     behind the blur, and deckOnScroll's total <= 0 guard keeps it idle */
+  deck.el.style.height = CONFIG.COMMITTEES_REVEALED
+    ? `${Math.max(280, deck.n * 78)}vh`
+    : "100vh";
   deckSetCurrent(0);
   window.addEventListener("scroll", deckOnScroll, { passive: true });
   window.addEventListener("resize", () => {

@@ -3342,21 +3342,32 @@ em.accent {
 .hero-regens.is-idle .live-dot-core { background: rgba(179, 164, 135, 0.55); }
 
 /* ————— Committees veiled (CONFIG.COMMITTEES_REVEALED = false) —————
-   The pinned deck collapses into a compact panel visitors scroll past.
+   Same treatment as the register veil: the real deck renders in place,
+   blurred + inert under a centered "Coming Soon" stamp. The deck is capped
+   to a single screen (no pin run) so the section passes like any other.
    Flip the flag in config.js and every rule below stops applying. */
-.view.is-gated .scroll-hint { display: none; }
-.deck.is-gated { padding: 1.25rem 1.5rem 0; }
-.deck.is-gated .deck-sticky {
-  position: static;
-  height: auto;
-  min-height: 0;
-  padding: 0;
+.view.is-veiled .scroll-hint { display: none; }
+#deck.is-veiled .deck-sticky > *:not(.reg-veil) {
+  filter: blur(7px) saturate(0.6);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
 }
-.deck.is-gated .deck-backdrop,
-.deck.is-gated .deck-rail,
-.deck.is-gated .deck-viewport,
-.deck.is-gated .deck-nav,
-.deck.is-gated .edge-fade { display: none; }
+#deck.is-veiled .reg-veil { z-index: 30; }  /* above rail z-20 / viewport z-10 */
+
+/* deep-link dossier pages: veil everything except the crumb */
+#committee-view .page-wrap { position: relative; }
+#committee-view .page-wrap.is-veiled > *:not(.crumb):not(.reg-veil) {
+  filter: blur(7px) saturate(0.6);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
+#committee-view .page-wrap.is-veiled .reg-veil {
+  bottom: auto;
+  height: 100vh;  /* stamp centered in the first screen */
+  z-index: 30;    /* below the fixed nav (z-80) */
+}
 .soon-panel {
   border: 1px solid var(--line);
   background: rgba(22, 17, 13, 0.6);

@@ -27,14 +27,14 @@ export const CONFIG = {
   /* Registration portal gate — flip to true when registrations open.
      While false: the register page stays browsable, but the wizard box
      is blurred + inert under an "Opening Soon" stamp. */
-  REGISTRATIONS_OPEN: true,
+  REGISTRATIONS_OPEN: false,
 
   /* Committees reveal gate — flip to true on reveal day.
-     While false: the committees page shows a compact "Decks Open Soon"
-     panel visitors simply scroll past (no deck, no portfolio walls),
-     and committee deep-links render a sealed notice. The full dossier
-     deck is untouched — flipping the flag restores everything as-is. */
-  COMMITTEES_REVEALED: true,
+     While false: the committees deck and every committee dossier page stay
+     in place but blurred + inert under a "Coming Soon" stamp — the same
+     overlay treatment as the register wizard box. The full deck is
+     untouched — flipping the flag restores everything as-is. */
+  COMMITTEES_REVEALED: false,
 
   SUPABASE_URL: "",            // e.g. "https://abcdefgh.supabase.co"
   SUPABASE_ANON_KEY: "",       // e.g. "eyJhbGciOi..."
