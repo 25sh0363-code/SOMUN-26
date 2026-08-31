@@ -2249,13 +2249,54 @@ em.accent {
 .band-title--sm { font-size: 1.875rem; }
 @media (min-width: 640px) { .band-title--sm { font-size: 2.25rem; } }
 
-.seats-grid {
+/* The Core Seven — ceremonial pyramid: apex (I) centred, duo (II–III), quad (IV–VII) */
+.core-seven {
   margin-top: 2.5rem;
-  display: grid;
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
-@media (min-width: 640px) { .seats-grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; } }
-@media (min-width: 1024px) { .seats-grid { grid-template-columns: repeat(4, 1fr); } }
+.core-row { display: flex; justify-content: center; gap: 1.25rem; }
+.core-row > .reveal { flex: 1 1 0; min-width: 0; display: flex; }
+.core-row > .reveal > .seat-card { width: 100%; }
+@media (max-width: 639px) { .core-row { flex-direction: column; } }
+@media (min-width: 640px) {
+  .core-row--apex > .reveal { flex: 0 1 500px; }
+  .core-row--duo  > .reveal { flex: 0 1 350px; }
+  .core-row--quad > .reveal { flex: 0 1 270px; }
+}
+.core-seven .seat-card { text-align: center; padding: 2.25rem 1.5rem 2rem; }
+.core-seven .seat-kicker { margin-top: 1.25rem; }
+.core-seven .seat-title { font-size: 1.375rem; }
+.seat-title--empty { font-style: italic; font-weight: 500; color: rgba(236, 225, 203, 0.45); }
+.core-seven .seat-watermark {
+  right: 50%;
+  transform: translateX(50%);
+  font-size: 7.5rem;
+}
+.seat-card--apex {
+  border-color: rgba(200, 16, 46, 0.55);
+  outline: 1px solid rgba(200, 16, 46, 0.35);
+  outline-offset: 5px;
+  background: rgba(30, 16, 14, 0.72);
+}
+.seat-card--apex:hover { border-color: rgba(200, 16, 46, 0.85); }
+.core-seven .seat-card--apex { padding-top: 2.75rem; }
+.core-seven .seat-card--apex .seat-lock { display: flex; margin: 1.1rem auto 0; }
+.core-seven .seat-card--apex .seat-watermark { font-size: 9.5rem; bottom: -1.75rem; }
+.seat-card--apex .seat-watermark { color: rgba(200, 16, 46, 0.09); }
+.seat-card--apex:hover .seat-watermark { color: rgba(200, 16, 46, 0.15); }
+.seat-apex-tag {
+  display: inline-block;
+  padding: 6px 14px 5px;
+  border: 1px solid rgba(200, 16, 46, 0.5);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  text-transform: uppercase;
+  color: var(--crimson);
+}
 .seat-card {
   position: relative;
   height: 100%;
@@ -3299,6 +3340,47 @@ em.accent {
 }
 .hero-regens.is-idle .live-dot-ping { display: none; }
 .hero-regens.is-idle .live-dot-core { background: rgba(179, 164, 135, 0.55); }
+
+/* ————— Committees veiled (CONFIG.COMMITTEES_REVEALED = false) —————
+   The pinned deck collapses into a compact panel visitors scroll past.
+   Flip the flag in config.js and every rule below stops applying. */
+.view.is-gated .scroll-hint { display: none; }
+.deck.is-gated { padding: 1.25rem 1.5rem 0; }
+.deck.is-gated .deck-sticky {
+  position: static;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+}
+.deck.is-gated .deck-backdrop,
+.deck.is-gated .deck-rail,
+.deck.is-gated .deck-viewport,
+.deck.is-gated .deck-nav,
+.deck.is-gated .edge-fade { display: none; }
+.soon-panel {
+  border: 1px solid var(--line);
+  background: rgba(22, 17, 13, 0.6);
+  padding: 4.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  text-align: center;
+}
+.soon-panel-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: rgba(236, 225, 203, 0.92);
+}
+.soon-panel-sub {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(179, 164, 135, 0.9);
+  max-width: 52ch;
+  line-height: 1.9;
+}
 
 /* ————— Easter egg — invisible hitbox on the footer "Eighth Edition" tag ————— */
 .egg-hit {

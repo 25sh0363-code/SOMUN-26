@@ -6,7 +6,7 @@
    resources (Supabase) · itinerary
    ———————————————————————————————————————————————————————— */
 
-import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, ALLOCATION_MATRIX } from "./data.js";
+import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, ALLOCATION_MATRIX, CORE_SEVEN } from "./data.js";
 import { CONFIG, supabaseConfigured } from "./config.js";
 import { icon, hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
@@ -113,7 +113,15 @@ $("#year").textContent = new Date().getFullYear();
 
 /* ————————————————— Committees deck slides ————————————————— */
 
-{
+/* Shared "coming soon" panel — same visual language as the register veil */
+const soonPanel = (title, sub) => `
+  <div class="soon-panel reveal">
+    <span class="reg-veil-stamp">Coming Soon</span>
+    <p class="soon-panel-title">${title}</p>
+    <p class="soon-panel-sub">${sub}</p>
+  </div>`;
+
+if (CONFIG.COMMITTEES_REVEALED) {
   const track = $("#deck-track");
   track.innerHTML = COMMITTEES.map((c, i) => {
     const roman = ROMAN[i];
@@ -188,11 +196,37 @@ $("#year").textContent = new Date().getFullYear();
     `<button class="deck-num" data-goto="${i}" aria-label="Go to committee ${i + 1}">${ROMAN[i]}<span class="deck-num-diamond"></span></button>`
   ).join("");
   $("#deck-total").textContent = `/ ${String(COMMITTEES.length).padStart(2, "0")}`;
+} else {
+  /* Committees veiled — flip CONFIG.COMMITTEES_REVEALED in config.js to
+     restore the full dossier deck. Nothing else needs to change. */
+  const deckEl = $("#deck");
+  deckEl.classList.add("is-gated");
+  deckEl.setAttribute("inert", "");
+  $(".view[data-view='committees']").classList.add("is-gated");
+  deckEl.insertAdjacentHTML("beforeend", soonPanel(
+    "Twelve chambers. One wall of dossiers.",
+    "The deck — dossiers, daises and portfolios — unlocks with the first committees reveal."
+  ));
 }
 
 /* ————————————————— Committee detail page (#/committees/<slug>) ————————————————— */
 
 function renderCommitteePage(slug) {
+  /* Committees veiled — deep links meet a sealed notice, not the dossier */
+  if (!CONFIG.COMMITTEES_REVEALED) {
+    $("#committee-view").innerHTML = `
+      <div class="page-wrap">
+        <button class="crumb reveal" data-nav="committees" aria-label="Back to all committees">
+          <i data-icon="chevron-left"></i> All committees
+        </button>
+        ${soonPanel(
+          "This dossier is still sealed.",
+          "Committee reveals begin with the first secretariat release — the full dossier wall unlocks then."
+        )}
+      </div>`;
+    hydrateIcons($("#committee-view"));
+    return true;
+  }
   const idx = COMMITTEES.findIndex((c) => c.slug === slug);
   if (idx === -1) return false;
   const c = COMMITTEES[idx];
@@ -299,17 +333,28 @@ function renderCommitteePage(slug) {
 /* ————————————————— Secretariat seats + USG corps ————————————————— */
 
 {
-  const seatCard = (i) => `
-    <div class="reveal" data-delay="${(i * 0.05).toFixed(2)}">
-      <div class="seat-card">
+  /* The Core Seven — ceremonial pyramid: apex (I) · duo (II–III) · quad (IV–VII).
+     Names come from CORE_SEVEN in data.js; fill `name` there and the seat
+     renders it — empty seats keep their placeholder until reveal day. */
+  const seatCard = (i) => {
+    const meta = CORE_SEVEN[i] || {};
+    const name = (meta.name || "").trim();
+    return `
+    <div class="reveal" data-delay="${(i * 0.06).toFixed(2)}">
+      <div class="seat-card${i === 0 ? " seat-card--apex" : ""}">
+        ${i === 0 ? '<span class="seat-apex-tag">The Gavel</span>' : ""}
         <span class="seat-watermark" aria-hidden="true">${ROMAN[i]}</span>
         <span class="seat-lock"><i data-icon="lock"></i></span>
         <p class="seat-kicker">Seat ${ROMAN[i]}</p>
-        <h3 class="seat-title">To be announced</h3>
-        <p class="seat-sub">Revealed with the first secretariat release.</p>
+        <h3 class="seat-title${name ? "" : " seat-title--empty"}">${name || "Name to be inscribed"}</h3>
+        <p class="seat-sub">${name ? (meta.note || "The Eighth Secretariat") : "Revealed with the first secretariat release."}</p>
       </div>
     </div>`;
-  $("#core-seats").innerHTML = Array.from({ length: 7 }, (_, i) => seatCard(i)).join("");
+  };
+  const rowClass = (n) => (n === 1 ? "core-row--apex" : n === 2 ? "core-row--duo" : "core-row--quad");
+  $("#core-seats").innerHTML = [[0], [1, 2], [3, 4, 5, 6]]
+    .map((r) => `<div class="core-row ${rowClass(r.length)}">${r.map(seatCard).join("")}</div>`)
+    .join("");
 
   $("#usg-grid").innerHTML = Array.from({ length: 6 }, (_, i) => `
     <div class="reveal" data-delay="${(i * 0.05).toFixed(2)}">
@@ -488,7 +533,7 @@ function showView(view, { animate = true } = {}) {
   setActiveNav(view);
   if (view === "home" && window.__litText) requestAnimationFrame(window.__litText);
   requestAnimationFrame(() => window.scrollTo({ top: 0 }));
-  if (view === "committees") deckOnShow();
+  if (view === "committees" && CONFIG.COMMITTEES_REVEALED) deckOnShow();
 }
 
 function transitionTo(view) {
