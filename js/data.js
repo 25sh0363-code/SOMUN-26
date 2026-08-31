@@ -223,6 +223,22 @@ export const ALLOCATION_MATRIX = {
    The public itinerary page currently shows "Releasing Soon".
    When the schedule is final, simply switch SHOW_ITINERARY to true. */
 
+/* ————— The Core Seven ————————————————————————————————————————
+   The top-7 of the Eighth Secretariat, in gavel order.
+   HOW TO REVEAL A NAME: put it in `name` (and an optional one-line
+   `note` — portfolio, school, anything). The seat renders it
+   automatically in the pyramid — no other code changes needed.
+   While `name` is empty the seat shows its ceremonial placeholder. */
+export const CORE_SEVEN = [
+  { seat: "I",   name: "", note: "" }, /* the gavel seat */
+  { seat: "II",  name: "", note: "" },
+  { seat: "III", name: "", note: "" },
+  { seat: "IV",  name: "", note: "" },
+  { seat: "V",   name: "", note: "" },
+  { seat: "VI",  name: "", note: "" },
+  { seat: "VII", name: "", note: "" },
+];
+
 export const SHOW_ITINERARY = false;
 
 export const ITINERARY = [
