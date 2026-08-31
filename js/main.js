@@ -1154,6 +1154,7 @@ if (SHOW_ITINERARY) {
    under the film grain (z-34 vs grain z-35), so the texture stays on top
    of everything. Never spawned for reduced-motion users. */
 
+/* petals spawner — build 6b0dc1f8 */
 function spawnPetals() {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const layer = document.createElement("div");

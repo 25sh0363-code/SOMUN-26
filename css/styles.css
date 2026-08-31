@@ -3445,6 +3445,7 @@ em.accent {
    Sixteen slow petals in brand crimson, pure solid fills — no gradients —
    drifting beneath the film grain (grain z-35, petals z-34, nav above both).
    Spawner lives in main.js; skipped entirely for reduced-motion users. */
+/* build 6b0dc1f8 */
 .petals {
   position: fixed;
   inset: 0;
