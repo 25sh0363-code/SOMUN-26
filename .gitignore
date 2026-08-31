@@ -17,3 +17,4 @@ Caddyfile
 package.json
 package-lock.json
 *.log
+tool-results/
