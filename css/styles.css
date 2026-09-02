@@ -1593,7 +1593,7 @@ em.accent {
   height: 100%;
   object-fit: cover;
   opacity: 0.07;
-  filter: grayscale(0.45) blur(2px);
+  filter: grayscale(1) blur(2px);
   transform: scale(1.05);
 }
 .deck-backdrop-shade {
@@ -1780,7 +1780,7 @@ em.accent {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: grayscale(0.22) sepia(0.14) contrast(1.06);
+  filter: grayscale(1) sepia(1) hue-rotate(-42deg) saturate(2.4) contrast(1.15) brightness(0.8);
   transform: scale(1.08);
   transition: transform 1.05s var(--ease-out);
 }
@@ -1794,7 +1794,7 @@ em.accent {
 .plate-tint {
   position: absolute;
   inset: 0;
-  background: rgba(200, 16, 46, 0.1);
+  background: rgba(200, 16, 46, 0.22);
   mix-blend-mode: multiply;
   pointer-events: none;
 }
@@ -3348,8 +3348,8 @@ em.accent {
    Flip the flag in config.js and every rule below stops applying. */
 .view.is-veiled .scroll-hint { display: none; }
 #deck.is-veiled .deck-sticky > *:not(.reg-veil) {
-  filter: blur(7px) saturate(0.6);
-  opacity: 0.55;
+  filter: blur(16px) saturate(0.35);
+  opacity: 0.42;
   pointer-events: none;
   user-select: none;
 }
@@ -3358,8 +3358,8 @@ em.accent {
 /* deep-link dossier pages: veil everything except the crumb */
 #committee-view .page-wrap { position: relative; }
 #committee-view .page-wrap.is-veiled > *:not(.crumb):not(.reg-veil) {
-  filter: blur(7px) saturate(0.6);
-  opacity: 0.55;
+  filter: blur(14px) saturate(0.4);
+  opacity: 0.45;
   pointer-events: none;
   user-select: none;
 }
@@ -3368,6 +3368,35 @@ em.accent {
   height: 100vh;  /* stamp centered in the first screen */
   z-index: 30;    /* below the fixed nav (z-80) */
 }
+
+/* sealed-season veil panel (committees deck) + hidden sections */
+.committee-veil { gap: 0.9rem; background: rgba(20, 15, 12, 0.4); }
+.veil-kicker {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  text-transform: uppercase;
+  color: rgba(179, 164, 135, 0.85);
+}
+.veil-line {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4.5vw, 3rem);
+  font-weight: 600;
+  color: rgba(236, 225, 203, 0.95);
+  line-height: 1.1;
+}
+.veil-line em { font-style: italic; color: var(--crimson); }
+.veil-ticks { display: flex; gap: 10px; margin-top: 0.4rem; }
+.veil-ticks i {
+  width: 5px;
+  height: 5px;
+  background: rgba(200, 16, 46, 0.75);
+  transform: rotate(45deg);
+}
+.veil-ticks i:nth-child(odd) { background: rgba(236, 225, 203, 0.35); }
+#exec-strip[hidden],
+#chamber-note[hidden] { display: none; }
 .soon-panel {
   border: 1px solid var(--line);
   background: rgba(22, 17, 13, 0.6);

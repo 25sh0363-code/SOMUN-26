@@ -23,3 +23,5 @@ tool-results/
 *.bak
 .syncwork/
 repo.tar.*
+download/
+*.bundle-tmp.bundle
