@@ -25,7 +25,7 @@ export const CONFERENCE = {
    Content source: secretariat committee pages document (content.pages).
    Order = dossier order Nº 01–12 (deck + pages). Fields:
      description · agendas        → dossier box in the scroll view + preview card
-     itemsLabel · cta             → dossier box footer + button
+     cta                          → dossier box button · itemsLabel → page fact strip
      overview[] about willDo why  → the committee's own page sections
      focusLabel + focus[]         → focus chips section
      kicker                       → closing line (optional)
@@ -36,8 +36,8 @@ export const COMMITTEES = [
     slug: "disec",
     acronym: "DISEC",
     name: "Disarmament and International Security Committee",
-    difficulty: "Intermediate",
-    diffKey: "Intermediate",
+    difficulty: "Beginner",
+    diffKey: "Beginner",
     photo: "images/committees/disec.jpg",
     description:
       "Where diplomacy meets deterrence. DISEC confronts the weapons, technologies and strategic rivalries that shape the global security order. Every resolution is a negotiation between national interest and collective survival.",
@@ -70,8 +70,8 @@ export const COMMITTEES = [
     slug: "ecosoc",
     acronym: "ECOSOC",
     name: "Economic and Social Council",
-    difficulty: "Beginner / Intermediate",
-    diffKey: "Mixed",
+    difficulty: "Intermediate",
+    diffKey: "Intermediate",
     photo: "images/committees/ecosoc.jpg",
     description:
       "The global economy has no borders. From inequality and sustainable development to access to essential resources, ECOSOC asks a difficult question: how can prosperity become a global reality rather than a national privilege?",
@@ -104,8 +104,8 @@ export const COMMITTEES = [
     slug: "unctc",
     acronym: "UNCTC",
     name: "United Nations Counter-Terrorism Committee",
-    difficulty: "Advanced",
-    diffKey: "Advanced",
+    difficulty: "Intermediate",
+    diffKey: "Intermediate",
     photo: "images/committees/unctc.jpg",
     description:
       "Security has a price, but so does the loss of freedom. UNCTC confronts the evolving architecture of international terrorism, forcing states to balance intelligence, prevention and security with sovereignty and fundamental rights.",
@@ -138,8 +138,8 @@ export const COMMITTEES = [
     slug: "unoosa",
     acronym: "UNOOSA",
     name: "United Nations Office for Outer Space Affairs",
-    difficulty: "Beginner / Intermediate",
-    diffKey: "Mixed",
+    difficulty: "Beginner",
+    diffKey: "Beginner",
     photo: "images/committees/unoosa.jpg",
     description:
       "Humanity's next geopolitical frontier lies far beyond Earth. As nations and private actors race into orbit, UNOOSA faces the challenge of keeping space peaceful, accessible and sustainable before the final frontier becomes the next contested domain.",
@@ -173,8 +173,8 @@ export const COMMITTEES = [
     slug: "uncsw",
     acronym: "UNCSW",
     name: "United Nations Commission on the Status of Women",
-    difficulty: "Beginner",
-    diffKey: "Beginner",
+    difficulty: "Intermediate",
+    diffKey: "Intermediate",
     photo: "images/committees/uncsw.jpg",
     description:
       "Equality on paper does not always become equality in practice. UNCSW examines the barriers that continue to shape the lives of women and girls, challenging delegates to transform international commitments into meaningful action.",
@@ -241,8 +241,8 @@ export const COMMITTEES = [
     slug: "mcu",
     acronym: "MCU",
     name: "Marvel Cinematic Universe Committee",
-    difficulty: "Advanced",
-    diffKey: "Advanced",
+    difficulty: "Beginner",
+    diffKey: "Beginner",
     photo: "images/committees/mcu.jpg",
     description:
       "The world has survived gods, invasions and the collapse of reality itself. Now the fate of the universe rests in your hands. Heroes, villains, governments and cosmic powers enter a crisis where one decision can rewrite everything.",
@@ -312,8 +312,8 @@ export const COMMITTEES = [
     slug: "icc",
     acronym: "ICC",
     name: "International Cricket Council",
-    difficulty: "Intermediate",
-    diffKey: "Intermediate",
+    difficulty: "Advanced",
+    diffKey: "Advanced",
     photo: "images/committees/icc.jpg",
     description:
       "Cricket unites billions, but the game is governed by competing interests, national ambitions and an evolving global landscape. Inside the ICC, delegates must decide not only how cricket is played, but where the sport goes next.",

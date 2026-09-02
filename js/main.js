@@ -143,7 +143,6 @@ const track = $("#deck-track");
             <div class="plate">
               ${plateInner}
               <div class="plate-caption">
-                <p class="plate-credit">Official chamber dossier${c.photo ? "" : " · artwork to follow"}</p>
                 <span class="plate-num">${pad2(i + 1)}</span>
               </div>
             </div>
@@ -151,7 +150,6 @@ const track = $("#deck-track");
             <div class="dossier-body">
               <div class="dossier-content">
                 <div class="dossier-top stagger-item" style="${stag(1)}">
-                  <p class="dossier-no">Dossier Nº ${roman}</p>
                   <span class="diff-chip diff-chip--${c.diffKey}">${c.difficulty}</span>
                 </div>
                 <h3 class="dossier-acronym stagger-item" style="${stag(2)}">${c.acronym}</h3>
@@ -166,7 +164,6 @@ const track = $("#deck-track");
                 </div>
                 <div class="dossier-foot stagger-item" style="${stag(7)}">
                   <div class="dossier-foot-row">
-                    <span class="dossier-meta"><i data-icon="scroll-text"></i>${c.itemsLabel}</span>
                     <button class="take-seat" data-committee="${c.slug}" aria-label="${c.cta} — ${c.acronym}">
                       <span class="take-seat-fill"></span>
                       <span class="take-seat-label">${c.cta} <i data-icon="arrow-right"></i></span>
@@ -978,11 +975,12 @@ function deckGoTo(idx) {
 deckInit();
 
 /* ————————————————— About page — dossier interactivity —————
-   Six scoped behaviours for the redesigned About view: crimson
+   Seven scoped behaviours for the redesigned About view: crimson
    ticker fill, the scroll-lit origin manifesto (a scoped twin of
-   the home module above), count-up stat wall, scroll-filled
-   timeline spine, the cursor spotlight over the Hyderabad panel,
-   and the lazy-loaded live venue map exhibit (chapter VI). */
+   the home module above), count-up stat wall, the one-open charter
+   accordion, scroll-filled timeline spine, the cursor spotlight
+   over the Hyderabad panel, and the lazy-loaded live venue map
+   exhibit (chapter VII). */
 
 {
   const view = $('.view[data-view="about"]');
@@ -1111,7 +1109,26 @@ deckInit();
       $$("[data-count]", view).forEach((el) => io.observe(el));
     }
 
-    /* 4 · the road to the gavel — the spine fills crimson as it scrolls
+    /* 4 · the charter — one article open at a time */
+    {
+      const articles = $$(".ab-article", view);
+      articles.forEach((art) => {
+        const head = $(".ab-article-head", art);
+        head.addEventListener("click", () => {
+          const wasOpen = art.classList.contains("open");
+          articles.forEach((a) => {
+            a.classList.remove("open");
+            $(".ab-article-head", a).setAttribute("aria-expanded", "false");
+          });
+          if (!wasOpen) {
+            art.classList.add("open");
+            head.setAttribute("aria-expanded", "true");
+          }
+        });
+      });
+    }
+
+    /* 5 · the road to the gavel — the spine fills crimson as it scrolls
        past, and each milestone lights when the fill reaches its node */
     let tlUpdate = null;
     {
@@ -1145,7 +1162,7 @@ deckInit();
       update();
     }
 
-    /* 5 · why Hyderabad — a crimson torch follows the cursor across the panel */
+    /* 6 · why Hyderabad — a crimson torch follows the cursor across the panel */
     {
       const spot = $("#ab-spot", view);
       if (spot && !reduce && window.matchMedia("(pointer: fine)").matches) {
@@ -1159,7 +1176,7 @@ deckInit();
       }
     }
 
-    /* 6 · the grounds — the venue exhibit stays sealed until the map
+    /* 7 · the grounds — the venue exhibit stays sealed until the map
        panel scrolls near; the Google embed then loads once and the
        veil fades. Once loaded it stays loaded across view swaps. */
     {
