@@ -34,7 +34,7 @@ export const CONFIG = {
      in place but blurred + inert under a "Coming Soon" stamp — the same
      overlay treatment as the register wizard box. The full deck is
      untouched — flipping the flag restores everything as-is. */
-  COMMITTEES_REVEALED: false,
+  COMMITTEES_REVEALED: true,
 
   /* Meet the Secretariat — About page, chapter V.
      While SECRETARIAT_REVEALED is false: the section renders in place but
