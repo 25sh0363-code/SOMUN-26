@@ -77,7 +77,7 @@ $("#year").textContent = new Date().getFullYear();
 {
   const PILLARS = [
     { ic: "gavel", title: "Rigorous Debate", body: "Agendas chosen to bite — autonomous weapons, electoral reform, pandemic treaties. No soft topics, no free passes." },
-    { ic: "globe-2", title: "Global Perspective", body: "Committees span six continents' worth of crises. Delegates argue positions they did not choose — and understand better for it." },
+    { ic: "globe", title: "Global Perspective", body: "Committees span six continents' worth of crises. Delegates argue positions they did not choose — and understand better for it." },
     { ic: "users", title: "Elite Boards", body: "Hand-picked executive boards that keep sessions fast, fair and fierce — with written feedback after every session." },
     { ic: "trophy", title: "Coveted Awards", body: "Best Delegate gavels, delegation trophies and IP laurels — decided transparently against published scoring rubrics." },
   ];
@@ -190,22 +190,33 @@ const track = $("#deck-track");
 
 /* ————— Committees veiled: the deck renders in place, then gets the exact
    treatment of the register wizard box — blurred + inert under a centered
-   "Coming Soon" stamp. Flip CONFIG.COMMITTEES_REVEALED in config.js to
-   release; the deck restores untouched, nothing else to change. ————— */
+   "Coming Soon" seal. Flip CONFIG.COMMITTEES_REVEALED in config.js to
+   release; deck, head copy, executive boards and the chamber note all
+   restore untouched, nothing else to change. ————— */
 if (!CONFIG.COMMITTEES_REVEALED) {
+  const cView = $(".view[data-view='committees']");
+  cView.classList.add("is-veiled");
+
+  /* head copy speaks for the sealed season; the original HTML stands again
+     on reveal day with zero edits */
+  $(".section-head-title", cView).innerHTML = `The arena is <em class="accent">sealed.</em>`;
+  $(".section-head-intro", cView).textContent = "Twelve chambers are being briefed behind closed doors — dossiers, daises and portfolios unlock with the first committees reveal. Watch this space.";
+
+  /* executive boards + chamber note stay dark until the chambers are declared */
+  $("#exec-strip").setAttribute("hidden", "");
+  $("#chamber-note").setAttribute("hidden", "");
+
   const deckEl = $("#deck");
   deckEl.classList.add("is-veiled");
   deckEl.setAttribute("inert", "");
-  $(".view[data-view='committees']").classList.add("is-veiled");
   const veil = document.createElement("div");
-  veil.className = "reg-veil";
-  const stamp = document.createElement("span");
-  stamp.className = "reg-veil-stamp";
-  stamp.textContent = "Coming Soon";
-  const sub = document.createElement("span");
-  sub.className = "reg-veil-sub";
-  sub.textContent = "The twelve chambers unveil with the committees reveal — dossiers, daises and portfolios unlock then.";
-  veil.append(stamp, sub);
+  veil.className = "reg-veil committee-veil";
+  veil.innerHTML = `
+    <span class="veil-kicker">The Twelve Chambers</span>
+    <p class="veil-line">Committees convene <em>soon.</em></p>
+    <span class="reg-veil-stamp">Coming Soon</span>
+    <span class="reg-veil-sub">Dossiers, daises and portfolios unlock with the first committees reveal.</span>
+    <span class="veil-ticks" aria-hidden="true">${"<i></i>".repeat(12)}</span>`;
   $(".deck-sticky", deckEl).append(veil);
 }
 
@@ -282,14 +293,14 @@ function renderCommitteePage(slug) {
     $(".committee-grid", wrap).setAttribute("inert", "");
     const veil = document.createElement("div");
     veil.className = "reg-veil";
-    const stamp = document.createElement("span");
-    stamp.className = "reg-veil-stamp";
-    stamp.textContent = "Coming Soon";
-    const sub = document.createElement("span");
-    sub.className = "reg-veil-sub";
-    sub.textContent = "This dossier unseals with the committees reveal.";
-    veil.append(stamp, sub);
+    veil.innerHTML = `
+      <span class="veil-kicker">Sealed Dossier</span>
+      <span class="reg-veil-stamp">Coming Soon</span>
+      <span class="reg-veil-sub">This dossier unseals with the committees reveal.</span>`;
     wrap.append(veil);
+    /* land at the top so the seal is the first thing on screen regardless
+       of browser scroll restoration */
+    window.scrollTo(0, 0);
   }
   return true;
 }
