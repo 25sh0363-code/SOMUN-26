@@ -36,6 +36,17 @@ export const CONFIG = {
      untouched — flipping the flag restores everything as-is. */
   COMMITTEES_REVEALED: false,
 
+  /* Meet the Secretariat — About page, chapter V.
+     While SECRETARIAT_REVEALED is false: the section renders in place but
+     blurred + inert under a "Coming Soon" stamp (same treatment as the
+     committees deck) — and the Instagram embed is NOT loaded, nothing leaks.
+     Flip to true on drop day: the blur lifts, the stamp disappears and the
+     post embeds right on the page, with a "View on Instagram" button.
+     SECRETARIAT_POST_URL: the Instagram post (or reel) link to embed —
+     swap the link here any time, no other file needs touching. */
+  SECRETARIAT_REVEALED: false,
+  SECRETARIAT_POST_URL: "https://www.instagram.com/p/Dci_Fgsv1F2/",
+
   SUPABASE_URL: "",            // e.g. "https://abcdefgh.supabase.co"
   SUPABASE_ANON_KEY: "",       // e.g. "eyJhbGciOi..."
   REGISTRATIONS_TABLE: "registrations",

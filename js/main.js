@@ -455,39 +455,11 @@ function renderCommitteePage(slug) {
     </div>`).join("");
 }
 
-/* ————————————————— Resources archive cards + guides index ————————————————— */
-
-const RES_META = [
-  { ic: "book-open", no: "01", title: "Background Guides", cat: "study-guides", desc: "Committee-wise guides and agenda briefs in depth — everything you need before the first roll call." },
-  { ic: "scroll-text", no: "02", title: "Rules of Procedure", cat: "rules", desc: "The SOMUN rules of procedure — motions, precedence and draft-resolution mechanics, the fine print of every chamber." },
-  { ic: "book-marked", no: "03", title: "Delegate Handbook", cat: "handbook", desc: "Venue maps, dress code, kit details and conference etiquette — your pocket companion for the three days." },
-];
-
-/* released[key] = { url, label } filled from Supabase (or left empty) */
-const releasedRes = {};
-
-function renderResourceCards() {
-  $("#res-grid").innerHTML = RES_META.map((r, i) => {
-    const rel = releasedRes[r.cat];
-    const foot = rel
-      ? `<a class="res-dl" href="${rel.url}" target="_blank" rel="noopener">Download</a>`
-      : `<span class="res-foot-label">PDF · coming to this shelf</span>
-         <span class="stamp stamp--sm"><span class="stamp-diamond"></span>Soon</span>`;
-    return `
-    <div class="reveal" data-delay="${(i * 0.06).toFixed(2)}">
-      <div class="res-card">
-        <div class="res-top">
-          <span class="res-icon"><i data-icon="${r.ic}"></i></span>
-          <span class="res-num" aria-hidden="true">${r.no}</span>
-        </div>
-        <h3 class="res-title">${r.title}</h3>
-        <p class="res-desc">${r.desc}</p>
-        <div class="res-foot">${foot}</div>
-      </div>
-    </div>`;
-  }).join("");
-  hydrateIcons($("#res-grid"));
-}
+/* ————————————————— Resources — background-guides index ———————
+   The three static archive shelf cards were retired — the page now
+   leads with the per-committee guides index below. Released guides
+   still land straight from Supabase the moment rows flip to
+   released = true; nothing else on the page depends on the cards. */
 
 function renderGuidesIndex(guides) {
   $("#guides-list").innerHTML = COMMITTEES.map((c) => {
@@ -499,7 +471,6 @@ function renderGuidesIndex(guides) {
   }).join("");
 }
 
-renderResourceCards();
 renderGuidesIndex({});
 
 /* pull released resources from Supabase when configured */
@@ -509,14 +480,9 @@ if (supabaseConfigured()) {
       const guides = {};
       for (const r of rows || []) {
         if (r.committee) guides[r.committee] = r.file_url;
-        if (r.category && RES_META.some((m) => m.cat === r.category)) {
-          releasedRes[r.category] = { url: r.file_url };
-        }
       }
-      renderResourceCards();
       renderGuidesIndex(guides);
-      const any = (rows || []).length > 0;
-      if (any) $("#guides-stamp")?.remove();
+      if ((rows || []).length > 0) $("#guides-stamp")?.remove();
     })
     .catch(() => {/* silently keep placeholders if the table is missing */});
 }
@@ -821,38 +787,47 @@ $("#drawer-overlay").addEventListener("click", closeDrawer);
       });
     };
 
-    targets.forEach((el) => {
+    /* per-element char ranges — each block lights over its OWN trip from
+       the viewport fold to the centre line, so a typing pass is always on
+       screen while it runs (the old single global sweep spent its budget
+       on the first paragraphs, leaving nothing to watch by the time the
+       reader scrolled down) */
+    const ranges = targets.map((el) => {
+      const start = chars.length;
       el.setAttribute("aria-label", (el.textContent || "").replace(/\s+/g, " ").trim());
       const veil = document.createElement("span");
       veil.setAttribute("aria-hidden", "true");
       while (el.firstChild) veil.appendChild(el.firstChild);
       el.appendChild(veil);
       splitWords(veil);
+      return { el, start, end: chars.length, lit: 0 };
     });
 
     if (reduceMotion) {
       chars.forEach((c) => c.classList.add("on"));
     } else {
-      let lit = 0;
-      const render = (target) => {
-        target = Math.max(0, Math.min(chars.length, target));
-        if (target === lit) return;
-        if (target > lit) for (let i = lit; i < target; i++) chars[i].classList.add("on");
-        else for (let i = lit - 1; i >= target; i--) chars[i].classList.remove("on");
-        lit = target;
+      const renderRange = (rg, target) => {
+        target = Math.max(0, Math.min(rg.end - rg.start, target));
+        if (target === rg.lit) return;
+        if (target > rg.lit) for (let i = rg.lit; i < target; i++) chars[rg.start + i].classList.add("on");
+        else for (let i = rg.lit - 1; i >= target; i--) chars[rg.start + i].classList.remove("on");
+        rg.lit = target;
       };
       const update = () => {
         const r = root.getBoundingClientRect();
-        if (!r.height) return render(0); /* another view is on stage — reset for the replay */
+        if (!r.height) {
+          /* another view is on stage — reset for the replay */
+          ranges.forEach((rg) => renderRange(rg, 0));
+          return;
+        }
         const vh = window.innerHeight || 1;
-        const a = targets[0].getBoundingClientRect();
-        const b = targets[targets.length - 1].getBoundingClientRect();
-        const top = Math.min(a.top, b.top);
-        const blockH = b.bottom - a.top;
-        const enter = vh * 0.9;             /* first chars light as the block enters */
-        const exit = vh * 0.5 - blockH / 2; /* last char lands when the lit text is centred */
-        const p = (enter - top) / Math.max(1, enter - exit);
-        render(Math.round(Math.max(0, Math.min(1, p)) * chars.length));
+        ranges.forEach((rg) => {
+          const b = rg.el.getBoundingClientRect();
+          const enter = vh * 0.92;             /* first char as the block's top clears the fold */
+          const done = vh * 0.5 - b.height / 2; /* last char lands as the block centres */
+          const p = (enter - b.top) / Math.max(1, enter - done);
+          renderRange(rg, Math.round(Math.max(0, Math.min(1, p)) * (rg.end - rg.start)));
+        });
       };
       let queued = false;
       const onLit = () => {
@@ -1018,9 +993,9 @@ deckInit();
    Seven scoped behaviours for the redesigned About view: crimson
    ticker fill, the scroll-lit origin manifesto (a scoped twin of
    the home module above), count-up stat wall, the one-open charter
-   accordion, scroll-filled timeline spine, the cursor spotlight
-   over the Hyderabad panel, and the lazy-loaded live venue map
-   exhibit (chapter VII). */
+   accordion, scroll-filled timeline spine, the config-gated
+   "Meet the Secretariat" Instagram reveal, and the lazy-loaded
+   live venue map exhibit (chapter VII). */
 
 {
   const view = $('.view[data-view="about"]');
@@ -1202,17 +1177,48 @@ deckInit();
       update();
     }
 
-    /* 6 · why Hyderabad — a crimson torch follows the cursor across the panel */
+    /* 6 · meet the secretariat — the chapter box streams the announcement
+       post from CONFIG.SECRETARIAT_POST_URL. While SECRETARIAT_REVEALED is
+       false the box renders blurred + inert under a "Coming Soon" stamp and
+       the embed is never requested — nothing leaks. Flip the flag in
+       config.js on drop day; the same file carries the post link, so a
+       new post needs zero code edits. */
     {
-      const spot = $("#ab-spot", view);
-      if (spot && !reduce && window.matchMedia("(pointer: fine)").matches) {
-        spot.addEventListener("mouseenter", () => spot.classList.add("lamp-on"));
-        spot.addEventListener("mouseleave", () => spot.classList.remove("lamp-on"));
-        spot.addEventListener("mousemove", (e) => {
-          const r = spot.getBoundingClientRect();
-          spot.style.setProperty("--mx", `${e.clientX - r.left}px`);
-          spot.style.setProperty("--my", `${e.clientY - r.top}px`);
-        });
+      const box = $("#ab-secretariat", view);
+      const media = $("#ab-sec-media", view);
+      const btn = $("#ab-sec-btn", view);
+      if (box && media) {
+        const url = (CONFIG.SECRETARIAT_POST_URL || "").trim();
+        if (url && btn) {
+          btn.href = url;
+          btn.hidden = false;
+        }
+        if (url && CONFIG.SECRETARIAT_REVEALED) {
+          const m = url.match(/instagram\.com\/(p|reel)\/([\w-]+)/);
+          if (m) {
+            const frame = document.createElement("iframe");
+            frame.className = "ab-sec-frame";
+            frame.title = "SOMUN '26 — secretariat announcement on Instagram";
+            frame.src = `https://www.instagram.com/${m[1]}/${m[2]}/embed`;
+            frame.loading = "lazy";
+            frame.setAttribute("scrolling", "no");
+            frame.allowfullscreen = true;
+            media.appendChild(frame);
+            media.classList.add("is-live");
+          }
+        }
+        if (!CONFIG.SECRETARIAT_REVEALED) {
+          box.classList.add("is-veiled");
+          box.setAttribute("inert", "");
+          const veil = document.createElement("div");
+          veil.className = "reg-veil ab-sec-veil";
+          veil.innerHTML = `
+            <span class="veil-kicker">The Eighth Secretariat</span>
+            <p class="veil-line">The team takes the stage <em>soon.</em></p>
+            <span class="reg-veil-stamp">Coming Soon</span>
+            <span class="reg-veil-sub">The secretariat reveal is drafted — this box unblurs the moment the post drops.</span>`;
+          box.append(veil);
+        }
       }
     }
 

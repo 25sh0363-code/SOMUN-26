@@ -2299,7 +2299,7 @@ em.accent {
   transition: color 0.5s;
 }
 .seat-card:hover .seat-watermark { color: rgba(236, 225, 203, 0.1); }
-.seat-lock, .res-icon {
+.seat-lock {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2309,8 +2309,8 @@ em.accent {
   color: var(--crimson);
   transition: border-color 0.5s;
 }
-.seat-card:hover .seat-lock, .res-card:hover .res-icon { border-color: rgba(200, 16, 46, 0.5); }
-.seat-lock svg, .res-icon svg { width: 16px; height: 16px; }
+.seat-card:hover .seat-lock { border-color: rgba(200, 16, 46, 0.5); }
+.seat-lock svg { width: 16px; height: 16px; }
 .seat-kicker {
   margin-top: 1.5rem;
   font-size: 9px;
@@ -2578,67 +2578,9 @@ em.accent {
   color: var(--beige-dim);
 }
 
-/* ———————————————— RESOURCES ———————————————— */
-.res-grid {
-  margin-top: 3rem;
-  display: grid;
-  gap: 1rem;
-}
-@media (min-width: 640px) { .res-grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; } }
-@media (min-width: 1024px) { .res-grid { grid-template-columns: repeat(4, 1fr); } }
-.res-card {
-  position: relative;
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  background: rgba(22, 17, 13, 0.6);
-  padding: 1.5rem;
-  transition: border-color 0.5s;
-}
-.res-card:hover { border-color: rgba(236, 225, 203, 0.3); }
-.res-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.res-num {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.5rem;
-  color: rgba(236, 225, 203, 0.15);
-  user-select: none;
-}
-.res-title { margin-top: 1.5rem; font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; color: var(--beige); }
-.res-desc { margin-top: 0.625rem; flex-grow: 1; font-size: 12px; line-height: 1.625; color: var(--beige-dim); }
-.res-foot {
-  margin-top: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  border-top: 1px dashed var(--line);
-  padding-top: 1rem;
-}
-.res-foot-label {
-  font-size: 8px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3em;
-  color: rgba(179, 164, 135, 0.7);
-}
-.stamp--sm { padding: 0.25rem 0.625rem; font-size: 8px; gap: 0.4rem; letter-spacing: 0.28em; }
-.res-dl {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  border: 1px solid rgba(200, 16, 46, 0.6);
-  color: var(--crimson);
-  padding: 0.375rem 0.75rem;
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.28em;
-  transition: background-color 0.3s, color 0.3s;
-}
-.res-dl:hover { background: var(--crimson); color: var(--primary-fg); }
+/* ———————————————— RESOURCES ————————————————
+   (the three static archive shelf cards were retired — the page
+   now leads with the per-committee guides index below) */
 
 .guides-panel {
   position: relative;
@@ -4276,98 +4218,76 @@ em.accent {
   /* cards keep hairlines only — no inset ticks */
 }
 
-/* ————— chapter V · why Hyderabad (cursor spotlight) ————— */
-.ab-spot {
+/* ————— chapter V · meet the secretariat (Instagram reveal, config-gated) ————— */
+.ab-secretariat {
   margin-top: 3rem;
   position: relative;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  overflow: hidden;
-  transition: border-color 0.5s;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 1.25rem;
+  align-items: stretch;
   max-width: 72rem;
 }
-.ab-spot:hover { border-color: rgba(200, 16, 46, 0.45); }
-.ab-spot-bg {
-  position: absolute;
-  inset: 0;
-  background: url("../images/textures/red-texture.jpg") center / cover no-repeat;
-  opacity: 0.2;
-  mix-blend-mode: multiply;
-  pointer-events: none;
-}
-/* the lamp — a crimson torch that follows the cursor (position via --mx/--my) */
-.ab-spot-lamp {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    560px circle at var(--mx, 50%) var(--my, 45%),
-    rgba(200, 16, 46, 0.24),
-    rgba(200, 16, 46, 0.06) 38%,
-    transparent 62%
-  );
-  opacity: 0;
-  transition: opacity 0.5s;
-  pointer-events: none;
-}
-.ab-spot.lamp-on .ab-spot-lamp { opacity: 1; }
-.ab-spot-inner { position: relative; padding: clamp(2rem, 5vw, 4rem); }
-.ab-spot-quote {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: clamp(1.5rem, 3.2vw, 2.4rem);
-  line-height: 1.25;
-  color: var(--beige);
-  max-width: 44rem;
-}
-.ab-spot-quote-ic {
-  width: 26px;
-  height: 26px;
-  color: var(--crimson);
-  opacity: 0.85;
-  margin-bottom: 1rem;
-  display: block;
-}
-.ab-spot-copy {
-  margin-top: 1.5rem;
-  font-size: 0.98rem;
-  line-height: 1.75;
-  color: var(--beige-dim);
-  max-width: 46rem;
-}
-.ab-spot-facts {
-  margin-top: 2.5rem;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-}
-@media (min-width: 700px) {
-  .ab-spot-facts { grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-}
-.ab-spot-fact {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
+.ab-sec-media {
+  position: relative;
+  min-height: 460px;
+  overflow: hidden;
   border: 1px solid var(--line);
-  background: rgba(13, 10, 8, 0.55);
-  padding: 1.1rem 1.2rem;
-  backdrop-filter: blur(3px);
-  transition: border-color 0.35s;
+  background: var(--panel);
+  transition: border-color 0.5s;
 }
-.ab-spot-fact:hover { border-color: rgba(200, 16, 46, 0.45); }
-.ab-spot-fact-ic { width: 17px; height: 17px; color: var(--crimson); flex-shrink: 0; margin-top: 2px; }
-.ab-spot-fact strong {
-  display: block;
-  font-size: 0.86rem;
+.ab-sec-media.is-live { min-height: 0; aspect-ratio: 4 / 5; }
+.ab-sec-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  text-align: center;
+  padding: 2rem;
+}
+.ab-sec-empty-ic { width: 26px; height: 26px; color: var(--crimson); opacity: 0.8; }
+.ab-sec-empty span {
+  font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.32em;
+  text-indent: 0.32em;
+  text-transform: uppercase;
+  color: rgba(179, 164, 135, 0.65);
+}
+.ab-sec-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.ab-sec-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1.1rem;
+  border: 1px solid var(--line);
+  background: rgba(22, 17, 13, 0.6);
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+}
+.ab-sec-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.6vw, 2rem);
+  line-height: 1.2;
   color: var(--beige);
 }
-.ab-spot-fact span {
-  display: block;
-  margin-top: 0.3rem;
-  font-size: 0.8rem;
-  line-height: 1.6;
-  color: var(--beige-dim);
+.ab-sec-copy { font-size: 0.92rem; line-height: 1.75; color: var(--beige-dim); }
+/* the Coming Soon seal — same treatment as the committees deck;
+   CONFIG.SECRETARIAT_REVEALED = true retires every rule below */
+.ab-secretariat.is-veiled > *:not(.reg-veil) {
+  filter: blur(10px) saturate(0.45);
+  opacity: 0.45;
+  pointer-events: none;
+  user-select: none;
+}
+.ab-secretariat.is-veiled .reg-veil { z-index: 6; }
+.ab-sec-veil { background: rgba(20, 15, 12, 0.32); }
+@media (max-width: 900px) {
+  .ab-secretariat { grid-template-columns: 1fr; }
+  .ab-sec-media { min-height: 420px; }
 }
 
 /* ————— chapter VI · the exchange (arrive → leave) ————— */
@@ -4487,7 +4407,6 @@ em.accent {
   .ab-stat-num--roman span,
   .ab-tl-item.is-live .ab-tl-node::after { animation: none; }
   .ab-article-body { transition: none; }
-  .ab-spot-lamp { display: none; }
 }
 
 /* ————————————————————————————————————————————————————————————————————
