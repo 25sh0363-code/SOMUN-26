@@ -1175,35 +1175,24 @@ deckInit();
       update();
     }
 
-    /* 6 · meet the secretariat — the chapter box streams the announcement
-       post from CONFIG.SECRETARIAT_POST_URL. While SECRETARIAT_REVEALED is
-       false the box renders blurred + inert under a "Coming Soon" stamp and
-       the embed is never requested — nothing leaks. Flip the flag in
-       config.js on drop day; the same file carries the post link, so a
-       new post needs zero code edits. */
+    /* 6 · meet the secretariat — no embed: the chapter card carries a
+       single CTA whose href comes from CONFIG.SECRETARIAT_POST_URL (no
+       URL configured → a "link goes live" hint shows instead). While
+       SECRETARIAT_REVEALED is false the card renders blurred + inert
+       under a "Coming Soon" stamp. Flip the flag in config.js on drop
+       day; the same file carries the post link, so a new post needs
+       zero code edits. */
     {
       const box = $("#ab-secretariat", view);
-      const media = $("#ab-sec-media", view);
       const btn = $("#ab-sec-btn", view);
-      if (box && media) {
+      const hint = $("#ab-sec-hint", view);
+      if (box) {
         const url = (CONFIG.SECRETARIAT_POST_URL || "").trim();
         if (url && btn) {
           btn.href = url;
           btn.hidden = false;
-        }
-        if (url && CONFIG.SECRETARIAT_REVEALED) {
-          const m = url.match(/instagram\.com\/(p|reel)\/([\w-]+)/);
-          if (m) {
-            const frame = document.createElement("iframe");
-            frame.className = "ab-sec-frame";
-            frame.title = "SOMUN '26 — secretariat announcement on Instagram";
-            frame.src = `https://www.instagram.com/${m[1]}/${m[2]}/embed`;
-            frame.loading = "lazy";
-            frame.setAttribute("scrolling", "no");
-            frame.allowfullscreen = true;
-            media.appendChild(frame);
-            media.classList.add("is-live");
-          }
+        } else if (hint) {
+          hint.hidden = false;
         }
         if (!CONFIG.SECRETARIAT_REVEALED) {
           box.classList.add("is-veiled");
