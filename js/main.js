@@ -415,11 +415,46 @@ function renderCommitteePage(slug) {
     </div>`).join("");
 }
 
-/* ————————————————— Resources — background-guides index ———————
-   The three static archive shelf cards were retired — the page now
-   leads with the per-committee guides index below. Released guides
-   still land straight from Supabase the moment rows flip to
-   released = true; nothing else on the page depends on the cards. */
+/* ————————————————— Resources — archive shelf + guides index ———————
+   Three shelf cards (adjusted 3-up row) lead the page; the per-committee
+   guides index follows below. Released documents land straight from
+   Supabase the moment rows flip to released = true — a released category
+   unlocks its card's Download button; a released committee row unlocks
+   its guide download. */
+
+const RES_META = [
+  { ic: "book-open", no: "01", title: "Background Guides", cat: "study-guides", desc: "Committee-wise guides and agenda briefs in depth — everything you need before the first roll call." },
+  { ic: "scroll-text", no: "02", title: "Rules of Procedure", cat: "rules", desc: "The SOMUN rules of procedure — motions, precedence and draft-resolution mechanics, the fine print of every chamber." },
+  { ic: "book-marked", no: "03", title: "Delegate Handbook", cat: "handbook", desc: "Venue maps, dress code, kit details and conference etiquette — your pocket companion for the three days." },
+];
+
+/* released[key] = { url } filled from Supabase (or left empty) */
+const releasedRes = {};
+
+function renderResourceCards() {
+  $("#res-grid").innerHTML = RES_META.map((r, i) => {
+    const rel = releasedRes[r.cat];
+    const foot = rel
+      ? `<a class="res-dl" href="${rel.url}" target="_blank" rel="noopener">Download</a>`
+      : `<span class="res-foot-label">PDF · coming to this shelf</span>
+         <span class="stamp stamp--sm"><span class="stamp-diamond"></span>Soon</span>`;
+    return `
+    <div class="reveal" data-delay="${(i * 0.06).toFixed(2)}">
+      <div class="res-card">
+        <div class="res-top">
+          <span class="res-icon"><i data-icon="${r.ic}"></i></span>
+          <span class="res-num" aria-hidden="true">${r.no}</span>
+        </div>
+        <h3 class="res-title">${r.title}</h3>
+        <p class="res-desc">${r.desc}</p>
+        <div class="res-foot">${foot}</div>
+      </div>
+    </div>`;
+  }).join("");
+  hydrateIcons($("#res-grid"));
+}
+
+renderResourceCards();
 
 function renderGuidesIndex(guides) {
   $("#guides-list").innerHTML = COMMITTEES.map((c) => {
@@ -440,7 +475,11 @@ if (supabaseConfigured()) {
       const guides = {};
       for (const r of rows || []) {
         if (r.committee) guides[r.committee] = r.file_url;
+        if (r.category && RES_META.some((m) => m.cat === r.category)) {
+          releasedRes[r.category] = { url: r.file_url };
+        }
       }
+      renderResourceCards();
       renderGuidesIndex(guides);
       if ((rows || []).length > 0) $("#guides-stamp")?.remove();
     })
@@ -1172,10 +1211,10 @@ deckInit();
           const veil = document.createElement("div");
           veil.className = "reg-veil ab-sec-veil";
           veil.innerHTML = `
-            <span class="veil-kicker">The Eighth Secretariat</span>
+            <span class="veil-kicker">Secretariat Messages</span>
             <p class="veil-line">The team takes the stage <em>soon.</em></p>
             <span class="reg-veil-stamp">Coming Soon</span>
-            <span class="reg-veil-sub">The secretariat reveal is drafted — this box unblurs the moment the post drops.</span>`;
+            <span class="reg-veil-sub">Every sec's message and the top-seven board are drafted — this box unblurs the moment the post drops.</span>`;
           box.append(veil);
         }
       }
