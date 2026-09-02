@@ -34,7 +34,7 @@ export const CONFIG = {
      in place but blurred + inert under a "Coming Soon" stamp — the same
      overlay treatment as the register wizard box. The full deck is
      untouched — flipping the flag restores everything as-is. */
-  COMMITTEES_REVEALED: false,
+  COMMITTEES_REVEALED: true,
 
   SUPABASE_URL: "",            // e.g. "https://abcdefgh.supabase.co"
   SUPABASE_ANON_KEY: "",       // e.g. "eyJhbGciOi..."
