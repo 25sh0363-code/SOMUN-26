@@ -4703,3 +4703,199 @@ em.accent {
   .ab-map-frame,
   .ab-map-veil { transition: none; }
 }
+
+/* ————————————————————————————————————————————————————————————————————
+   HOME — v2 · THE SUMMIT FILE
+   Crimson ticker band, lit manifesto (reveals at viewport centre),
+   count-up file wall, dossier pillars, ghost-numbered preview cards,
+   grounds strip, hero scroll cue. Overrides the v1 blocks above —
+   this section wins the cascade.
+   ———————————————————————————————————————————————————————————————————— */
+
+/* ticker → crimson band */
+.ticker {
+  background: var(--crimson-deep);
+  border-block: 1px solid rgba(10, 7, 5, 0.45);
+  padding-block: 0.85rem;
+}
+.ticker-word {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.42em;
+  color: var(--beige);
+  opacity: 0.94;
+}
+.ticker-diamond {
+  width: 6px;
+  height: 6px;
+  background: rgba(236, 225, 203, 0.75);
+  transform: rotate(45deg);
+}
+
+/* countdown — crimson-edged dossier strip */
+.countdown { display: block; border: 1px solid var(--line); background: rgba(22, 17, 13, 0.65); padding: 1.1rem 1.25rem 1.25rem; }
+.countdown-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--crimson);
+  margin-bottom: 0.9rem;
+}
+.countdown-kicker-diamond { width: 6px; height: 6px; background: var(--crimson); transform: rotate(45deg); flex-shrink: 0; }
+.countdown-grid { display: flex; }
+.countdown-cell { flex: 1; border-top: none; }
+.countdown-cell + .countdown-cell { border-left: 1px solid var(--line); }
+
+/* hero stats — fourth (roman) cell + count-up cells */
+.stats-strip { grid-template-columns: repeat(4, 1fr); }
+.stats-num--roman { font-style: italic; }
+@media (max-width: 900px) { .stats-strip { grid-template-columns: repeat(2, 1fr); } }
+
+/* hero scroll cue */
+.hero-cue { display: flex; flex-direction: column; align-items: center; gap: 0.7rem; margin-top: 3.25rem; }
+.hero-cue-line { position: relative; width: 1px; height: 60px; background: rgba(236, 225, 203, 0.16); overflow: hidden; }
+.hero-cue-line::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  width: 5px;
+  height: 5px;
+  background: var(--crimson);
+  transform: rotate(45deg);
+  animation: hmx-cue-drop 2.1s var(--ease-out) infinite;
+}
+@keyframes hmx-cue-drop { 0% { top: -15%; } 75%, 100% { top: 110%; } }
+.hero-cue-label { font-size: 9px; letter-spacing: 0.42em; text-transform: uppercase; color: var(--beige-dim); }
+
+/* the conference — manifesto type, lit at viewport centre */
+.about .section-head-title { font-size: clamp(2.1rem, 4.2vw, 3.4rem); }
+.about .about-grid { align-items: start; }
+.about-p {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.3rem, 2.3vw, 1.9rem);
+  line-height: 1.52;
+  color: var(--beige);
+  text-wrap: pretty;
+}
+.about-p--mt { margin-top: 1.6rem; }
+/* standing orders — numbered dossier rows (icons retire, numerals speak) */
+.about-list { counter-reset: hmx-order; margin-top: 2.5rem; border-top: 1px solid var(--line); }
+.about-list .about-item { counter-increment: hmx-order; border-bottom: 1px solid var(--line); padding: 1.05rem 0.25rem; }
+.about-list .about-item::before {
+  content: "0" counter(hmx-order);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--crimson);
+  width: 2.2rem;
+  flex-shrink: 0;
+}
+.about-list .about-icon { display: none; }
+.about-list .about-item-text { font-size: 0.925rem; }
+
+/* by the numbers — count-up file wall */
+.hmx-file { border-top: 1px solid var(--line); background: linear-gradient(180deg, rgba(200, 16, 46, 0.045), rgba(22, 17, 13, 0) 70%); }
+.hmx-file .container { padding-block: 4.25rem; }
+.hmx-file-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+.hmx-stat { position: relative; padding: 1.4rem 1.4rem 1.7rem; border-left: 1px solid var(--line); overflow: hidden; }
+.hmx-stat:first-child { border-left: none; }
+.hmx-stat-top { display: flex; align-items: center; gap: 0.75rem; }
+.hmx-stat-index { font-size: 10px; font-weight: 600; letter-spacing: 0.3em; color: var(--crimson); }
+.hmx-stat-rule { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(200, 16, 46, 0.55), rgba(200, 16, 46, 0)); }
+.hmx-stat-num {
+  margin-top: 1.1rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.7rem, 5vw, 4.3rem);
+  line-height: 1;
+  color: var(--beige);
+}
+.hmx-stat-num--roman span { font-style: italic; color: var(--crimson); }
+.hmx-stat-label { margin-top: 0.55rem; font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--beige-dim); }
+.hmx-stat-ghost {
+  position: absolute;
+  right: -0.4rem;
+  bottom: -1.7rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 6.25rem;
+  line-height: 1;
+  color: rgba(236, 225, 203, 0.045);
+  pointer-events: none;
+  transition: color 0.45s;
+}
+.hmx-stat:hover .hmx-stat-ghost { color: rgba(200, 16, 46, 0.12); }
+@media (max-width: 900px) {
+  .hmx-file-grid { grid-template-columns: repeat(2, 1fr); }
+  .hmx-stat { border-top: 1px solid var(--line); border-left: none; }
+  .hmx-stat:nth-child(even) { border-left: 1px solid var(--line); }
+  .hmx-stat:nth-child(-n + 2) { border-top: none; }
+}
+
+/* pillars — crimson sweep + numeral burn */
+.pillar-box { position: relative; overflow: hidden; }
+.pillar-box::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--crimson);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.5s var(--ease-out);
+}
+.pillar-box:hover::after { transform: scaleX(1); }
+.pillar-num { font-size: 1.35rem; color: rgba(236, 225, 203, 0.16); transition: color 0.3s; }
+.pillar-box:hover .pillar-num { color: rgba(200, 16, 46, 0.6); }
+
+/* preview cards — ghost numerals + lift */
+.preview-card { position: relative; overflow: hidden; transition: background-color 0.3s, transform 0.45s var(--ease-out); }
+.preview-card:hover { transform: translateY(-3px); }
+.preview-ghost {
+  position: absolute;
+  right: 0.6rem;
+  bottom: -1.5rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 5.75rem;
+  line-height: 1;
+  color: rgba(236, 225, 203, 0.05);
+  pointer-events: none;
+  transition: color 0.4s;
+}
+.preview-card:hover .preview-ghost { color: rgba(200, 16, 46, 0.16); }
+
+/* grounds strip */
+.hmx-venue {
+  border-block: 1px solid var(--line);
+  background: linear-gradient(90deg, rgba(200, 16, 46, 0.08), rgba(200, 16, 46, 0.015) 55%, rgba(22, 17, 13, 0));
+}
+.hmx-venue-inner { display: flex; align-items: center; flex-wrap: wrap; gap: 1.75rem; padding-block: 2.1rem; }
+.hmx-venue-icon { width: 34px; height: 34px; color: var(--crimson); flex-shrink: 0; }
+.hmx-venue-text { flex: 1; min-width: 17rem; }
+.hmx-venue-title {
+  margin-top: 0.35rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.45rem, 2.5vw, 2.1rem);
+  line-height: 1.15;
+  color: var(--beige);
+}
+.hmx-venue-sub { margin-top: 0.5rem; font-size: 0.9rem; line-height: 1.6; color: var(--beige-dim); max-width: 34rem; }
+
+/* v2 reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+  .hero-cue-line::after { animation: none; top: 40%; }
+  .pillar-box::after, .preview-card, .preview-ghost, .hmx-stat-ghost { transition: none; }
+}

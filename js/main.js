@@ -65,7 +65,7 @@ $("#year").textContent = new Date().getFullYear();
 /* ————————————————— Ticker ————————————————— */
 
 {
-  const words = ["DIPLOMACY", "DEBATE", "NEGOTIATION", "RESOLUTION", "CAUCUS", "CONSENSUS"];
+  const words = ["SOMUN MMXXVI", "BORN IN HYDERABAD", "TWELVE CHAMBERS", "THREE DAYS", "WORDS, NOT WAR"];
   const row = words.map(
     (w) => `<span class="ticker-word">${w}</span><span class="ticker-diamond"></span>`
   ).join("");
@@ -100,6 +100,7 @@ $("#year").textContent = new Date().getFullYear();
   $("#preview-grid").innerHTML = COMMITTEES.slice(0, 4).map((c, i) => `
     <div class="reveal" data-delay="${(i * 0.07).toFixed(2)}">
       <button class="preview-card" data-committee="${c.slug}" aria-label="Explore ${c.acronym}">
+        <span class="preview-ghost" aria-hidden="true">${String(i + 1).padStart(2, "0")}</span>
         <div class="preview-top">
           <span class="preview-acronym">${c.acronym}</span>
           <span class="preview-diff">${c.difficulty}</span>
@@ -778,9 +779,12 @@ $("#drawer-overlay").addEventListener("click", closeDrawer);
 /* ————————————————— Scroll-lit text — The Conference —————————————————
    Every character in the home "The Conference" section starts grey +
    translucent and lights back to its own colour in reading order while
-   the user scrolls — a scroll-scrubbed typing pass. Words are wrapped
-   whole (inline-block) so line-wrapping is identical to plain text, and
-   the original copy is exposed via aria-label for screen readers. */
+   the user scrolls — a scroll-scrubbed typing pass. The reveal
+   completes when the lit text sits at the CENTRE of the viewport (the
+   same contract as the About page's manifesto), never after it has
+   scrolled past. Words are wrapped whole (inline-block) so
+   line-wrapping is identical to plain text, and the original copy is
+   exposed via aria-label for screen readers. */
 
 {
   const root = $(".about");
@@ -841,9 +845,13 @@ $("#drawer-overlay").addEventListener("click", closeDrawer);
         const r = root.getBoundingClientRect();
         if (!r.height) return render(0); /* another view is on stage — reset for the replay */
         const vh = window.innerHeight || 1;
-        const enter = vh * 0.85; /* first chars light as the section top clears the fold */
-        const exit = vh * 0.3;   /* the last char lands when the section bottom reaches the top third */
-        const p = (enter - r.top) / (enter - exit + r.height);
+        const a = targets[0].getBoundingClientRect();
+        const b = targets[targets.length - 1].getBoundingClientRect();
+        const top = Math.min(a.top, b.top);
+        const blockH = b.bottom - a.top;
+        const enter = vh * 0.9;             /* first chars light as the block enters */
+        const exit = vh * 0.5 - blockH / 2; /* last char lands when the lit text is centred */
+        const p = (enter - top) / Math.max(1, enter - exit);
         render(Math.round(Math.max(0, Math.min(1, p)) * chars.length));
       };
       let queued = false;
@@ -863,6 +871,39 @@ $("#drawer-overlay").addEventListener("click", closeDrawer);
       update();
     }
   }
+}
+
+/* ————————————————— Home count-up stats —————————————————
+   Hero strip + "by the numbers" file wall — figures ease up the first
+   time they enter the viewport (same choreography as the About file). */
+
+{
+  const root = $(".view[data-view='home']");
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const animate = (el) => {
+    const end = Number(el.dataset.count) || 0;
+    if (reduce) return (el.textContent = end);
+    const t0 = performance.now();
+    const dur = 1300;
+    const step = (t) => {
+      const p = Math.min(1, (t - t0) / dur);
+      el.textContent = Math.round(end * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const en of entries) {
+        if (en.isIntersecting) {
+          animate(en.target);
+          io.unobserve(en.target);
+        }
+      }
+    },
+    { rootMargin: "0px 0px -60px 0px" }
+  );
+  $$("[data-count]", root).forEach((el) => io.observe(el));
 }
 
 /* ————————————————— Committees deck (pinned scroll) ————————————————— */
