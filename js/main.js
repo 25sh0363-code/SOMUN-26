@@ -6,7 +6,7 @@
    resources (Supabase) · itinerary
    ———————————————————————————————————————————————————————— */
 
-import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, ALLOCATION_MATRIX, CORE_SEVEN } from "./data.js";
+import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, ALLOCATION_MATRIX } from "./data.js";
 import { CONFIG, supabaseConfigured } from "./config.js";
 import { icon, hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
@@ -415,46 +415,6 @@ function renderCommitteePage(slug) {
     </div>`).join("");
 }
 
-/* ————————————————— Secretariat seats + USG corps ————————————————— */
-
-{
-  /* The Core Seven — ceremonial pyramid: apex (I) · duo (II–III) · quad (IV–VII).
-     Names come from CORE_SEVEN in data.js; fill `name` there and the seat
-     renders it — empty seats keep their placeholder until reveal day. */
-  const seatCard = (i) => {
-    const meta = CORE_SEVEN[i] || {};
-    const name = (meta.name || "").trim();
-    return `
-    <div class="reveal" data-delay="${(i * 0.06).toFixed(2)}">
-      <div class="seat-card${i === 0 ? " seat-card--apex" : ""}">
-        ${i === 0 ? '<span class="seat-apex-tag">The Gavel</span>' : ""}
-        <span class="seat-watermark" aria-hidden="true">${ROMAN[i]}</span>
-        <span class="seat-lock"><i data-icon="lock"></i></span>
-        <p class="seat-kicker">Seat ${ROMAN[i]}</p>
-        <h3 class="seat-title${name ? "" : " seat-title--empty"}">${name || "Name to be inscribed"}</h3>
-        <p class="seat-sub">${name ? (meta.note || "The Eighth Secretariat") : "Revealed with the first secretariat release."}</p>
-      </div>
-    </div>`;
-  };
-  const rowClass = (n) => (n === 1 ? "core-row--apex" : n === 2 ? "core-row--duo" : "core-row--quad");
-  $("#core-seats").innerHTML = [[0], [1, 2], [3, 4, 5, 6]]
-    .map((r) => `<div class="core-row ${rowClass(r.length)}">${r.map(seatCard).join("")}</div>`)
-    .join("");
-
-  $("#usg-grid").innerHTML = Array.from({ length: 6 }, (_, i) => `
-    <div class="reveal" data-delay="${(i * 0.05).toFixed(2)}">
-      <div class="seat-card">
-        <div class="usg-top">
-          <span class="seat-lock"><i data-icon="lock"></i></span>
-          <span class="usg-num" aria-hidden="true">${pad2(i + 1)}</span>
-        </div>
-        <p class="usg-kicker">Under-Secretary-General</p>
-        <h3 class="seat-title">Portfolio to be announced</h3>
-        <p class="seat-sub">Delegation affairs, procedure, press, logistics and more.</p>
-      </div>
-    </div>`).join("");
-}
-
 /* ————————————————— Resources — background-guides index ———————
    The three static archive shelf cards were retired — the page now
    leads with the per-committee guides index below. Released guides
@@ -510,12 +470,11 @@ $$("[data-committee-select]").forEach((sel) => {
 
 /* ————————————————— Router ————————————————— */
 
-const VIEWS = ["home", "about", "committees", "committee", "secretariat", "itinerary", "resources", "register", "faqs"];
+const VIEWS = ["home", "about", "committees", "committee", "itinerary", "resources", "register", "faqs"];
 const HASHES = {
   home: "#/",
   about: "#/about",
   committees: "#/committees",
-  secretariat: "#/secretariat",
   itinerary: "#/itinerary",
   resources: "#/resources",
   register: "#/register",
