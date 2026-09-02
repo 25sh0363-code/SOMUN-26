@@ -25,3 +25,6 @@ tool-results/
 repo.tar.*
 download/
 *.bundle-tmp.bundle
+
+# staging dirs (never commit)
+tmp-deploy/
