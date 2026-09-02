@@ -900,11 +900,12 @@ function deckGoTo(idx) {
 deckInit();
 
 /* ————————————————— About page — dossier interactivity —————
-   Six scoped behaviours for the redesigned About view: crimson
+   Seven scoped behaviours for the redesigned About view: crimson
    ticker fill, the scroll-lit origin manifesto (a scoped twin of
    the home module above), count-up stat wall, one-open charter
-   accordion, scroll-filled timeline spine, and the cursor
-   spotlight over the Hyderabad panel. */
+   accordion, scroll-filled timeline spine, the cursor
+   spotlight over the Hyderabad panel, and the lazy-loaded
+   live venue map exhibit (chapter VII). */
 
 {
   const view = $('.view[data-view="about"]');
@@ -1094,6 +1095,34 @@ deckInit();
           spot.style.setProperty("--mx", `${e.clientX - r.left}px`);
           spot.style.setProperty("--my", `${e.clientY - r.top}px`);
         });
+      }
+    }
+
+    /* 7 · the grounds — the venue exhibit stays sealed until the map
+       panel scrolls near; the Google embed then loads once and the
+       veil fades. Once loaded it stays loaded across view swaps. */
+    {
+      const map = $("#ab-map", view);
+      const frame = map ? $(".ab-map-frame", map) : null;
+      if (map && frame && frame.dataset.src && !frame.getAttribute("src")) {
+        const arm = () => {
+          frame.setAttribute("src", frame.dataset.src);
+          frame.addEventListener("load", () => map.classList.add("is-loaded"), { once: true });
+        };
+        if (reduce || !("IntersectionObserver" in window)) {
+          arm();
+        } else {
+          const io = new IntersectionObserver(
+            (entries) => {
+              if (entries.some((en) => en.isIntersecting)) {
+                io.disconnect();
+                arm();
+              }
+            },
+            { rootMargin: "260px 0px" }
+          );
+          io.observe(map);
+        }
       }
     }
 

@@ -10,7 +10,7 @@ export const CONFERENCE = {
   edition: "'26",
   tagline: "Three days of charged debate, negotiation and diplomacy.",
   dates: "OCTOBER 30 — NOVEMBER 1, 2026",
-  venue: "Hyderabad International Convention Centre",
+  venue: "Silver Oaks International School, Bowrampet Campus",
   city: "Hyderabad, India",
   email: "somundelaffairs@gmail.com",
   countdownTarget: "2026-10-30T09:00:00+05:30",
