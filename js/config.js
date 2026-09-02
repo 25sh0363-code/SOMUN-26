@@ -34,7 +34,7 @@ export const CONFIG = {
      in place but blurred + inert under a "Coming Soon" stamp — the same
      overlay treatment as the register wizard box. The full deck is
      untouched — flipping the flag restores everything as-is. */
-  COMMITTEES_REVEALED: false,
+  COMMITTEES_REVEALED: true,
 
   /* Meet the Secretariat — About page, chapter V.
      While SECRETARIAT_REVEALED is false: the section renders in place but
@@ -44,7 +44,7 @@ export const CONFIG = {
      post embeds right on the page, with a "View on Instagram" button.
      SECRETARIAT_POST_URL: the Instagram post (or reel) link to embed —
      swap the link here any time, no other file needs touching. */
-  SECRETARIAT_REVEALED: false,
+  SECRETARIAT_REVEALED: true,
   SECRETARIAT_POST_URL: "https://www.instagram.com/p/Dci_Fgsv1F2/",
 
   SUPABASE_URL: "",            // e.g. "https://abcdefgh.supabase.co"
