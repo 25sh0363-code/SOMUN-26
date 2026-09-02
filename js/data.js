@@ -32,7 +32,7 @@ export const COMMITTEES = [
       "Protecting digital privacy and freedom of expression",
     ],
     description:
-      "Geneva's conscience arrives in Hyderabad. The Council examines state accountability where it is most contested — inside conflicts and across the open internet.",
+      "Geneva's conscience arrives in Hyderabad. The Council examines state accountability where it is most contested, confronting human rights violations inside conflicts and across the open internet.",
     photo: "images/committees/unhrc.jpg"
   },
   {
@@ -45,7 +45,7 @@ export const COMMITTEES = [
       "Preventing an arms race in outer space",
     ],
     description:
-      "The First Committee of the General Assembly tackles the weapons of tomorrow. Expect fierce bloc politics as delegates chart the future of global disarmament.",
+      "Where diplomacy meets deterrence. DISEC confronts the weapons, technologies and strategic rivalries that shape the global security order. Every resolution is a negotiation between national interest and collective survival.",
     photo: "images/committees/disec.jpg"
   },
   {
@@ -58,7 +58,7 @@ export const COMMITTEES = [
       "Who owns the Moon? — legal regimes for space resources",
     ],
     description:
-      "The quiet office that governs the final frontier. UNOOSA asks who gets to orbit, who gets to land — and what happens when the junk above us multiplies faster than the law below.",
+      "Humanity's next geopolitical frontier lies far beyond Earth. As nations and private actors race into orbit, UNOOSA faces the challenge of keeping space peaceful, accessible and sustainable before the final frontier becomes the next contested domain.",
     photo: "images/committees/unoosa.jpg"
   },
   {
@@ -71,7 +71,7 @@ export const COMMITTEES = [
       "Closing the gender digital divide",
     ],
     description:
-      "Since 1946 the Commission has driven the fight for equality. This session confronts the newest frontiers — conflict mediation and access to the digital economy.",
+      "Equality on paper does not always become equality in practice. UNCSW examines the barriers that continue to shape the lives of women and girls, challenging delegates to transform international commitments into meaningful actions around mediation and access to the digital economy.",
     photo: "images/committees/uncsw.jpg"
   },
   {
@@ -84,7 +84,7 @@ export const COMMITTEES = [
       "A global framework against cybercrime and the dark web",
     ],
     description:
-      "Crime has gone borderless — narcotics routes, laundering pipelines and hacks that cross ten jurisdictions before breakfast. UNODC coordinates the response, one convention at a time.",
+      "Crime has learned to cross borders faster than laws can follow. UNODC confronts transnational criminal networks, illicit trafficking and corruption, demanding cooperation between states whose interests do not always align.",
     photo: "images/committees/unodc.jpg"
   },
   {
@@ -97,7 +97,7 @@ export const COMMITTEES = [
       "Closing the inequality gap within and among nations",
     ],
     description:
-      "The UN's economic engine room. Fifty-four members, dozens of specialised agencies and one enormous question — how to fund a fair future for everyone, not just the fortunate.",
+      "The global economy has no borders. From inequality and sustainable development to access to essential resources, ECOSOC asks a difficult question: how can prosperity become a global reality rather than a national privilege?",
     photo: "images/committees/ecosoc.jpg"
   },
   {
