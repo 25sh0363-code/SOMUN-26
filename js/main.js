@@ -900,12 +900,11 @@ function deckGoTo(idx) {
 deckInit();
 
 /* ————————————————— About page — dossier interactivity —————
-   Seven scoped behaviours for the redesigned About view: crimson
+   Six scoped behaviours for the redesigned About view: crimson
    ticker fill, the scroll-lit origin manifesto (a scoped twin of
-   the home module above), count-up stat wall, one-open charter
-   accordion, scroll-filled timeline spine, the cursor
-   spotlight over the Hyderabad panel, and the lazy-loaded
-   live venue map exhibit (chapter VII). */
+   the home module above), count-up stat wall, scroll-filled
+   timeline spine, the cursor spotlight over the Hyderabad panel,
+   and the lazy-loaded live venue map exhibit (chapter VI). */
 
 {
   const view = $('.view[data-view="about"]');
@@ -922,7 +921,8 @@ deckInit();
     }
 
     /* 2 · scroll-lit origin — every character starts grey and lights in
-       reading order while the origin section scrubs through the viewport */
+       reading order, and the reveal completes when the lit text sits
+       at the centre of the viewport (not after it has scrolled past) */
     let litUpdate = null;
     {
       const targets = $$(".ab-lit", view);
@@ -976,15 +976,17 @@ deckInit();
           else for (let i = lit - 1; i >= target; i--) chars[i].classList.remove("on");
           lit = target;
         };
-        const origin = $(".ab-origin", view) || view;
         const update = () => {
           const r = view.getBoundingClientRect();
           if (!r.height) return render(0); /* another view is on stage — reset for the replay */
           const vh = window.innerHeight || 1;
-          const sr = origin.getBoundingClientRect();
-          const enter = vh * 0.8;
-          const exit = vh * 0.35;
-          const p = (enter - sr.top) / (enter - exit + sr.height);
+          const a = targets[0].getBoundingClientRect();
+          const b = targets[targets.length - 1].getBoundingClientRect();
+          const top = Math.min(a.top, b.top);
+          const blockH = b.bottom - a.top;
+          const start = vh * 0.9;             /* first chars light as the block enters */
+          const done = vh * 0.5 - blockH / 2; /* last char lands when the block is centred */
+          const p = (start - top) / Math.max(1, start - done);
           render(Math.round(Math.max(0, Math.min(1, p)) * chars.length));
         };
         let queued = false;
@@ -1031,26 +1033,7 @@ deckInit();
       $$("[data-count]", view).forEach((el) => io.observe(el));
     }
 
-    /* 4 · the charter — one article open at a time */
-    {
-      const articles = $$(".ab-article", view);
-      articles.forEach((art) => {
-        const head = $(".ab-article-head", art);
-        head.addEventListener("click", () => {
-          const wasOpen = art.classList.contains("open");
-          articles.forEach((a) => {
-            a.classList.remove("open");
-            $(".ab-article-head", a).setAttribute("aria-expanded", "false");
-          });
-          if (!wasOpen) {
-            art.classList.add("open");
-            head.setAttribute("aria-expanded", "true");
-          }
-        });
-      });
-    }
-
-    /* 5 · the road to the gavel — the spine fills crimson as it scrolls
+    /* 4 · the road to the gavel — the spine fills crimson as it scrolls
        past, and each milestone lights when the fill reaches its node */
     let tlUpdate = null;
     {
@@ -1084,7 +1067,7 @@ deckInit();
       update();
     }
 
-    /* 6 · why Hyderabad — a crimson torch follows the cursor across the panel */
+    /* 5 · why Hyderabad — a crimson torch follows the cursor across the panel */
     {
       const spot = $("#ab-spot", view);
       if (spot && !reduce && window.matchMedia("(pointer: fine)").matches) {
@@ -1098,7 +1081,7 @@ deckInit();
       }
     }
 
-    /* 7 · the grounds — the venue exhibit stays sealed until the map
+    /* 6 · the grounds — the venue exhibit stays sealed until the map
        panel scrolls near; the Google embed then loads once and the
        veil fades. Once loaded it stays loaded across view swaps. */
     {

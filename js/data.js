@@ -115,15 +115,15 @@ export const COMMITTEES = [
   },
   {
     slug: "hcc-ccc",
-    acronym: "HCC/CCC",
-    name: "Historical Crisis Committee · Continuous Crisis Committee",
+    acronym: "HCC",
+    name: "Historical Crisis Committee",
     difficulty: "Advanced",
     agendas: [
       "Closed agenda — crisis updates drop without notice",
       "Initiative under fire — arcs judged live by the board",
     ],
     description:
-      "The gavel never rests here. The Historical Crisis Committee rewinds time to the moments history got wrong; the Continuous Crisis Committee refuses to pause at all. Fast, chaotic, unforgettable.",
+      "The gavel never rests here. The Historical Crisis Committee rewinds time to the moments history got wrong — and then refuses to pause at all. Fast, chaotic, unforgettable.",
     photo: "images/committees/hcc-ccc.jpg"
   },
   {
@@ -141,8 +141,8 @@ export const COMMITTEES = [
   },
   {
     slug: "aippm",
-    acronym: "AIPPM",
-    name: "Lok Sabha — All India Political Parties Meet",
+    acronym: "Lok Sabha",
+    name: "Parliament of India — Lower House",
     difficulty: "Advanced",
     agendas: [
       "Simultaneous elections — 'One Nation, One Poll'",
