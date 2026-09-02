@@ -549,6 +549,7 @@ function showView(view, { animate = true } = {}) {
   }
   setActiveNav(view);
   if (view === "home" && window.__litText) requestAnimationFrame(window.__litText);
+  if (view === "about" && window.__aboutEnter) requestAnimationFrame(window.__aboutEnter);
   requestAnimationFrame(() => window.scrollTo({ top: 0 }));
   if (view === "committees" && CONFIG.COMMITTEES_REVEALED) deckOnShow();
 }
@@ -897,6 +898,213 @@ function deckGoTo(idx) {
 }
 
 deckInit();
+
+/* ————————————————— About page — dossier interactivity —————
+   Six scoped behaviours for the redesigned About view: crimson
+   ticker fill, the scroll-lit origin manifesto (a scoped twin of
+   the home module above), count-up stat wall, one-open charter
+   accordion, scroll-filled timeline spine, and the cursor
+   spotlight over the Hyderabad panel. */
+
+{
+  const view = $('.view[data-view="about"]');
+  if (view) {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    /* 1 · crimson ticker band */
+    {
+      const words = ["SOMUN", "MMXXVI", "BORN IN HYDERABAD", "TWELVE CHAMBERS", "THREE DAYS", "WORDS, NOT WAR"];
+      const row = words
+        .map((w) => `<span class="ab-ticker-word">${w}</span><span class="ab-ticker-diamond"></span>`)
+        .join("");
+      $$("[data-ab-ticker]", view).forEach((el) => (el.innerHTML = row));
+    }
+
+    /* 2 · scroll-lit origin — every character starts grey and lights in
+       reading order while the origin section scrubs through the viewport */
+    let litUpdate = null;
+    {
+      const targets = $$(".ab-lit", view);
+      const chars = [];
+
+      const splitWords = (node) => {
+        [...node.childNodes].forEach((child) => {
+          if (child.nodeType === 3) {
+            const frag = document.createDocumentFragment();
+            child.textContent.split(/(\s+)/).forEach((part) => {
+              if (!part) return;
+              if (/^\s+$/.test(part)) {
+                frag.appendChild(document.createTextNode(" "));
+                return;
+              }
+              const w = document.createElement("span");
+              w.className = "stt-w";
+              for (const ch of part) {
+                const c = document.createElement("span");
+                c.className = "stt-char";
+                c.textContent = ch;
+                w.appendChild(c);
+                chars.push(c);
+              }
+              frag.appendChild(w);
+            });
+            node.replaceChild(frag, child);
+          } else if (child.nodeType === 1 && child.tagName !== "BR") {
+            splitWords(child);
+          }
+        });
+      };
+
+      targets.forEach((el) => {
+        el.setAttribute("aria-label", (el.textContent || "").replace(/\s+/g, " ").trim());
+        const veil = document.createElement("span");
+        veil.setAttribute("aria-hidden", "true");
+        while (el.firstChild) veil.appendChild(el.firstChild);
+        el.appendChild(veil);
+        splitWords(veil);
+      });
+
+      if (reduce) {
+        chars.forEach((c) => c.classList.add("on"));
+      } else {
+        let lit = 0;
+        const render = (target) => {
+          target = Math.max(0, Math.min(chars.length, target));
+          if (target === lit) return;
+          if (target > lit) for (let i = lit; i < target; i++) chars[i].classList.add("on");
+          else for (let i = lit - 1; i >= target; i--) chars[i].classList.remove("on");
+          lit = target;
+        };
+        const origin = $(".ab-origin", view) || view;
+        const update = () => {
+          const r = view.getBoundingClientRect();
+          if (!r.height) return render(0); /* another view is on stage — reset for the replay */
+          const vh = window.innerHeight || 1;
+          const sr = origin.getBoundingClientRect();
+          const enter = vh * 0.8;
+          const exit = vh * 0.35;
+          const p = (enter - sr.top) / (enter - exit + sr.height);
+          render(Math.round(Math.max(0, Math.min(1, p)) * chars.length));
+        };
+        let queued = false;
+        const onScroll = () => {
+          if (queued) return;
+          queued = true;
+          requestAnimationFrame(() => {
+            queued = false;
+            update();
+          });
+        };
+        window.addEventListener("scroll", onScroll, { passive: true });
+        window.addEventListener("resize", onScroll);
+        litUpdate = update;
+        update();
+      }
+    }
+
+    /* 3 · the file — stat figures count up the first time they enter */
+    {
+      const animate = (el) => {
+        const end = Number(el.dataset.count) || 0;
+        if (reduce) return (el.textContent = end);
+        const t0 = performance.now();
+        const dur = 1300;
+        const step = (t) => {
+          const p = Math.min(1, (t - t0) / dur);
+          el.textContent = Math.round(end * (1 - Math.pow(1 - p, 3)));
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      };
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const en of entries) {
+            if (en.isIntersecting) {
+              animate(en.target);
+              io.unobserve(en.target);
+            }
+          }
+        },
+        { rootMargin: "0px 0px -60px 0px" }
+      );
+      $$("[data-count]", view).forEach((el) => io.observe(el));
+    }
+
+    /* 4 · the charter — one article open at a time */
+    {
+      const articles = $$(".ab-article", view);
+      articles.forEach((art) => {
+        const head = $(".ab-article-head", art);
+        head.addEventListener("click", () => {
+          const wasOpen = art.classList.contains("open");
+          articles.forEach((a) => {
+            a.classList.remove("open");
+            $(".ab-article-head", a).setAttribute("aria-expanded", "false");
+          });
+          if (!wasOpen) {
+            art.classList.add("open");
+            head.setAttribute("aria-expanded", "true");
+          }
+        });
+      });
+    }
+
+    /* 5 · the road to the gavel — the spine fills crimson as it scrolls
+       past, and each milestone lights when the fill reaches its node */
+    let tlUpdate = null;
+    {
+      const tl = $("#ab-timeline", view);
+      const fill = $("#ab-tl-fill", view);
+      const items = $$(".ab-tl-item", view);
+      const update = () => {
+        const r = tl.getBoundingClientRect();
+        if (!r.height) return;
+        const vh = window.innerHeight || 1;
+        const lead = vh * 0.68; /* the line's leading edge rides at 68% of the viewport */
+        const px = Math.max(0, Math.min(r.height, lead - r.top));
+        fill.style.height = `${(px / r.height) * 100}%`;
+        for (const item of items) {
+          const node = $(".ab-tl-node", item);
+          item.classList.toggle("lit", px >= node.offsetTop - 2);
+        }
+      };
+      let queued = false;
+      const onScroll = () => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => {
+          queued = false;
+          update();
+        });
+      };
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", onScroll);
+      tlUpdate = update;
+      update();
+    }
+
+    /* 6 · why Hyderabad — a crimson torch follows the cursor across the panel */
+    {
+      const spot = $("#ab-spot", view);
+      if (spot && !reduce && window.matchMedia("(pointer: fine)").matches) {
+        spot.addEventListener("mouseenter", () => spot.classList.add("lamp-on"));
+        spot.addEventListener("mouseleave", () => spot.classList.remove("lamp-on"));
+        spot.addEventListener("mousemove", (e) => {
+          const r = spot.getBoundingClientRect();
+          spot.style.setProperty("--mx", `${e.clientX - r.left}px`);
+          spot.style.setProperty("--my", `${e.clientY - r.top}px`);
+        });
+      }
+    }
+
+    /* re-entry hook — showView calls this so the choreography replays
+       on every visit, exactly like the home scroll-lit module */
+    window.__aboutEnter = () => {
+      if (litUpdate) requestAnimationFrame(litUpdate);
+      if (tlUpdate) requestAnimationFrame(tlUpdate);
+    };
+  }
+}
 
 /* ————————————————— Entry gate ————————————————— */
 
