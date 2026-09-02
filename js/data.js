@@ -110,7 +110,7 @@ export const COMMITTEES = [
       "Border security, watchlists and the privacy trade-off",
     ],
     description:
-      "Counter-terrorism at the sharp end. Delegates balance hard security against civil liberties while drafting binding obligations that states must actually live with.",
+      "Security has a price, but so does the loss of freedom. UNCTC confronts the evolving architecture of international terrorism, forcing states to balance intelligence, prevention and security with sovereignty and fundamental rights.",
     photo: "images/committees/unctc.jpg"
   },
   {
@@ -123,7 +123,7 @@ export const COMMITTEES = [
       "Initiative under fire — arcs judged live by the board",
     ],
     description:
-      "The gavel never rests here. The Historical Crisis Committee rewinds time to the moments history got wrong; the Continuous Crisis Committee refuses to pause at all. Fast, chaotic, unforgettable.",
+      "History is written by those who survive it. But what happens when you are given the power to change it? The Historical Crisis Committee places delegates inside a defining moment, where information is scarce, decisions are immediate and the timeline is anything but fixed.",
     photo: "images/committees/hcc-ccc.jpg"
   },
   {
@@ -136,7 +136,7 @@ export const COMMITTEES = [
       "Editorial board meeting — the SOMUN Charter",
     ],
     description:
-      "Delegates who hold the diplomats accountable. Reporters and photojournalists publish daily bulletins that shape — and shake — every committee.",
+      "Every committee has a story. Few people get to decide how it is told. The International Press enters the conference as its eyes and ears, investigating developments, questioning delegates and turning hours of diplomacy into stories that shape the narrative.",
     photo: "images/committees/ip.jpg"
   },
   {
@@ -149,7 +149,7 @@ export const COMMITTEES = [
       "Deliberation on comprehensive electoral reforms",
     ],
     description:
-      "India's loudest political theatre, distilled. Party leaders cross the floor in a raucous hunt for consensus on the republic's most contested reform questions.",
+      "India's political theatre moves from the campaign trail to the floor of the House. Behind every bill lies an argument, an alliance and a battle for consensus. Here, delegates do not represent countries. They represent political power.",
     photo: "images/committees/aippm.jpg"
   },
   {
@@ -162,7 +162,7 @@ export const COMMITTEES = [
       "Growing the global game — governance beyond the Big Three",
     ],
     description:
-      "Diplomacy meets the gentleman's game. Delegates negotiate cricket's future — crowded calendars, new markets and a governance puzzle as tricky as any DRS review.",
+      "Cricket unites billions, but the game is governed by competing interests, national ambitions and an evolving global landscape. Inside the ICC, delegates must decide not only how cricket is played, but where the sport goes next.",
     photo: "images/committees/icc.jpg"
   },
   {
@@ -175,7 +175,7 @@ export const COMMITTEES = [
       "Sovereignty vs. the Avengers — who polices the heroes?",
     ],
     description:
-      "Fiction, weaponised. Delegates assume the roles of states and factions inside the Marvel Cinematic Universe, where every clause of the Accords is a plot twist waiting to happen.",
+      "The world has survived gods, invasions and the collapse of reality itself. Now the fate of the universe rests in your hands. Heroes, villains, governments and cosmic powers enter a crisis where one decision can rewrite everything.",
     photo: "images/committees/mcu.jpg"
   },
 ];
