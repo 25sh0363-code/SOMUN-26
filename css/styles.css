@@ -1782,7 +1782,6 @@ em.accent {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: grayscale(1) sepia(1) hue-rotate(-42deg) saturate(2.4) contrast(1.15) brightness(0.8);
   transform: scale(1.08);
   transition: transform 1.05s var(--ease-out);
 }
@@ -1790,14 +1789,7 @@ em.accent {
 .plate-shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(13, 10, 8, 0.85), transparent 50%, rgba(13, 10, 8, 0.2));
-  pointer-events: none;
-}
-.plate-tint {
-  position: absolute;
-  inset: 0;
-  background: rgba(200, 16, 46, 0.22);
-  mix-blend-mode: multiply;
+  background: linear-gradient(to top, rgba(13, 10, 8, 0.6), transparent 32%);
   pointer-events: none;
 }
 .plate-empty {
@@ -1901,6 +1893,7 @@ em.accent {
 .diff-chip--Beginner { border-color: rgba(236, 225, 203, 0.25); color: var(--beige-dim); }
 .diff-chip--Intermediate { border-color: rgba(236, 225, 203, 0.5); color: var(--beige); }
 .diff-chip--Advanced { border-color: var(--crimson); color: var(--crimson); background: rgba(200, 16, 46, 0.1); }
+.diff-chip--Mixed { border-color: rgba(236, 225, 203, 0.38); color: var(--beige); background: rgba(236, 225, 203, 0.04); }
 
 .dossier-acronym {
   margin-top: 0.5rem;
@@ -3269,8 +3262,221 @@ em.accent {
 @media (min-width: 900px) { .committee-plate { height: 22rem; } }
 .committee-plate-note { margin-top: 1rem; display: flex; gap: 0.6rem; font-size: 11px; line-height: 1.7; color: var(--beige-dim); }
 .committee-plate-note svg { width: 14px; height: 14px; margin-top: 2px; flex-shrink: 0; color: var(--crimson); }
-.committee-desc { font-size: 1.05rem; line-height: 1.85; color: var(--beige); }
-.committee-agendas { margin-top: 2rem; }
+
+/* ————————————————————————————————————————————————————————————————————
+   COMMITTEE PAGE — v2 · dossier reader (content.pages build-out)
+   Reading-progress hairline · scroll-spy section rail · numbered
+   dossier sections · focus chips · closing kicker line. All cv-
+   prefixed; nothing above is touched.
+   ———————————————————————————————————————————————————————————————————— */
+
+.cv-progress {
+  position: fixed;
+  top: 63px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 60;
+  background: rgba(236, 225, 203, 0.06);
+}
+@media (min-width: 640px) { .cv-progress { top: 76px; } }
+.cv-progress-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--crimson-deep), var(--crimson));
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* dossier fact strip under the plate */
+.cv-facts {
+  margin-top: 1.5rem;
+  border: 1px solid var(--line);
+  background: rgba(22, 17, 13, 0.5);
+}
+.cv-fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+}
+.cv-fact + .cv-fact { border-top: 1px solid var(--line); }
+.cv-fact span {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--beige-dim);
+}
+.cv-fact strong {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--beige);
+  text-align: right;
+}
+
+/* body layout — rail + content */
+.cv-body { display: grid; grid-template-columns: 1fr; gap: 2.5rem; }
+.cv-rail {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: sticky;
+  top: 65px;
+  z-index: 55;
+  background: rgba(13, 10, 8, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-block: 1px solid var(--line);
+  padding: 0.55rem 0.25rem;
+  margin-inline: -1.25rem;
+  padding-inline: 1.25rem;
+}
+.cv-rail::-webkit-scrollbar { display: none; }
+@media (min-width: 640px) {
+  .cv-rail { top: 77px; margin-inline: -2rem; padding-inline: 2rem; }
+}
+.cv-rail-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--beige-dim);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: color 0.3s, border-color 0.3s, background-color 0.3s;
+}
+.cv-rail-num {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 10px;
+  color: var(--crimson);
+  opacity: 0.65;
+  transition: opacity 0.3s;
+}
+.cv-rail-link:hover { color: var(--beige); }
+.cv-rail-link.on {
+  color: var(--beige);
+  border-color: rgba(200, 16, 46, 0.55);
+  background: rgba(200, 16, 46, 0.08);
+}
+.cv-rail-link.on .cv-rail-num { opacity: 1; }
+
+@media (min-width: 1024px) {
+  .cv-body { grid-template-columns: 12rem 1fr; gap: 3.5rem; align-items: start; }
+  .cv-rail {
+    position: sticky;
+    top: 7.5rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.15rem;
+    overflow: visible;
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    border-left: 1px solid var(--line);
+    padding: 0.25rem 0 0.25rem 0;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+  .cv-rail-link { border: none; border-left: 2px solid transparent; padding: 0.65rem 0 0.65rem 1.1rem; margin-left: -1px; }
+  .cv-rail-link.on { border-left-color: var(--crimson); background: none; }
+}
+
+/* numbered dossier sections */
+.cv-content { min-width: 0; }
+.cv-sec { padding-block: 2.6rem; scroll-margin-top: 8.5rem; }
+.cv-sec + .cv-sec { border-top: 1px solid var(--line); }
+.cv-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  margin-bottom: 1.4rem;
+}
+.cv-sec-num {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--crimson);
+  flex-shrink: 0;
+}
+.cv-sec-rule { flex: 1; height: 1px; background: var(--line); align-self: center; }
+.cv-sec-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
+  line-height: 1.2;
+  color: var(--beige);
+}
+.cv-sec-body p {
+  font-size: 1rem;
+  line-height: 1.85;
+  color: var(--beige-dim);
+}
+.cv-sec-body p + p { margin-top: 1rem; }
+
+/* focus chips */
+.cv-focus {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.cv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid var(--line);
+  background: rgba(22, 17, 13, 0.5);
+  padding: 0.65rem 1rem;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--beige);
+  cursor: default;
+  transition: border-color 0.35s, background-color 0.35s, transform 0.35s var(--ease-out);
+}
+.cv-chip:hover {
+  border-color: rgba(200, 16, 46, 0.6);
+  background: rgba(200, 16, 46, 0.07);
+  transform: translateY(-2px);
+}
+.cv-chip-diamond {
+  width: 6px;
+  height: 6px;
+  transform: rotate(45deg);
+  background: var(--crimson);
+  flex-shrink: 0;
+  transition: transform 0.35s var(--ease-out);
+}
+.cv-chip:hover .cv-chip-diamond { transform: rotate(45deg) scale(1.35); }
+
+/* closing kicker line */
+.cv-kicker-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  margin-top: 2.4rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: clamp(1.15rem, 2.2vw, 1.55rem);
+  line-height: 1.4;
+  color: var(--beige);
+}
+.cv-quote-ic { width: 16px; height: 16px; color: var(--crimson); flex-shrink: 0; align-self: center; }
+
+/* agendas panel inside the dossier */
+.cv-agendas { margin-top: 0; }
 .agenda-roman { font-family: var(--font-display); font-style: italic; color: var(--crimson); margin-right: 0.25rem; }
 .committee-cta { margin-top: 2.5rem; display: flex; gap: 1rem; flex-wrap: wrap; }
 

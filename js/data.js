@@ -21,164 +21,434 @@ export const CONFERENCE = {
    Once you have an image, drop it in images/committees/ and set
    photo: "images/committees/unhrc.jpg" — the plate fills automatically. */
 
+/* ————— THE TWELVE CHAMBERS · MMXXVI —————
+   Content source: secretariat committee pages document (content.pages).
+   Order = dossier order Nº 01–12 (deck + pages). Fields:
+     description · agendas        → dossier box in the scroll view + preview card
+     itemsLabel · cta             → dossier box footer + button
+     overview[] about willDo why  → the committee's own page sections
+     focusLabel + focus[]         → focus chips section
+     kicker                       → closing line (optional)
+     tagline                      → sub-line under the acronym (optional)
+     diffKey                      → Beginner | Intermediate | Advanced | Mixed */
 export const COMMITTEES = [
-  {
-    slug: "unhrc",
-    acronym: "UNHRC",
-    name: "United Nations Human Rights Council",
-    difficulty: "Intermediate",
-    agendas: [
-      "Human rights in active conflict zones",
-      "Protecting digital privacy and freedom of expression",
-    ],
-    description:
-      "Geneva's conscience arrives in Hyderabad. The Council examines state accountability where it is most contested — inside conflicts and across the open internet.",
-    photo: "images/committees/unhrc.jpg"
-  },
   {
     slug: "disec",
     acronym: "DISEC",
     name: "Disarmament and International Security Committee",
     difficulty: "Intermediate",
-    agendas: [
-      "Regulating lethal autonomous weapons systems",
-      "Preventing an arms race in outer space",
-    ],
+    diffKey: "Intermediate",
+    photo: "images/committees/disec.jpg",
     description:
-      "The First Committee of the General Assembly tackles the weapons of tomorrow. Expect fierce bloc politics as delegates chart the future of global disarmament.",
-    photo: "images/committees/disec.jpg"
+      "Where diplomacy meets deterrence. DISEC confronts the weapons, technologies and strategic rivalries that shape the global security order. Every resolution is a negotiation between national interest and collective survival.",
+    agendas: [
+      "Nuclear proliferation and strategic stability",
+      "Autonomous weapons and emerging warfare",
+    ],
+    itemsLabel: "2 agenda items",
+    cta: "Explore the committee",
+    overview: [
+      "The First Committee of the United Nations General Assembly, DISEC addresses some of the most pressing challenges to international peace and security. From nuclear weapons and arms proliferation to emerging military technologies, the committee provides a platform for nations to debate how global security can be strengthened.",
+    ],
+    about:
+      "DISEC brings together nations with diverse security interests and strategic priorities. Delegates must navigate competing national agendas, negotiate resolutions, build alliances and develop practical solutions to complex security challenges.",
+    willDo:
+      "Delegates will debate questions surrounding disarmament, weapons proliferation, international security and emerging threats while working towards consensus-driven solutions.",
+    why: "DISEC is ideal for delegates who enjoy geopolitics, strategic negotiations, international relations and high-stakes diplomacy.",
+    focusLabel: "Key focus areas",
+    focus: [
+      "Nuclear disarmament",
+      "Arms proliferation",
+      "Biological and chemical weapons",
+      "Autonomous weapons and emerging military technologies",
+      "International peace and security",
+      "Illicit arms trafficking",
+    ],
+    kicker: "",
+  },
+  {
+    slug: "ecosoc",
+    acronym: "ECOSOC",
+    name: "Economic and Social Council",
+    difficulty: "Beginner / Intermediate",
+    diffKey: "Mixed",
+    photo: "images/committees/ecosoc.jpg",
+    description:
+      "The global economy has no borders. From inequality and sustainable development to access to essential resources, ECOSOC asks a difficult question: how can prosperity become a global reality rather than a national privilege?",
+    agendas: [
+      "Financing sustainable development",
+      "Bridging global economic inequality",
+    ],
+    itemsLabel: "2 agenda items",
+    cta: "Explore the committee",
+    overview: [
+      "Economic and social challenges rarely stop at national borders. ECOSOC brings countries together to address global issues ranging from sustainable development and economic inequality to access to education, healthcare and essential resources.",
+    ],
+    about:
+      "Delegates must balance economic growth with social development while considering the vastly different circumstances of developed and developing nations. Successful diplomacy requires cooperation, compromise and an understanding of how international economic systems interact.",
+    willDo:
+      "Delegates will negotiate policies addressing development, poverty, inequality and international economic cooperation while attempting to create solutions that are both ambitious and achievable.",
+    why: "A strong choice for delegates interested in economics, development, sustainability, international cooperation and global policy.",
+    focusLabel: "Key focus areas",
+    focus: [
+      "Sustainable development",
+      "Global inequality",
+      "Poverty alleviation",
+      "International economic cooperation",
+      "Education and healthcare",
+      "Food and resource security",
+    ],
+    kicker: "",
+  },
+  {
+    slug: "unctc",
+    acronym: "UNCTC",
+    name: "United Nations Counter-Terrorism Committee",
+    difficulty: "Advanced",
+    diffKey: "Advanced",
+    photo: "images/committees/unctc.jpg",
+    description:
+      "Security has a price, but so does the loss of freedom. UNCTC confronts the evolving architecture of international terrorism, forcing states to balance intelligence, prevention and security with sovereignty and fundamental rights.",
+    agendas: [
+      "Countering emerging terrorist threats",
+      "Disrupting terrorist financing networks",
+    ],
+    itemsLabel: "2 agenda items",
+    cta: "Explore the committee",
+    overview: [
+      "Terrorism presents a constantly evolving challenge to international peace and security. The UN Counter-Terrorism Committee works to strengthen international cooperation and improve national capabilities to prevent and respond to terrorist threats.",
+    ],
+    about:
+      "Delegates must confront the difficult balance between national security and fundamental rights. Effective counter-terrorism requires cooperation across borders, intelligence sharing, financial controls and strategies that address the conditions that enable extremism.",
+    willDo:
+      "Delegates will develop international strategies to combat terrorism, strengthen cooperation between states and address emerging security threats.",
+    why: "UNCTC is suited to delegates who enjoy security policy, counter-terrorism, intelligence, diplomacy and complex ethical debates.",
+    focusLabel: "Key focus areas",
+    focus: [
+      "Counter-terrorism cooperation",
+      "Terrorist financing",
+      "Border security",
+      "Cyberterrorism",
+      "Intelligence sharing",
+      "Preventing radicalisation",
+    ],
+    kicker: "",
   },
   {
     slug: "unoosa",
     acronym: "UNOOSA",
-    name: "United Nations Office on Outer Space Affairs",
-    difficulty: "Beginner",
-    agendas: [
-      "Governance of satellite mega-constellations and orbital debris",
-      "Who owns the Moon? — legal regimes for space resources",
-    ],
+    name: "United Nations Office for Outer Space Affairs",
+    difficulty: "Beginner / Intermediate",
+    diffKey: "Mixed",
+    photo: "images/committees/unoosa.jpg",
     description:
-      "The quiet office that governs the final frontier. UNOOSA asks who gets to orbit, who gets to land — and what happens when the junk above us multiplies faster than the law below.",
-    photo: "images/committees/unoosa.jpg"
+      "Humanity's next geopolitical frontier lies far beyond Earth. As nations and private actors race into orbit, UNOOSA faces the challenge of keeping space peaceful, accessible and sustainable before the final frontier becomes the next contested domain.",
+    agendas: [
+      "Managing the growing threat of space debris",
+      "Ensuring peaceful and sustainable space exploration",
+    ],
+    itemsLabel: "2 agenda items",
+    cta: "Explore the committee",
+    overview: [
+      "Space is no longer simply the final frontier. It has become an increasingly important domain for communication, navigation, scientific research, economic development and international security.",
+      "UNOOSA promotes international cooperation in the peaceful exploration and use of outer space.",
+    ],
+    about:
+      "Delegates must consider how humanity can ensure that space remains accessible, sustainable and peaceful. With more nations and private companies entering the space sector, international rules face new and complicated challenges.",
+    willDo:
+      "Delegates will address questions surrounding space governance, sustainability, exploration and international cooperation.",
+    why: "Perfect for delegates fascinated by space, science, technology, international law and the future of humanity.",
+    focusLabel: "Key focus areas",
+    focus: [
+      "Space sustainability",
+      "Space debris",
+      "Peaceful use of outer space",
+      "Satellite technology",
+      "Space exploration",
+      "International space cooperation",
+    ],
+    kicker: "",
   },
   {
     slug: "uncsw",
     acronym: "UNCSW",
     name: "United Nations Commission on the Status of Women",
-    difficulty: "Intermediate",
-    agendas: [
-      "Advancing the Women, Peace and Security agenda",
-      "Closing the gender digital divide",
-    ],
+    difficulty: "Beginner",
+    diffKey: "Beginner",
+    photo: "images/committees/uncsw.jpg",
     description:
-      "Since 1946 the Commission has driven the fight for equality. This session confronts the newest frontiers — conflict mediation and access to the digital economy.",
-    photo: "images/committees/uncsw.jpg"
+      "Equality on paper does not always become equality in practice. UNCSW examines the barriers that continue to shape the lives of women and girls, challenging delegates to transform international commitments into meaningful action.",
+    agendas: [
+      "Economic empowerment of women",
+      "Expanding access to education and opportunity",
+    ],
+    itemsLabel: "2 agenda items",
+    cta: "Explore the committee",
+    overview: [
+      "The Commission on the Status of Women works to promote gender equality and empower women and girls worldwide. Its discussions examine the political, economic, social and cultural barriers that continue to affect gender equality.",
+    ],
+    about:
+      "Delegates must address deeply interconnected challenges while accounting for different cultural, economic and political contexts. Meaningful progress requires policies that are inclusive, practical and internationally achievable.",
+    willDo:
+      "Delegates will negotiate policies designed to strengthen women's rights, expand opportunities and address systemic barriers to equality.",
+    why: "An excellent committee for delegates interested in human rights, social policy, equality, development and advocacy.",
+    focusLabel: "Key focus areas",
+    focus: [
+      "Women's education",
+      "Economic empowerment",
+      "Political representation",
+      "Gender-based discrimination",
+      "Healthcare access",
+      "Protection of women's rights",
+    ],
+    kicker: "",
   },
   {
     slug: "unodc",
     acronym: "UNODC",
     name: "United Nations Office on Drugs and Crime",
     difficulty: "Intermediate",
-    agendas: [
-      "Dismantling transnational drug trafficking networks",
-      "A global framework against cybercrime and the dark web",
-    ],
+    diffKey: "Intermediate",
+    photo: "images/committees/unodc.jpg",
     description:
-      "Crime has gone borderless — narcotics routes, laundering pipelines and hacks that cross ten jurisdictions before breakfast. UNODC coordinates the response, one convention at a time.",
-    photo: "images/committees/unodc.jpg"
+      "Crime has learned to cross borders faster than laws can follow. UNODC confronts transnational criminal networks, illicit trafficking and corruption, demanding cooperation between states whose interests do not always align.",
+    agendas: [
+      "Combating transnational organised crime",
+      "Tackling cybercrime and illicit trafficking",
+    ],
+    itemsLabel: "2 agenda items",
+    cta: "Explore the committee",
+    overview: [
+      "Organised crime, illicit trafficking, corruption and drug-related crime represent challenges that increasingly operate across national borders. UNODC supports international cooperation against these threats while promoting justice, security and the rule of law.",
+    ],
+    about:
+      "Delegates must tackle criminal networks that can operate across multiple jurisdictions. The committee requires nations to cooperate while respecting national sovereignty and differences in legal systems.",
+    willDo:
+      "Delegates will develop international strategies to combat transnational crime, corruption and illicit trafficking.",
+    why: "Ideal for delegates interested in law, international security, organised crime, justice and investigative diplomacy.",
+    focusLabel: "Key focus areas",
+    focus: [
+      "Transnational organised crime",
+      "Drug trafficking",
+      "Human trafficking",
+      "Cybercrime",
+      "Corruption",
+      "Money laundering",
+    ],
+    kicker: "",
   },
   {
-    slug: "ecosoc",
-    acronym: "ECOSOC",
-    name: "Economic and Social Council",
-    difficulty: "Beginner",
-    agendas: [
-      "Financing sustainable development in the Global South",
-      "Closing the inequality gap within and among nations",
-    ],
-    description:
-      "The UN's economic engine room. Fifty-four members, dozens of specialised agencies and one enormous question — how to fund a fair future for everyone, not just the fortunate.",
-    photo: "images/committees/ecosoc.jpg"
-  },
-  {
-    slug: "unctc",
-    acronym: "UNCTC",
-    name: "United Nations Counter Terrorism Committee",
+    slug: "mcu",
+    acronym: "MCU",
+    name: "Marvel Cinematic Universe Committee",
     difficulty: "Advanced",
-    agendas: [
-      "Suppressing terrorist financing and online recruitment",
-      "Border security, watchlists and the privacy trade-off",
-    ],
+    diffKey: "Advanced",
+    photo: "images/committees/mcu.jpg",
     description:
-      "Counter-terrorism at the sharp end. Delegates balance hard security against civil liberties while drafting binding obligations that states must actually live with.",
-    photo: "images/committees/unctc.jpg"
+      "The world has survived gods, invasions and the collapse of reality itself. Now the fate of the universe rests in your hands. Heroes, villains, governments and cosmic powers enter a crisis where one decision can rewrite everything.",
+    agendas: [
+      "The balance of power after a global crisis",
+      "An emerging threat to the Marvel universe",
+    ],
+    itemsLabel: "2 crisis directives",
+    cta: "Enter the universe",
+    overview: [
+      "The world knows the Avengers. But what happens when the fate of the Marvel universe rests in the hands of its most powerful figures?",
+      "The MCU committee takes delegates beyond conventional diplomacy and places them inside a fictional universe where superheroes, governments, organisations and cosmic forces collide.",
+    ],
+    about:
+      "Delegates assume the roles of characters and factions from the Marvel Cinematic Universe. Unlike a traditional MUN, the committee is driven by a dynamic crisis environment where decisions can rapidly reshape the storyline.",
+    willDo:
+      "Delegates will negotiate alliances, respond to crises, develop strategies and make decisions that could completely alter the course of the Marvel universe.",
+    why: "For delegates who want creativity, strategy, character-based diplomacy and unpredictable crisis action, this is where conventional MUN rules meet superhero chaos.",
+    focusLabel: "Expect",
+    focus: [
+      "Crisis updates",
+      "Character-based diplomacy",
+      "Rapid decision-making",
+      "Alliances and rivalries",
+      "Creative solutions",
+      "An evolving storyline",
+    ],
+    kicker: "The universe is yours to change.",
   },
   {
     slug: "hcc-ccc",
     acronym: "HCC",
     name: "Historical Crisis Committee",
+    tagline: "History. Reimagined.",
     difficulty: "Advanced",
-    agendas: [
-      "Closed agenda — crisis updates drop without notice",
-      "Initiative under fire — arcs judged live by the board",
-    ],
+    diffKey: "Advanced",
+    photo: "images/committees/hcc-ccc.jpg",
     description:
-      "The gavel never rests here. The Historical Crisis Committee rewinds time to the moments history got wrong — and then refuses to pause at all. Fast, chaotic, unforgettable.",
-    photo: "images/committees/hcc-ccc.jpg"
-  },
-  {
-    slug: "ip",
-    acronym: "IP",
-    name: "International Press — Journalism and Photojournalism",
-    difficulty: "Intermediate",
+      "History is written by those who survive it. But what happens when you are given the power to change it? The Historical Crisis Committee places delegates inside a defining moment, where information is scarce, decisions are immediate and the timeline is anything but fixed.",
     agendas: [
-      "Live coverage and critique of committee proceedings",
-      "Editorial board meeting — the SOMUN Charter",
+      "Political power and historical conflict",
+      "Decisions that could reshape the timeline",
     ],
-    description:
-      "Delegates who hold the diplomats accountable. Reporters and photojournalists publish daily bulletins that shape — and shake — every committee.",
-    photo: "images/committees/ip.jpg"
-  },
-  {
-    slug: "aippm",
-    acronym: "Lok Sabha",
-    name: "Parliament of India — Lower House",
-    difficulty: "Advanced",
-    agendas: [
-      "Simultaneous elections — 'One Nation, One Poll'",
-      "Deliberation on comprehensive electoral reforms",
+    itemsLabel: "2 crisis directives",
+    cta: "Enter the crisis",
+    overview: [
+      "What if history had taken a different turn?",
+      "The Historical Crisis Committee places delegates at pivotal moments in history and challenges them to make decisions with incomplete information, competing interests and rapidly changing circumstances.",
     ],
-    description:
-      "India's loudest political theatre, distilled. Party leaders cross the floor in a raucous hunt for consensus on the republic's most contested reform questions.",
-    photo: "images/committees/aippm.jpg"
+    about:
+      "Delegates assume historical roles and attempt to navigate the political, military and social realities of their time. Every decision can create consequences that reshape the course of events.",
+    willDo:
+      "Rather than simply discussing history, delegates will make it. They will negotiate, strategise, respond to crises and attempt to achieve their objectives while adapting to an evolving historical timeline.",
+    why: "Perfect for delegates who enjoy history, strategy, political intrigue, crisis committees and thinking on their feet.",
+    focusLabel: "Expect",
+    focus: [
+      "Dynamic crises",
+      "Historical characters",
+      "Individual objectives",
+      "Rapid developments",
+      "Strategic decision-making",
+      "Alternate-history possibilities",
+    ],
+    kicker: "Know the past. Change the future.",
   },
   {
     slug: "icc",
     acronym: "ICC",
     name: "International Cricket Council",
-    difficulty: "Beginner",
-    agendas: [
-      "The Future Tours Programme — calendars, formats and wallets",
-      "Growing the global game — governance beyond the Big Three",
-    ],
+    difficulty: "Intermediate",
+    diffKey: "Intermediate",
+    photo: "images/committees/icc.jpg",
     description:
-      "Diplomacy meets the gentleman's game. Delegates negotiate cricket's future — crowded calendars, new markets and a governance puzzle as tricky as any DRS review.",
-    photo: "images/committees/icc.jpg"
+      "Cricket unites billions, but the game is governed by competing interests, national ambitions and an evolving global landscape. Inside the ICC, delegates must decide not only how cricket is played, but where the sport goes next.",
+    agendas: [
+      "The future of international cricket",
+      "Governance, equity and global expansion",
+    ],
+    itemsLabel: "2 agenda items",
+    cta: "Explore the committee",
+    overview: [
+      "Cricket is more than a sport. It is an institution connecting nations, cultures and millions of fans around the world.",
+      "The International Cricket Council committee brings the politics, diplomacy and strategy of international cricket into the MUN environment.",
+    ],
+    about:
+      "Delegates take on the roles of cricketing nations and stakeholders while confronting challenges affecting the international game. They must balance sporting interests with financial, political and diplomatic considerations.",
+    willDo:
+      "Delegates will negotiate policies, resolve disputes and make decisions that could influence the future of international cricket.",
+    why: "A unique choice for delegates passionate about cricket, sports administration, diplomacy and strategic negotiation.",
+    focusLabel: "Key focus areas",
+    focus: [
+      "International cricket governance",
+      "Player welfare",
+      "Globalisation of cricket",
+      "Tournament structures",
+      "Associate nations",
+      "Cricket's financial ecosystem",
+    ],
+    kicker: "Bring your diplomacy. Bring your cricket knowledge.",
   },
   {
-    slug: "mcu",
-    acronym: "MCU",
-    name: "Marvel Cinematic Universe",
+    slug: "unhrc",
+    acronym: "UNHRC",
+    name: "United Nations Human Rights Council",
     difficulty: "Intermediate",
-    agendas: [
-      "The Sokovia Accords — superhuman registration and oversight",
-      "Sovereignty vs. the Avengers — who polices the heroes?",
-    ],
+    diffKey: "Intermediate",
+    photo: "images/committees/unhrc.jpg",
     description:
-      "Fiction, weaponised. Delegates assume the roles of states and factions inside the Marvel Cinematic Universe, where every clause of the Accords is a plot twist waiting to happen.",
-    photo: "images/committees/mcu.jpg"
+      "Geneva's conscience arrives in Hyderabad. The Council examines state accountability where it is most contested, confronting human rights violations inside conflicts and across the open internet.",
+    agendas: [
+      "Human rights in active conflict zones",
+      "Protecting digital privacy and freedom of expression",
+    ],
+    itemsLabel: "2 agenda items",
+    cta: "Explore the committee",
+    overview: [
+      "Human rights form the foundation of a just and peaceful international system. The UN Human Rights Council addresses violations of fundamental rights and works towards strengthening their protection worldwide.",
+    ],
+    about:
+      "Delegates must confront complex questions involving sovereignty, humanitarian intervention, freedom and accountability. Finding common ground can be particularly challenging when national interests collide with universal principles.",
+    willDo:
+      "Delegates will debate human rights challenges, investigate international concerns and negotiate measures aimed at strengthening global human rights protections.",
+    why: "Ideal for delegates interested in human rights, international law, humanitarian affairs and diplomacy.",
+    focusLabel: "Key focus areas",
+    focus: [
+      "Freedom of expression",
+      "Refugee rights",
+      "Rights of children",
+      "Religious and cultural freedom",
+      "Humanitarian crises",
+      "Protection of vulnerable communities",
+    ],
+    kicker: "",
+  },
+  {
+    slug: "aippm",
+    acronym: "Lok Sabha",
+    name: "The House of the People",
+    difficulty: "Advanced",
+    diffKey: "Advanced",
+    photo: "images/committees/aippm.jpg",
+    description:
+      "India's political theatre moves from the campaign trail to the floor of the House. Behind every bill lies an argument, an alliance and a battle for consensus. Here, delegates do not represent countries. They represent political power.",
+    agendas: [
+      "Legislative reform and national policy",
+      "Political negotiations and coalition dynamics",
+    ],
+    itemsLabel: "2 agenda items",
+    cta: "Enter the house",
+    overview: [
+      "India's Parliament is where national priorities collide, policies are debated and the direction of the world's largest democracy is shaped.",
+      "The Lok Sabha committee brings delegates into India's parliamentary environment, requiring them to argue, negotiate and legislate from the perspective of political representatives.",
+    ],
+    about:
+      "Delegates take on the roles of Members of Parliament and engage directly with national political issues. The committee rewards strong argumentation, political strategy, negotiation and knowledge of India's governance system.",
+    willDo:
+      "Delegates will debate legislation, challenge opposing viewpoints, build political alliances and attempt to influence the outcome of parliamentary proceedings.",
+    why: "Perfect for delegates interested in Indian politics, parliamentary procedure, public policy and persuasive debate.",
+    focusLabel: "Expect",
+    focus: [
+      "Parliamentary debate",
+      "Political negotiations",
+      "Policy discussions",
+      "Coalition building",
+      "Bills and amendments",
+      "High-energy floor debates",
+    ],
+    kicker: "The House is yours. Make your argument count.",
+  },
+  {
+    slug: "ip",
+    acronym: "IP",
+    name: "International Press",
+    tagline: "The Fourth Estate",
+    difficulty: "Beginner / Intermediate",
+    diffKey: "Mixed",
+    photo: "images/committees/ip.jpg",
+    description:
+      "Every committee has a story. Few people get to decide how it is told. The International Press enters the conference as its eyes and ears, investigating developments, questioning delegates and turning hours of diplomacy into stories that shape the narrative.",
+    agendas: [
+      "Investigative reporting and committee coverage",
+      "Interviews, photography and breaking stories",
+    ],
+    itemsLabel: "2 assignments",
+    cta: "Find the story",
+    overview: [
+      "Diplomacy does not happen in a vacuum. The International Press brings the power of journalism into the MUN ecosystem, giving delegates the opportunity to observe, investigate and shape the narrative surrounding committee proceedings.",
+    ],
+    about:
+      "Press delegates operate as journalists, photographers and media professionals covering the conference. Their role goes beyond reporting speeches. They identify stories, investigate developments, interview delegates and hold committees accountable.",
+    willDo:
+      "Members of the International Press will produce articles, conduct interviews, capture moments from the conference and document the evolving narratives within committees.",
+    why: "A great choice for delegates interested in journalism, writing, photography, media, public relations and storytelling.",
+    focusLabel: "Expect",
+    focus: [
+      "Committee coverage",
+      "Interviews",
+      "News reports",
+      "Photography",
+      "Breaking stories",
+      "Editorial work",
+    ],
+    kicker: "You don't just report the story. You find it.",
   },
 ];
+
 
 /* ————— Registration fees (sidebar on the Register page) ————— */
 

@@ -118,8 +118,7 @@ const track = $("#deck-track");
     const roman = ROMAN[i];
     const plateInner = c.photo
       ? `<img class="plate-art" src="${c.photo}" alt="${c.acronym} — ${c.name}" loading="${i <= 1 ? "eager" : "lazy"}" />
-         <div class="plate-shade"></div>
-         <div class="plate-tint"></div>`
+         <div class="plate-shade"></div>`
       : `<div class="plate-empty">
            <span class="plate-empty-num">${roman}</span>
            <span class="plate-empty-text">Chamber artwork — coming soon</span>
@@ -153,7 +152,7 @@ const track = $("#deck-track");
               <div class="dossier-content">
                 <div class="dossier-top stagger-item" style="${stag(1)}">
                   <p class="dossier-no">Dossier Nº ${roman}</p>
-                  <span class="diff-chip diff-chip--${c.difficulty}">${c.difficulty}</span>
+                  <span class="diff-chip diff-chip--${c.diffKey}">${c.difficulty}</span>
                 </div>
                 <h3 class="dossier-acronym stagger-item" style="${stag(2)}">${c.acronym}</h3>
                 <p class="dossier-name stagger-item" style="${stag(3)}">${c.name}</p>
@@ -167,10 +166,10 @@ const track = $("#deck-track");
                 </div>
                 <div class="dossier-foot stagger-item" style="${stag(7)}">
                   <div class="dossier-foot-row">
-                    <span class="dossier-meta"><i data-icon="scroll-text"></i>${c.agendas.length} agenda items</span>
-                    <button class="take-seat" data-committee="${c.slug}" aria-label="Explore ${c.acronym}">
+                    <span class="dossier-meta"><i data-icon="scroll-text"></i>${c.itemsLabel}</span>
+                    <button class="take-seat" data-committee="${c.slug}" aria-label="${c.cta} — ${c.acronym}">
                       <span class="take-seat-fill"></span>
-                      <span class="take-seat-label">Explore the committee <i data-icon="arrow-right"></i></span>
+                      <span class="take-seat-label">${c.cta} <i data-icon="arrow-right"></i></span>
                     </button>
                   </div>
                 </div>
@@ -228,16 +227,35 @@ function renderCommitteePage(slug) {
   if (idx === -1) return false;
   const c = COMMITTEES[idx];
   const roman = ROMAN[idx];
+  const sub = c.tagline || c.name;
   const plateInner = c.photo
     ? `<img class="plate-art" src="${c.photo}" alt="${c.acronym} — ${c.name}" loading="eager" />
-       <div class="plate-shade"></div>
-       <div class="plate-tint"></div>`
+       <div class="plate-shade"></div>`
     : `<div class="plate-empty">
          <span class="plate-empty-num">${roman}</span>
          <span class="plate-empty-text">Chamber artwork — coming soon</span>
        </div>`;
+
+  /* dossier sections — headings follow the secretariat's committee document */
+  const secs = [
+    { id: "overview", title: "Committee overview", rail: "Overview", body: c.overview.map((p) => `<p>${p}</p>`).join("") },
+    { id: "about", title: "About the committee", rail: "The committee", body: `<p>${c.about}</p>` },
+    { id: "willdo", title: "What delegates will do", rail: "What you'll do", body: `<p>${c.willDo}</p>` },
+    { id: "why", title: `Why ${c.acronym}?`, rail: `Why ${c.acronym}?`, body: `<p>${c.why}</p>` },
+    { id: "focus", title: c.focusLabel, rail: c.focusLabel,
+      body: `<div class="cv-focus">${c.focus
+        .map((f, fi) => `<span class="cv-chip reveal" data-delay="${(0.05 * fi).toFixed(2)}"><span class="cv-chip-diamond"></span>${f}</span>`)
+        .join("")}</div>
+        ${c.kicker ? `<p class="cv-kicker-line reveal" data-delay="0.25"><i data-icon="quote" data-cls="cv-quote-ic"></i>${c.kicker}</p>` : ""}` },
+    { id: "agenda", title: "Before the house", rail: "Before the house",
+      body: `<div class="agendas cv-agendas">${c.agendas
+        .map((a, ai) => `<p class="agenda"><span class="agenda-diamond"></span><span class="agenda-roman">${ROMAN[ai]}.</span> ${a}</p>`)
+        .join("")}</div>` },
+  ];
+
   $("#committee-view").innerHTML = `
-    <div class="page-wrap">
+    <div class="page-wrap cv-wrap">
+      <div class="cv-progress" aria-hidden="true"><span class="cv-progress-fill" id="cv-progress-fill"></span></div>
       <button class="crumb reveal" data-nav="committees" aria-label="Back to all committees">
         <i data-icon="chevron-left"></i> All committees
       </button>
@@ -245,10 +263,10 @@ function renderCommitteePage(slug) {
       <header class="committee-head reveal" data-delay="0.05">
         <div class="committee-kicker-row">
           <p class="committee-kicker">Committee ${roman} · ${pad2(idx + 1)} of ${pad2(COMMITTEES.length)}</p>
-          <span class="diff-chip diff-chip--${c.difficulty}">${c.difficulty}</span>
+          <span class="diff-chip diff-chip--${c.diffKey}">${c.difficulty}</span>
         </div>
         <h1 class="committee-acronym text-hollow">${c.acronym}</h1>
-        <p class="committee-name">${c.name}</p>
+        <p class="committee-name">${sub}</p>
         <div class="fleuron-rule" aria-hidden="true">
           <span class="fleuron-rule-l"></span><span class="fleuron-rule-d"></span><span class="fleuron-rule-r"></span>
         </div>
@@ -264,24 +282,75 @@ function renderCommitteePage(slug) {
             </div>
           </div>
           <p class="committee-plate-note"><i data-icon="gavel"></i> Rule of procedure and dais assignments release with the study guides.</p>
+          <div class="cv-facts reveal" data-delay="0.16">
+            <div class="cv-fact"><span>Chamber</span><strong>${c.acronym}</strong></div>
+            <div class="cv-fact"><span>Level</span><strong>${c.difficulty}</strong></div>
+            <div class="cv-fact"><span>On the floor</span><strong>${c.itemsLabel.replace(/^2 /, "").replace(/^./, (ch) => ch.toUpperCase())}</strong></div>
+          </div>
         </div>
 
-        <div class="committee-body">
-          <p class="committee-desc reveal" data-delay="0.12">${c.description}</p>
-          <div class="agendas committee-agendas reveal" data-delay="0.16">
-            <p class="agendas-kicker">Before the house</p>
-            ${c.agendas.map((a, ai) => `<p class="agenda"><span class="agenda-diamond"></span><span class="agenda-roman">${ROMAN[ai]}.</span> ${a}</p>`).join("")}
-          </div>
-          <div class="committee-cta reveal" data-delay="0.2">
-            <button class="btn btn--crimson btn--arrow" data-nav="register">
-              Take your seat <i data-icon="arrow-right"></i>
-            </button>
-            <button class="btn btn--outline" data-nav="committees">Browse all committees</button>
+        <div class="committee-body cv-body">
+          <nav class="cv-rail reveal" data-delay="0.08" aria-label="Dossier sections">
+            ${secs.map((s, si) => `<button class="cv-rail-link${si === 0 ? " on" : ""}" data-cv="${s.id}"><span class="cv-rail-num">${pad2(si + 1)}</span>${s.rail}</button>`).join("")}
+          </nav>
+
+          <div class="cv-content">
+            ${secs.map((s, si) => `
+            <section class="cv-sec reveal" id="cv-${s.id}" data-cv-sec>
+              <div class="cv-sec-head">
+                <span class="cv-sec-num">§${pad2(si + 1)}</span>
+                <span class="cv-sec-rule"></span>
+                <h2 class="cv-sec-title">${s.title}</h2>
+              </div>
+              <div class="cv-sec-body">${s.body}</div>
+            </section>`).join("")}
+
+            <div class="committee-cta reveal" data-delay="0.1">
+              <button class="btn btn--crimson btn--arrow" data-nav="register">
+                Take your seat <i data-icon="arrow-right"></i>
+              </button>
+              <button class="btn btn--outline" data-nav="committees">Browse all committees</button>
+            </div>
           </div>
         </div>
       </div>
     </div>`;
   hydrateIcons();
+
+  /* 1 · scroll-spy rail — whichever section rides the viewport centre
+     lights its link; clicking a link glides the dossier to that section */
+  if (window.__cvCleanup) window.__cvCleanup();
+  const links = [...$$(".cv-rail-link", $("#committee-view"))];
+  const spy = new IntersectionObserver(
+    (entries) => {
+      for (const en of entries) {
+        if (!en.isIntersecting) continue;
+        links.forEach((l) => l.classList.toggle("on", l.dataset.cv === en.target.id.slice(3)));
+      }
+    },
+    { rootMargin: "-40% 0px -55% 0px" }
+  );
+  $$("[data-cv-sec]", $("#committee-view")).forEach((sec) => spy.observe(sec));
+  links.forEach((l) =>
+    l.addEventListener("click", () => {
+      document.getElementById(`cv-${l.dataset.cv}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    })
+  );
+
+  /* 2 · reading progress — a crimson hairline under the nav fills as
+     the dossier is read; cleaned up on the next render */
+  const fill = $("#cv-progress-fill");
+  const progress = () => {
+    if (!fill || !fill.isConnected) return;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    fill.style.transform = `scaleX(${max > 0 ? Math.min(1, window.scrollY / max) : 0})`;
+  };
+  window.addEventListener("scroll", progress, { passive: true });
+  progress();
+  window.__cvCleanup = () => {
+    spy.disconnect();
+    window.removeEventListener("scroll", progress);
+  };
 
   /* Committees veiled — the dossier renders in place, blurred + inert under
      a "Coming Soon" stamp (same treatment as the register wizard box). The
@@ -302,6 +371,7 @@ function renderCommitteePage(slug) {
        of browser scroll restoration */
     window.scrollTo(0, 0);
   }
+  renderedCommittee = slug;
   return true;
 }
 
@@ -490,6 +560,7 @@ const HASHES = {
 };
 
 let currentCommittee = null; // slug for the #/committees/<slug> detail view
+let renderedCommittee = null; // slug currently painted into #committee-view
 
 function viewFromHash() {
   const h = window.location.hash.replace(/^#\/?/, "").split("?")[0];
@@ -556,6 +627,13 @@ function showView(view, { animate = true } = {}) {
 
 function transitionTo(view) {
   if (view === currentView) {
+    /* committee → committee is the same view but a different dossier —
+       re-render the new slug instead of just scrolling back up */
+    if (view === "committee" && renderedCommittee !== currentCommittee) {
+      showView(view);
+      window.scrollTo(0, 0);
+      return;
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
     setActiveNav(view);
     return;
