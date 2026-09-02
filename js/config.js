@@ -40,7 +40,7 @@ export const CONFIG = {
   SUPABASE_ANON_KEY: "",       // e.g. "eyJhbGciOi..."
   REGISTRATIONS_TABLE: "registrations",
   RESOURCES_TABLE: "resources",
-  STORAGE_BUCKET: "resources", // public bucket for study guides etc.
+  STORAGE_BUCKET: "resources", // public bucket for background guides etc.
 };
 
 /* Quick check used across the site */

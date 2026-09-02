@@ -558,7 +558,7 @@ export const FAQS = [
   },
   {
     q: "Do I need prior MUN experience?",
-    a: "No. First-timers are welcome and chambers are balanced across experience levels. Study guides release before the conference, and the dais briefs procedure on Day 01 before the first session gavels in.",
+    a: "No. First-timers are welcome and chambers are balanced across experience levels. Background guides release before the conference, and the dais briefs procedure on Day 01 before the first session gavels in.",
   },
   {
     q: "How do I choose my committee?",

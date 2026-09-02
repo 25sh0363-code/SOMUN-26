@@ -278,7 +278,7 @@ function renderCommitteePage(slug) {
               <span class="plate-num">${pad2(idx + 1)}</span>
             </div>
           </div>
-          <p class="committee-plate-note"><i data-icon="gavel"></i> Rule of procedure and dais assignments release with the study guides.</p>
+          <p class="committee-plate-note"><i data-icon="gavel"></i> Rule of procedure and dais assignments release with the background guides.</p>
           <div class="cv-facts reveal" data-delay="0.16">
             <div class="cv-fact"><span>Chamber</span><strong>${c.acronym}</strong></div>
             <div class="cv-fact"><span>Level</span><strong>${c.difficulty}</strong></div>
@@ -457,10 +457,9 @@ function renderCommitteePage(slug) {
 /* ————————————————— Resources archive cards + guides index ————————————————— */
 
 const RES_META = [
-  { ic: "book-open", no: "01", title: "Study Guides", cat: "study-guides", desc: "Committee-wise background guides and agenda briefs in depth — everything you need before the first roll call." },
+  { ic: "book-open", no: "01", title: "Background Guides", cat: "study-guides", desc: "Committee-wise guides and agenda briefs in depth — everything you need before the first roll call." },
   { ic: "scroll-text", no: "02", title: "Rules of Procedure", cat: "rules", desc: "The SOMUN rules of procedure — motions, precedence and draft-resolution mechanics, the fine print of every chamber." },
-  { ic: "file-text", no: "03", title: "Position Paper Brief", cat: "brief", desc: "Format, deadlines and assessment criteria for position papers across all nine committees." },
-  { ic: "book-marked", no: "04", title: "Delegate Handbook", cat: "handbook", desc: "Venue maps, dress code, kit details and conference etiquette — your pocket companion for the three days." },
+  { ic: "book-marked", no: "03", title: "Delegate Handbook", cat: "handbook", desc: "Venue maps, dress code, kit details and conference etiquette — your pocket companion for the three days." },
 ];
 
 /* released[key] = { url, label } filled from Supabase (or left empty) */
