@@ -892,6 +892,15 @@
               <p class="refcode" id="refcode">SM26-XXXXX</p>
               <p class="refcode-note">Quote this code in every email to the secretariat.</p>
             </div>
+            <!-- online payment (hidden until Cashfree keys + fee are set in config.js) -->
+            <div class="pay-now-box" id="pay-now-box" hidden>
+              <p class="pay-now-label">Registration fee</p>
+              <p class="pay-now-amount" id="pay-now-amount">₹ —</p>
+              <button type="button" class="btn btn--crimson btn--arrow" id="pay-now-btn">
+                <span id="pay-now-label">Pay online now</span> <i data-icon="arrow-right" data-cls="btn-arrow-icon"></i>
+              </button>
+              <p class="pay-now-sub">Secure checkout by Cashfree · UPI, cards &amp; netbanking</p>
+            </div>
             <div class="success-next">
               <div class="about-item"><i data-icon="badge-check" data-cls="about-icon"></i><p class="about-item-text"><span class="about-item-strong">Payment</span> — The invoice attached to your allocation email is payable via UPI or bank transfer.</p></div>
               <div class="about-item"><i data-icon="badge-check" data-cls="about-icon"></i><p class="about-item-text"><span class="about-item-strong">Background guides</span> — Release soon under the Resources page.</p></div>
@@ -1027,9 +1036,9 @@
                   </legend>
                   <div class="pay-panel">
                     <i data-icon="landmark" data-cls="pay-icon" data-sw="1.2"></i>
-                    <p class="pay-amount">₹ XXXX</p>
-                    <p class="pay-badge">To be disclosed</p>
-                    <p class="pay-copy">The payment portal will open as soon as registrations do. Delegates and International Press share the same fee — nothing is charged until then, and your details stay saved.</p>
+                    <p class="pay-amount" id="pay-amount">₹ XXXX</p>
+                    <p class="pay-badge" id="pay-badge">To be disclosed</p>
+                    <p class="pay-copy" id="pay-copy">The payment portal will open as soon as registrations do. Delegates and International Press share the same fee — nothing is charged until then, and your details stay saved.</p>
                   </div>
                   <div class="stage-foot">
                     <button type="button" class="stage-back" data-back><i data-icon="chevron-left" data-cls="stage-back-icon"></i> Back</button>
