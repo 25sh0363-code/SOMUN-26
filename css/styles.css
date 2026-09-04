@@ -2935,6 +2935,28 @@ em.accent {
 }
 @media (min-width: 640px) { .refcode { font-size: 3rem; } }
 .refcode-note { margin-top: 0.75rem; font-size: 12px; color: rgba(179, 164, 135, 0.8); }
+/* ——— online payment box on the success screen (dormant until Cashfree is wired) ——— */
+.pay-now-box {
+  margin-top: 1.5rem;
+  border: 1px solid rgba(200, 16, 46, 0.35);
+  background: rgba(22, 17, 13, 0.55);
+  padding: 1.75rem 2rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.65rem;
+  max-width: 26rem;
+  margin-inline: auto;
+}
+.pay-now-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.4em; color: var(--beige-dim); }
+.pay-now-amount {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--beige);
+}
+.pay-now-sub { font-size: 11px; color: rgba(179, 164, 135, 0.75); }
+.pay-now-box.is-paid { border-color: rgba(179, 164, 135, 0.5); }
+.pay-now-box.is-paid .pay-now-sub { display: none; }
 .success-next {
   margin-top: 2.5rem;
   display: grid;

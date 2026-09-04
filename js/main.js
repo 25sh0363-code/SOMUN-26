@@ -7,7 +7,7 @@
    ———————————————————————————————————————————————————————— */
 
 import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, ALLOCATION_MATRIX } from "./data.js";
-import { CONFIG, supabaseConfigured } from "./config.js";
+import { CONFIG, supabaseConfigured, cashfreeEnabled, feeAnnounced, formatINR } from "./config.js";
 import { icon, hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
 
@@ -659,6 +659,23 @@ if (!CONFIG.REGISTRATIONS_OPEN) {
     heroRegens.classList.add("is-idle");
     const textNode = [...heroRegens.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
     if (textNode) textNode.nodeValue = "Registrations Opening Soon";
+  }
+}
+
+/* ————— Stage III payment panel: fee comes from CONFIG.REGISTRATION_FEE.
+   While the fee is 0 (undisclosed) the panel keeps its placeholder copy.
+   Once announced, the amount fills in — and if Cashfree is wired
+   (app id + fee both set) the success box gains a live pay button. ————— */
+{
+  const amt = $("#pay-amount");
+  const badge = $("#pay-badge");
+  const copy = $("#pay-copy");
+  if (amt && feeAnnounced()) {
+    amt.textContent = formatINR(CONFIG.REGISTRATION_FEE);
+    if (badge) badge.textContent = "Per delegate · International Press alike";
+    if (copy) copy.textContent = cashfreeEnabled()
+      ? "You can settle the fee online right after submitting — UPI, cards and netbanking, checkout powered by Cashfree."
+      : "Online checkout is being wired up. Your fee is locked in — settle it from the confirmation screen or the payment link emailed to you.";
   }
 }
 
@@ -1461,6 +1478,7 @@ if (SHOW_ITINERARY) {
       $("#refcode").textContent = code;
       $("#reg-form-wrap").hidden = true;
       $("#reg-success").hidden = false;
+      armPayNow(code);
       showToast(`<strong>Registration received</strong>Your reference code is ${code}.`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -1471,6 +1489,90 @@ if (SHOW_ITINERARY) {
       label.textContent = "Submit Application";
     }
   });
+
+  /* ——— online payment (Cashfree via Supabase Edge Functions) ———
+     Dormant until CONFIG carries both CASHFREE_APP_ID and a fee. The
+     browser only ever talks to the two edge functions — the Cashfree
+     secret key stays server-side, never in this file. Flow:
+     create-payment → { order_id, payment_session_id } → Cashfree SDK
+     modal checkout → verify-payment flips the box to "Payment received". */
+  function loadCashfreeSDK() {
+    if (window.Cashfree) return Promise.resolve(window.Cashfree);
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+      s.onload = () => resolve(window.Cashfree);
+      s.onerror = () => reject(new Error("Could not load the payment checkout. Check your connection and retry."));
+      document.head.append(s);
+    });
+  }
+
+  async function payNow(refCode) {
+    const fnBase = `${CONFIG.SUPABASE_URL.replace(/\/$/, "")}/functions/v1`;
+    const headers = {
+      "Content-Type": "application/json",
+      apikey: CONFIG.SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+    };
+    const created = await fetch(`${fnBase}/create-payment`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ ref_code: refCode }),
+    });
+    if (!created.ok) {
+      const e = await created.json().catch(() => ({}));
+      throw new Error(e.error || "Payment could not be started. Please retry in a moment.");
+    }
+    const { order_id, payment_session_id } = await created.json();
+    const CF = await loadCashfreeSDK();
+    const cashfree = new CF({ mode: CONFIG.CASHFREE_MODE });
+    try {
+      await cashfree.checkout({ paymentSessionId: payment_session_id, redirectTarget: "_modal" });
+    } catch (_) { /* modal closed/abandoned — verification decides the state */ }
+    const verified = await fetch(`${fnBase}/verify-payment`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ order_id, ref_code: refCode }),
+    });
+    if (!verified.ok) {
+      const e = await verified.json().catch(() => ({}));
+      throw new Error(e.error || "We could not confirm the payment just yet — if you were charged, the secretariat will reconcile it.");
+    }
+    return verified.json();
+  }
+
+  function armPayNow(refCode) {
+    const box = $("#pay-now-box");
+    const btn = $("#pay-now-btn");
+    if (!box || !btn || !cashfreeEnabled()) return; // box stays hidden
+    $("#pay-now-amount").textContent = formatINR(CONFIG.REGISTRATION_FEE);
+    box.hidden = false;
+    btn.addEventListener("click", async () => {
+      if (btn.classList.contains("submitting")) return;
+      btn.classList.add("submitting");
+      btn.disabled = true;
+      const label = $("#pay-now-label");
+      const prev = label.textContent;
+      label.textContent = "Opening checkout…";
+      try {
+        const result = await payNow(refCode);
+        if (result && result.status === "PAID") {
+          box.classList.add("is-paid");
+          label.textContent = "Payment received — see you at the table.";
+          showToast(`<strong>Payment received</strong>Your fee is settled. The receipt travels to ${$("#email") ? $("#email").value : "your email"}.`);
+        } else {
+          label.textContent = prev;
+          showToast("<strong>Payment pending</strong>If the checkout closed early you can retry — or wait for the email receipt.", true);
+        }
+      } catch (err) {
+        label.textContent = prev;
+        showToast(`<strong>Payment not completed</strong>${err.message || "Please retry."}`, true);
+      } finally {
+        btn.classList.remove("submitting");
+        btn.disabled = false;
+      }
+    });
+  }
 
   /* re-entering the register view remounts the wizard at stage I */
   window.__regReset = () => show(0);
