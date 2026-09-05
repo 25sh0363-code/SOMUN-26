@@ -72,6 +72,239 @@ $("#year").textContent = new Date().getFullYear();
   $$("[data-ticker]").forEach((el) => (el.innerHTML = row + row));
 }
 
+/* ————————————————— Hero scene — monolith · dust · roll call · parallax —
+   Hybrid build: graded gavel frame (CSS) + live layers (here):
+     1  SOMUN wordmark split into a 3D letter cascade
+     2  split-flap board cycling the XII chambers ("Roll Call")
+     3  dust motes drifting through the gavel light (canvas, no glow)
+     4  pointer parallax across scene frame · dust · watermark
+   One rAF loop drives 3+4; both pause while the hero is off-screen. ————— */
+
+{
+  const hero = $("#hero");
+  if (hero) {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    let heroVisible = true;
+
+    /* —— 1 · wordmark cascade —— */
+    const line1 = $(".hero-title-line.anim--t1", hero);
+    const title = $(".hero-title", hero);
+    if (line1 && title && !line1.dataset.split) {
+      line1.dataset.split = "1";
+      title.classList.add("hero-title--live");
+      const word = line1.textContent.trim();
+      line1.setAttribute("aria-label", word);
+      line1.innerHTML = [...word]
+        .map((ch, i) => `<span class="ht-l" style="--i:${i}" aria-hidden="true">${ch}</span>`)
+        .join("");
+    }
+
+    /* —— 2 · split-flap roll call —— */
+    const row = $("#rollcall-row");
+    if (row) {
+      const words = [
+        "ROLL CALL",
+        ...COMMITTEES.map((c) => c.acronym.toUpperCase()),
+        `SOMUN \u201926`,
+      ];
+      const n = Math.max(...words.map((w) => w.length));
+      const tiles = [];
+      for (let i = 0; i < n; i++) {
+        const t = document.createElement("span");
+        t.className = "flap flap--blank";
+        t.textContent = "\u00a0";
+        row.append(t);
+        tiles.push(t);
+      }
+      const setTile = (t, ch) => {
+        if (ch === " ") {
+          t.classList.add("flap--blank");
+          t.textContent = "\u00a0";
+        } else {
+          t.classList.remove("flap--blank");
+          t.textContent = ch;
+        }
+      };
+      words[0].padEnd(n).split("").forEach((ch, i) => setTile(tiles[i], ch));
+
+      const flipTo = (word) => {
+        word.padEnd(n, " ").split("").forEach((ch, i) => {
+          const t = tiles[i];
+          const cur = t.classList.contains("flap--blank") ? " " : t.textContent;
+          if (cur === ch) return;
+          const delay = i * 42 + Math.random() * 70; // mechanical stagger
+          if (reduceMotion) {
+            setTimeout(() => setTile(t, ch), delay);
+            return;
+          }
+          setTimeout(() => {
+            t.classList.remove("flap-in");
+            t.classList.add("flap-out"); // leaf swings down…
+            setTimeout(() => {
+              setTile(t, ch);            // …character swaps at the seam…
+              t.classList.remove("flap-out");
+              t.classList.add("flap-in"); // …and settles back
+              setTimeout(() => t.classList.remove("flap-in"), 110);
+            }, 95);
+          }, delay);
+        });
+      };
+
+      let wi = 0;
+      setInterval(() => {
+        if (!heroVisible || document.hidden) return;
+        wi = (wi + 1) % words.length;
+        flipTo(words[wi]);
+      }, 2700);
+    }
+
+    /* —— 3 + 4 · dust canvas & pointer parallax, one loop —— */
+    const dust = $(".hero-dust", hero);
+    const pars = $$(".par", hero);
+    let ctx = null, W = 0, H = 0, parts = [];
+    let tx = 0, ty = 0, cx = 0, cy = 0;
+
+    const seedDust = () => {
+      const count = Math.min(90, Math.round((W * H) / 26000));
+      parts = Array.from({ length: count }, () => ({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: 0.5 + Math.random() * 1.3,
+        a: 0.05 + Math.random() * 0.2,
+        vy: -(0.05 + Math.random() * 0.2), // motes rise through the light
+        vx: (Math.random() - 0.5) * 0.12,
+        ph: Math.random() * Math.PI * 2,   // twinkle phase
+        sp: 0.4 + Math.random() * 0.9,
+        red: Math.random() < 0.06,         // rare crimson mote
+      }));
+    };
+    const resizeDust = () => {
+      if (!dust) return;
+      const DPR = Math.min(2, window.devicePixelRatio || 1);
+      W = hero.clientWidth;
+      H = hero.clientHeight;
+      dust.width = W * DPR;
+      dust.height = H * DPR;
+      ctx = dust.getContext("2d");
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      seedDust();
+    };
+    resizeDust();
+    /* hero is display:none while the gate plays — measure on first paint,
+       not on module init (a window-resize listener alone misses that) */
+    if (typeof ResizeObserver !== "undefined") {
+      new ResizeObserver(() => resizeDust()).observe(hero);
+    }
+    window.addEventListener("resize", resizeDust);
+
+    if (finePointer && !reduceMotion) {
+      hero.addEventListener("pointermove", (e) => {
+        const r = hero.getBoundingClientRect();
+        tx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+        ty = ((e.clientY - r.top) / r.height - 0.5) * 2;
+      });
+      hero.addEventListener("pointerleave", () => { tx = 0; ty = 0; });
+    }
+
+    const frame = () => {
+      if (heroVisible && !document.hidden) {
+        if (ctx) {
+          ctx.clearRect(0, 0, W, H);
+          const t = performance.now() / 1000;
+          for (const p of parts) {
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.y < -4) { p.y = H + 4; p.x = Math.random() * W; }
+            if (p.x < -4) p.x = W + 4;
+            else if (p.x > W + 4) p.x = -4;
+            const tw = 0.5 + 0.5 * Math.sin(t * p.sp * 2 + p.ph);
+            ctx.globalAlpha = p.a * (0.35 + 0.65 * tw);
+            ctx.fillStyle = p.red ? "rgba(200, 16, 46, 0.9)" : "rgba(238, 228, 206, 0.9)";
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+        }
+        if (finePointer) {
+          cx += (tx - cx) * 0.055;
+          cy += (ty - cy) * 0.055;
+          for (const el of pars) {
+            const d = parseFloat(el.dataset.depth || "0.5");
+            el.style.transform = `translate3d(${(-cx * d * 14).toFixed(2)}px, ${(-cy * d * 10).toFixed(2)}px, 0)`;
+          }
+        }
+      }
+      requestAnimationFrame(frame);
+    };
+    new IntersectionObserver(
+      (es) => { heroVisible = es[0].isIntersecting; },
+      { threshold: 0 }
+    ).observe(hero);
+    if (!reduceMotion) requestAnimationFrame(frame);
+  }
+}
+
+/* ————————————————— Secretariat wire — typewriter + click-to-copy ————— */
+
+{
+  const typeEl = $("#dispatch-address");
+  const card = $("#dispatch-copy");
+  const fm = $("#footer-mail");
+  const addr = typeEl ? typeEl.dataset.address : "";
+  let typed = false;
+
+  const typeIt = () => {
+    if (typed || !typeEl) return;
+    typed = true;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      typeEl.textContent = addr;
+      return;
+    }
+    let i = 0;
+    (function step() {
+      if (i <= addr.length) {
+        typeEl.textContent = addr.slice(0, i++);
+        setTimeout(step, 34 + Math.random() * 42);
+      }
+    })();
+  };
+
+  if (typeEl) {
+    const io = new IntersectionObserver(
+      (es) => { if (es[0].isIntersecting) { typeIt(); io.disconnect(); } },
+      { threshold: 0.35 }
+    );
+    io.observe(typeEl);
+  }
+
+  const copyAddr = async (btn) => {
+    try {
+      await navigator.clipboard.writeText(addr);
+      showToast(`<strong>Address copied</strong>${addr} is on your clipboard.`);
+      if (btn) {
+        btn.classList.add("is-copied");
+        const tag = $(".dispatch-card-hint", btn);
+        if (tag) {
+          tag.innerHTML = `<i data-icon="badge-check" data-cls="dispatch-card-hint-ic"></i>Copied`;
+          hydrateIcons(btn);
+          setTimeout(() => {
+            tag.innerHTML = `<i data-icon="copy" data-cls="dispatch-card-hint-ic"></i>Copy`;
+            hydrateIcons(btn);
+            btn.classList.remove("is-copied");
+          }, 2400);
+        }
+      }
+    } catch {
+      showToast(`Couldn\u2019t reach the clipboard \u2014 long-press the address to copy it.`, true);
+    }
+  };
+
+  if (card) card.addEventListener("click", () => copyAddr(card));
+  if (fm) fm.addEventListener("click", () => copyAddr(null));
+}
+
 /* ————————————————— Pillars ————————————————— */
 
 {

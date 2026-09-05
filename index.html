@@ -145,9 +145,16 @@
     <!-- ———————— VIEW: HOME ———————— -->
     <section class="view" data-view="home">
       <main>
-        <!-- Hero -->
-        <section class="hero">
-          <div class="hero-watermark text-hollow" aria-hidden="true">26</div>
+        <!-- Hero — the monolith chamber: graded gavel backdrop · drifting dust · split-flap roll call -->
+        <section class="hero" id="hero">
+          <div class="hero-scene" aria-hidden="true">
+            <div class="hero-scene-frame par" data-depth="0.55">
+              <img src="images/textures/hero-monolith.jpg" alt="" class="hero-scene-img" fetchpriority="high" />
+            </div>
+            <canvas class="hero-dust par" data-depth="1.15"></canvas>
+            <div class="hero-scene-shade"></div>
+          </div>
+          <div class="hero-watermark text-hollow par" data-depth="0.3" aria-hidden="true">26</div>
           <div class="container">
             <div class="hero-meta anim anim--meta">
               <span>Est. MMXXIII · Eighth Edition</span>
@@ -167,6 +174,15 @@
                 </span>
               </span>
             </h1>
+
+            <div class="rollcall anim anim--rollcall" aria-hidden="true">
+              <p class="rollcall-kicker">
+                <span class="rollcall-kicker-rule"></span>
+                <span class="rollcall-kicker-text">Roll Call</span>
+                <span class="rollcall-kicker-rule"></span>
+              </p>
+              <div class="flap-row" id="rollcall-row"></div>
+            </div>
 
             <div class="hero-sub anim anim--sub">
               <div class="hero-sub-left">
@@ -1108,10 +1124,30 @@
         </header>
         <div class="faq-list" id="faq-list"><!-- items rendered by js from data.js --></div>
         <div class="faq-cta reveal" data-delay="0.1">
-          <p class="faq-cta-line">Still stuck on something?</p>
-          <a class="btn btn--outline btn--mail" href="mailto:somundelaffairs@gmail.com">
-            <i data-icon="mail" data-cls="mail-icon"></i> Write to the secretariat
-          </a>
+          <div class="dispatch">
+            <div class="dispatch-left">
+              <p class="dispatch-kicker"><span class="dispatch-kicker-diamond"></span>Secretariat Wire · Replies within a working day</p>
+              <h3 class="dispatch-title">Still stuck on something? <em class="accent">Wire us.</em></h3>
+              <p class="dispatch-copy">One address reaches the secretariat directly — allocations, payments,
+              committee changes, anything at all. Tap the card to copy it, or open your mail app pre-addressed.</p>
+            </div>
+            <div class="dispatch-right">
+              <button class="dispatch-card" id="dispatch-copy" type="button" aria-label="Copy the secretariat email address">
+                <span class="dispatch-card-top">
+                  <span class="dispatch-card-tag">Direct line</span>
+                  <span class="dispatch-card-hint" id="dispatch-hint"><i data-icon="copy" data-cls="dispatch-card-hint-ic"></i>Copy</span>
+                </span>
+                <span class="dispatch-type-row">
+                  <span class="dispatch-type" id="dispatch-address" data-address="somundelaffairs@gmail.com"></span>
+                  <span class="dispatch-caret" aria-hidden="true"></span>
+                </span>
+                <span class="dispatch-card-sub">Click to copy · somundelaffairs@gmail.com</span>
+              </button>
+              <a class="btn btn--crimson btn--arrow dispatch-open" href="mailto:somundelaffairs@gmail.com">
+                Write to the secretariat <i data-icon="arrow-right" data-cls="btn-arrow-icon"></i>
+              </a>
+            </div>
+          </div>
         </div>
       </main>
     </section>
@@ -1153,7 +1189,7 @@
             <h3 class="footer-heading">Contact</h3>
             <ul class="footer-contact-list">
               <li class="footer-contact-item"><i data-icon="map-pin" data-cls="footer-contact-icon"></i><span>Silver Oaks International School, Bowrampet Campus,<br />Hyderabad, Telangana, India</span></li>
-              <li class="footer-contact-item"><i data-icon="mail" data-cls="footer-contact-icon"></i><span>somundelaffairs@gmail.com</span></li>
+              <li class="footer-contact-item"><i data-icon="mail" data-cls="footer-contact-icon"></i><button type="button" class="footer-mail" id="footer-mail" title="Click to copy the address"><span class="footer-mail-text">somundelaffairs@gmail.com</span><i data-icon="copy" data-cls="footer-mail-copy"></i></button></li>
             </ul>
           </div>
         </div>
