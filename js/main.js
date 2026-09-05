@@ -582,7 +582,6 @@ function showView(view, { animate = true } = {}) {
   setActiveNav(view);
   if (view === "home" && window.__litText) requestAnimationFrame(window.__litText);
   if (view === "about" && window.__aboutEnter) requestAnimationFrame(window.__aboutEnter);
-  if (window.__heroFx) { view === "home" ? window.__heroFx.onShow() : window.__heroFx.onHide(); }
   requestAnimationFrame(() => window.scrollTo({ top: 0 }));
   if (view === "committees" && CONFIG.COMMITTEES_REVEALED) deckOnShow();
 }
@@ -714,150 +713,20 @@ toggleBtn.addEventListener("click", () => {
 });
 $("#drawer-overlay").addEventListener("click", closeDrawer);
 
-/* ————————————————— Countdown (split-flap) + Hero FX ————————————————— */
+/* ————————————————— Countdown ————————————————— */
 
 {
   const target = new Date(CONFERENCE.countdownTarget).getTime();
-
-  /* —— split-flap cells: two digit cards per cell, midline hinge —— */
-  const flapCells = {};
-  $$(".flaps[data-cd]").forEach((wrap) => {
-    const digits = [];
-    for (let i = 0; i < 2; i++) {
-      const d = document.createElement("span");
-      d.className = "flap-digit";
-      d.innerHTML =
-        '<span class="flap-half flap-half--t"><i>0</i></span>' +
-        '<span class="flap-half flap-half--b"><i>0</i></span>' +
-        '<span class="flap-leaf"><i>0</i></span>';
-      wrap.appendChild(d);
-      digits.push({
-        el: d,
-        val: "0",
-        top: d.querySelector(".flap-half--t i"),
-        bot: d.querySelector(".flap-half--b i"),
-        leaf: d.querySelector(".flap-leaf i"),
-      });
-    }
-    flapCells[wrap.dataset.cd] = digits;
-  });
-
-  function setDigit(dig, ch) {
-    if (dig.val === ch) return;
-    dig.top.textContent = ch;
-    dig.leaf.textContent = dig.val;
-    const el = dig.el;
-    el.classList.remove("flipping");
-    void el.offsetWidth; /* restart the fall */
-    el.classList.add("flipping");
-    setTimeout(() => { dig.bot.textContent = ch; }, 130);
-    setTimeout(() => { el.classList.remove("flipping"); }, 300);
-    dig.val = ch;
-  }
-
-  const srCells = { d: $("#cd-d"), h: $("#cd-h"), m: $("#cd-m"), s: $("#cd-s") };
+  const cells = { d: $("#cd-d"), h: $("#cd-h"), m: $("#cd-m"), s: $("#cd-s") };
   const tick = () => {
     const diff = Math.max(0, target - Date.now());
-    const v = {
-      d: pad2(Math.floor(diff / 86400000)),
-      h: pad2(Math.floor((diff % 86400000) / 3600000)),
-      m: pad2(Math.floor((diff % 3600000) / 60000)),
-      s: pad2(Math.floor((diff % 60000) / 1000)),
-    };
-    for (const k of ["d", "h", "m", "s"]) {
-      if (srCells[k]) srCells[k].textContent = v[k];
-      const pair = flapCells[k];
-      if (pair) { setDigit(pair[0], v[k][0]); setDigit(pair[1], v[k][1]); }
-    }
+    cells.d.textContent = pad2(Math.floor(diff / 86400000));
+    cells.h.textContent = pad2(Math.floor((diff % 86400000) / 3600000));
+    cells.m.textContent = pad2(Math.floor((diff % 3600000) / 60000));
+    cells.s.textContent = pad2(Math.floor((diff % 60000) / 1000));
   };
   tick();
   setInterval(tick, 1000);
-
-  /* —— the gavel stamp: flash → impact → letters stamp in → settle —— */
-  const hero = $(".hero");
-  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let stampPlayed = false;
-  let fx = null;
-  let fxPendingReveal = false;
-
-  function splitLetters(line) {
-    if (!line || line.dataset.split) return;
-    line.dataset.split = "1";
-    line.setAttribute("aria-label", line.textContent);
-    const frag = document.createDocumentFragment();
-    [...line.textContent].forEach((ch, i) => {
-      const s = document.createElement("span");
-      s.className = "stamp-ch";
-      s.style.setProperty("--ch-i", String(i));
-      s.textContent = ch;
-      s.setAttribute("aria-hidden", "true");
-      frag.appendChild(s);
-    });
-    line.textContent = "";
-    line.appendChild(frag);
-  }
-
-  function revealFx(extraDelay) {
-    setTimeout(() => {
-      if (fx) fx.reveal();
-      else fxPendingReveal = true;
-    }, extraDelay);
-  }
-
-  function playStamp() {
-    if (stampPlayed || !hero) return;
-    stampPlayed = true;
-    if (reduceMotion) {
-      hero.classList.add("stamp-done");
-      revealFx(0);
-      return;
-    }
-    splitLetters($(".hero-title-line.anim--t1", hero));
-    const decor = document.createElement("div");
-    decor.innerHTML =
-      '<div class="stamp-flash" aria-hidden="true"></div>' +
-      '<div class="stamp-ring" aria-hidden="true"></div>' +
-      '<div class="stamp-dust" aria-hidden="true"><i></i><i></i><i></i></div>';
-    while (decor.firstChild) hero.prepend(decor.firstChild);
-    hero.classList.add("stamp-run");
-    setTimeout(() => hero.classList.add("stamp-hit"), 240);
-    /* beat ends at ~2.2s (tagline lands) — then retire the choreography */
-    setTimeout(() => {
-      hero.classList.remove("stamp-run", "stamp-hit");
-      hero.classList.add("stamp-done");
-      $$(".stamp-flash, .stamp-ring, .stamp-dust", hero).forEach((n) => n.remove());
-    }, 2400);
-    revealFx(1000); /* placard light comes up as the wordmark settles */
-  }
-
-  async function ensureFx() {
-    if (reduceMotion || innerWidth < 860 || fx || ensureFx.failed) return;
-    if (!ensureFx.loading) {
-      ensureFx.loading = import("./hero3d.js")
-        .then(async (m) => {
-          fx = await m.initHero3D(hero);
-          if (fx) {
-            if (currentView === "home") fx.onShow();
-            if (fxPendingReveal) { fx.reveal(); fxPendingReveal = false; }
-          }
-        })
-        .catch(() => { ensureFx.failed = true; /* never break the page over ambience */ });
-    }
-    await ensureFx.loading;
-  }
-
-  window.__heroFx = {
-    onShow() {
-      if (!window.__gateOpen) return; /* hold the beat until the gate lifts */
-      setTimeout(playStamp, 240);
-      ensureFx();
-    },
-    onHide() {
-      if (fx) fx.onHide();
-    },
-  };
-  /* warm the 3D module once the page has settled */
-  setTimeout(() => { if (window.__gateOpen) ensureFx(); }, 1600);
 }
 
 /* ————————————————— Reveal on scroll ————————————————— */
@@ -1412,7 +1281,6 @@ deckInit();
   if (opened) {
     gate.remove();
     site.hidden = false;
-    window.__gateOpen = true;
     showView(currentView, { animate: false });
   } else {
     document.body.style.overflow = "hidden";
@@ -1442,7 +1310,6 @@ deckInit();
       gate.classList.add("open");
       document.body.style.overflow = "";
       site.hidden = false;
-      window.__gateOpen = true;
       showView(currentView, { animate: false });
       setTimeout(() => gate.remove(), 1550);
     });
