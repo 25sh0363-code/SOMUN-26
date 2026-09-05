@@ -330,6 +330,15 @@ em.accent {
   backdrop-filter: blur(12px);
   border-bottom-color: var(--line);
 }
+/* desktop: nav stays a translucent glass strip over content — reads as
+   transparent, keeps links legible over long pages */
+@media (min-width: 1024px) {
+  .nav.scrolled {
+    background: rgba(13, 10, 8, 0.52);
+    backdrop-filter: blur(10px) saturate(1.15);
+    border-bottom-color: rgba(236, 225, 203, 0.07);
+  }
+}
 .nav-inner {
   max-width: 80rem;
   margin-inline: auto;

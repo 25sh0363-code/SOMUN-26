@@ -893,7 +893,13 @@ $("#drawer-overlay").addEventListener("click", closeDrawer);
     },
     { rootMargin: "0px 0px -60px 0px" }
   );
-  $$("[data-count]", root).forEach((el) => io.observe(el));
+  $$("[data-count]", root).forEach((el) => {
+    /* hero stats can sit half-visible at load — the -60px margin would
+       leave them stuck at 0. Anything already on screen counts now. */
+    const r = el.getBoundingClientRect();
+    if (r.top < window.innerHeight && r.bottom > 0) animate(el);
+    else io.observe(el);
+  });
 }
 
 /* ————————————————— Committees deck (pinned scroll) ————————————————— */
