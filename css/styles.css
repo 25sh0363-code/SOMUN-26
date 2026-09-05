@@ -4794,3 +4794,146 @@ em.accent {
   .hero-cue-line::after { animation: none; top: 40%; }
   .pillar-box::after, .preview-card, .preview-ghost, .hmx-stat-ghost { transition: none; }
 }
+
+/* ————————————————— R14 · Hero FX — gavel stamp + split-flap + placard —————————————————
+   All additive. Nothing above this block is touched. */
+
+/* ————— stamp: letter split ————— */
+.stamp-ch { display: inline-block; }
+
+/* while the stamp runs, the stock entrance anims are suspended and
+   re-choreographed around the gavel beat */
+.hero.stamp-run .anim--meta,
+.hero.stamp-run .anim--t1,
+.hero.stamp-run .anim--t2,
+.hero.stamp-run .anim--sub { animation: none; opacity: 1; transform: none; }
+.hero.stamp-run .anim--meta { animation: fadeIn 0.9s ease 1.02s both; }
+.hero.stamp-run .anim--t2 { animation: fadeUpBig 0.9s var(--ease-out) 0.98s both; }
+.hero.stamp-run .anim--sub { animation: fadeUpSm 0.9s var(--ease-out) 1.28s both; }
+
+.hero.stamp-run .stamp-ch {
+  animation: chStamp 0.6s var(--ease-out) both;
+  animation-delay: calc(0.34s + var(--ch-i, 0) * 0.055s);
+}
+@keyframes chStamp {
+  0% { opacity: 0; transform: scale(2.15); filter: blur(12px); }
+  55% { opacity: 1; transform: scale(0.94); filter: blur(0); }
+  76% { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); filter: none; }
+}
+
+/* gavel impact — the whole title block recoils */
+.hero.stamp-run.stamp-hit .hero-title {
+  animation: heroQuake 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97) 0.28s both;
+}
+@keyframes heroQuake {
+  10%, 90% { transform: translate(-1px, 1px); }
+  20%, 80% { transform: translate(2px, -1px); }
+  30%, 50%, 70% { transform: translate(-3px, 1px); }
+  40%, 60% { transform: translate(3px, -1px); }
+}
+
+/* the crimson hairline that sweeps across just before impact */
+.stamp-flash {
+  position: absolute; left: 0; right: 0; top: 34%; height: 2px; z-index: 0;
+  background: linear-gradient(90deg, transparent 2%, var(--crimson) 50%, transparent 98%);
+  transform: scaleX(0); opacity: 0; pointer-events: none;
+}
+.hero.stamp-run .stamp-flash { animation: flashSweep 0.5s ease-out 0.06s both; }
+@keyframes flashSweep {
+  0% { transform: scaleX(0); opacity: 0; }
+  30% { opacity: 0.95; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+/* shockwave ring from the strike point */
+.stamp-ring {
+  position: absolute; left: 16%; top: 40%; width: 90px; height: 90px;
+  margin: -45px 0 0 -45px; border: 2px solid rgba(200, 16, 46, 0.5);
+  border-radius: 50%; opacity: 0; pointer-events: none;
+}
+.hero.stamp-run.stamp-hit .stamp-ring { animation: ringOut 0.75s var(--ease-out) 0.28s both; }
+@keyframes ringOut {
+  0% { opacity: 0.85; transform: scale(0.15); }
+  100% { opacity: 0; transform: scale(7); }
+}
+
+/* dust kicked up at the title baseline */
+.stamp-dust { position: absolute; left: 10%; top: 46%; width: 40%; height: 10%; pointer-events: none; }
+.stamp-dust i {
+  position: absolute; bottom: 0; width: 130px; height: 34px; border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(236, 225, 203, 0.16), transparent 70%);
+  opacity: 0; filter: blur(2px);
+}
+.stamp-dust i:nth-child(1) { left: 0; }
+.stamp-dust i:nth-child(2) { left: 34%; width: 90px; height: 26px; }
+.stamp-dust i:nth-child(3) { left: 62%; width: 150px; height: 40px; }
+.hero.stamp-run.stamp-hit .stamp-dust i { animation: puff 0.65s ease-out both; }
+.hero.stamp-run.stamp-hit .stamp-dust i:nth-child(1) { animation-delay: 0.28s; }
+.hero.stamp-run.stamp-hit .stamp-dust i:nth-child(2) { animation-delay: 0.34s; }
+.hero.stamp-run.stamp-hit .stamp-dust i:nth-child(3) { animation-delay: 0.31s; }
+@keyframes puff {
+  0% { opacity: 0; transform: translateY(6px) scale(0.4); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-14px) scale(1.5); }
+}
+
+/* after the beat: final resting state, original anims stay retired this load */
+.hero.stamp-done .anim--meta,
+.hero.stamp-done .anim--t1,
+.hero.stamp-done .anim--t2,
+.hero.stamp-done .anim--sub { animation: none; opacity: 1; transform: none; filter: none; }
+.hero.stamp-done .stamp-ch { animation: none; opacity: 1; transform: none; filter: none; }
+
+/* ————— split-flap countdown ————— */
+.flaps {
+  display: inline-flex; gap: 3px;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 1.5rem; color: var(--beige);
+}
+.flap-digit { position: relative; width: 1.18em; height: 1.6em; perspective: 320px; }
+.flap-digit .flap-half, .flap-digit .flap-leaf {
+  position: absolute; left: 0; width: 100%; height: 50%; overflow: hidden;
+  background: linear-gradient(180deg, #231a12, #191209);
+  display: flex; justify-content: center;
+}
+.flap-digit .flap-half i, .flap-digit .flap-leaf i {
+  display: block; height: 1.6em; line-height: 1.6em; text-align: center; font-style: normal;
+}
+.flap-digit .flap-half--t { top: 0; border-radius: 4px 4px 0 0; border: 1px solid var(--border); border-bottom: none; }
+.flap-digit .flap-half--b { bottom: 0; border-radius: 0 0 4px 4px; border: 1px solid var(--border); border-top: none; }
+.flap-digit .flap-half--b i { margin-top: -0.8em; }
+.flap-digit::after { /* hinge */
+  content: ""; position: absolute; left: 1px; right: 1px; top: calc(50% - 1px); height: 1px;
+  background: rgba(13, 10, 8, 0.85);
+}
+.flap-digit .flap-leaf {
+  top: 0; transform-origin: 50% 100%; backface-visibility: hidden;
+  border-radius: 4px 4px 0 0; border: 1px solid var(--border); border-bottom: 1px solid rgba(13, 10, 8, 0.85);
+  display: none; box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.35);
+}
+.flap-digit.flipping .flap-leaf { display: block; animation: flapFall 0.26s cubic-bezier(0.55, 0, 0.85, 0.45) both; }
+@keyframes flapFall {
+  0% { transform: rotateX(0deg); }
+  100% { transform: rotateX(-86deg); }
+}
+@media (max-width: 640px) { .flaps { font-size: 1.15rem; gap: 2px; } }
+
+/* ————— 3D placard canvas host ————— */
+.hero-fx {
+  position: absolute; top: 5%; right: 0;
+  width: min(46%, 620px); height: min(58%, 540px);
+  pointer-events: none; z-index: 0;
+  opacity: 0; transition: opacity 1.5s ease 0.1s;
+}
+.hero-fx.on { opacity: 1; }
+.hero-fx canvas { display: block; }
+.hero > .container { position: relative; z-index: 2; }
+
+@media (max-width: 860px) { .hero-fx { display: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-fx { display: none; }
+  .hero .stamp-ch, .hero .stamp-flash, .hero .stamp-ring,
+  .hero .stamp-dust i, .flap-leaf { animation: none !important; }
+}
