@@ -100,12 +100,7 @@ $("#year").textContent = new Date().getFullYear();
         .join("");
     }
 
-    /* —— 2 · split-flap roll call ——
-       Each word is CENTRE-padded into the fixed tile row — a short
-       acronym like "IP" keeps invisible blanks on both sides, so the
-       visible letters always sit dead-centre under the kicker. While
-       COMMITTEES_REVEALED is false the board flips behind a blur and
-       a "chambers under seal" note sits beneath it. */
+    /* —— 2 · split-flap roll call —— */
     const row = $("#rollcall-row");
     if (row) {
       const words = [
@@ -131,16 +126,10 @@ $("#year").textContent = new Date().getFullYear();
           t.textContent = ch;
         }
       };
-      const centerPad = (word, width) => {
-        const chars = [...word];
-        const total = Math.max(0, width - chars.length);
-        const left = Math.floor(total / 2);
-        return [...Array(left).fill(" "), ...chars, ...Array(total - left).fill(" ")];
-      };
-      centerPad(words[0], n).forEach((ch, i) => setTile(tiles[i], ch));
+      words[0].padEnd(n).split("").forEach((ch, i) => setTile(tiles[i], ch));
 
       const flipTo = (word) => {
-        centerPad(word, n).forEach((ch, i) => {
+        word.padEnd(n, " ").split("").forEach((ch, i) => {
           const t = tiles[i];
           const cur = t.classList.contains("flap--blank") ? " " : t.textContent;
           if (cur === ch) return;
@@ -168,15 +157,6 @@ $("#year").textContent = new Date().getFullYear();
         wi = (wi + 1) % words.length;
         flipTo(words[wi]);
       }, 2700);
-
-      /* committees still sealed → the board flips behind a blur */
-      if (!CONFIG.COMMITTEES_REVEALED) {
-        row.classList.add("flap-row--sealed");
-        const note = document.createElement("p");
-        note.className = "rollcall-seal-note";
-        note.textContent = "Chambers under seal";
-        row.parentElement.append(note);
-      }
     }
 
     /* —— 3 + 4 · dust canvas & pointer parallax, one loop —— */
@@ -835,10 +815,7 @@ function showView(view, { animate = true } = {}) {
   setActiveNav(view);
   if (view === "home" && window.__litText) requestAnimationFrame(window.__litText);
   if (view === "about" && window.__aboutEnter) requestAnimationFrame(window.__aboutEnter);
-  requestAnimationFrame(() => {
-    window.scrollTo({ top: 0 });
-    if (window.__navVeilUpdate) window.__navVeilUpdate(); // re-judge the veil on the new view
-  });
+  requestAnimationFrame(() => window.scrollTo({ top: 0 }));
   if (view === "committees" && CONFIG.COMMITTEES_REVEALED) deckOnShow();
 }
 
@@ -969,11 +946,10 @@ toggleBtn.addEventListener("click", () => {
 });
 $("#drawer-overlay").addEventListener("click", closeDrawer);
 
-/* —— hero chrome wiring + nav veil + the gavel strike ——
+/* —— hero chrome wiring + nav veil ——
    The nav stays veiled while the hero holds the stage; the corner
    Menu button opens the drawer, and the nav slides back in the moment
-   the hero scrolls away. Two thresholds with a hysteresis band keep
-   it from flickering at the boundary. */
+   the hero scrolls away. */
 {
   const heroEl = $("#hero");
   const heroMenu = $("#hero-menu");
@@ -988,171 +964,19 @@ $("#drawer-overlay").addEventListener("click", closeDrawer);
     });
 
   if (heroEl) {
-    let veiled = true;
-    const update = () => {
-      const H = heroEl.offsetHeight;
-      if (H < 10) {
-        /* home is not the visible view — the nav always shows */
-        if (veiled) {
-          veiled = false;
-          navEl.classList.remove("nav--veil");
-        }
-        return;
-      }
-      const y = window.scrollY;
-      if (veiled && y > H * 0.66) {
-        veiled = false;
-        navEl.classList.remove("nav--veil");
-      } else if (!veiled && y < H * 0.45) {
-        veiled = true;
-        navEl.classList.add("nav--veil");
-      }
-    };
-    navEl.classList.add("nav--veil"); // the hero is the opening frame — start veiled
-    window.__navVeilUpdate = update; // the router re-runs this on view switch
-    let ticking = false;
-    window.addEventListener(
-      "scroll",
-      () => {
-        if (!ticking) {
-          ticking = true;
-          requestAnimationFrame(() => {
-            ticking = false;
-            update();
-          });
-        }
-      },
-      { passive: true }
-    );
-    update();
-  }
-}
-
-/* —— the gavel falls: one frame-stepped strike at 50fps ——
-   Scroll through the hero and the chamber gavel drops ONCE —
-   discrete poses every 20ms (a flipbook, never a tween), landing on
-   the sound block with a crimson ring, a dust puff and a two-step
-   quake; the roll-call board jolts. It holds a beat and retires.
-   Reduced-motion users never see it arm. */
-{
-  const heroEl = $("#hero");
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (heroEl && !reduce && !window.__gavelStrike) {
-    window.__gavelStrike = true; // single-init guard
-
-    /* pose ladder, degrees off the struck pose (0 = head on the block):
-       wind-up higher → a beat held → fast stepped fall → impact →
-       recoil → settle. 14 frames ≈ 0.26s of motion. */
-    const POSES = [47, 49, 47, 40, 31, 21, 12, 5, 0, 0, -3, -1, 0, 0];
-    const IMPACT_AT = 8; // the frame the head meets the block
-    const FRAME = 1000 / 50; // 20ms — the requested 50fps flipbook
-
-    const ov = document.createElement("div");
-    ov.className = "strike-overlay";
-    ov.setAttribute("aria-hidden", "true");
-    ov.innerHTML = `
-      <div class="strike-stage">
-        <svg class="strike-gavel" viewBox="0 0 320 260" xmlns="http://www.w3.org/2000/svg" fill="none">
-          <!-- sound block (fixed) -->
-          <rect x="70" y="222" width="84" height="11" rx="2.5" fill="#191209" stroke="rgba(236,225,203,0.4)" stroke-width="1.2"/>
-          <rect x="54" y="236" width="116" height="7" rx="2" fill="#14100a" stroke="rgba(236,225,203,0.28)" stroke-width="1"/>
-          <!-- gavel (rotates around the grip at 238,40) -->
-          <g>
-            <!-- handle -->
-            <line x1="128" y1="188" x2="238" y2="40" stroke="#241a10" stroke-width="9" stroke-linecap="round"/>
-            <line x1="128" y1="188" x2="238" y2="40" stroke="rgba(236,225,203,0.5)" stroke-width="1.2" stroke-linecap="round"/>
-            <line x1="136" y1="178" x2="230" y2="52" stroke="rgba(236,225,203,0.22)" stroke-width="2.4" stroke-linecap="round"/>
-            <!-- grip pommel -->
-            <circle cx="238" cy="40" r="8" fill="#241a10" stroke="rgba(236,225,203,0.5)" stroke-width="1.2"/>
-            <!-- head: capsule resting flat on the block -->
-            <rect x="76" y="190" width="72" height="32" rx="13" fill="#1d150c" stroke="rgba(236,225,203,0.55)" stroke-width="1.4"/>
-            <rect x="102" y="190" width="20" height="32" rx="3" fill="var(--crimson, #a51c2c)" stroke="rgba(0,0,0,0.35)" stroke-width="1"/>
-            <line x1="84" y1="196" x2="96" y2="196" stroke="rgba(236,225,203,0.25)" stroke-width="1.6" stroke-linecap="round"/>
-            <line x1="84" y1="216" x2="96" y2="216" stroke="rgba(236,225,203,0.18)" stroke-width="1.6" stroke-linecap="round"/>
-          </g>
-        </svg>
-        <span class="strike-ring"></span>
-        ${Array.from({ length: 8 }, () => '<span class="strike-dust"></span>').join("")}
-      </div>`;
-    document.body.append(ov);
-
-    const gavelEl = ov.querySelector(".strike-gavel");
-    const ringEl = ov.querySelector(".strike-ring");
-    const dustEls = [...ov.querySelectorAll(".strike-dust")];
-
-    const impact = () => {
-      ringEl.classList.add("hit");
-      /* two-step quake on the chamber itself */
-      heroEl.classList.add("quake");
-      setTimeout(() => heroEl.classList.remove("quake"), 420);
-      /* the board takes the hit */
-      const rowEl = $("#rollcall-row");
-      if (rowEl) {
-        rowEl.classList.add("jolt");
-        setTimeout(() => rowEl.classList.remove("jolt"), 420);
-      }
-      dustEls.forEach((d) => {
-        const a = Math.random() * Math.PI * 2;
-        d.style.setProperty("--dx", `${(Math.cos(a) * (16 + Math.random() * 42)).toFixed(1)}px`);
-        d.style.setProperty("--dy", `${(-Math.abs(Math.sin(a)) * (12 + Math.random() * 36) - 4).toFixed(1)}px`);
-        d.style.setProperty("--d", `${(Math.random() * 0.06).toFixed(3)}s`);
-        d.classList.remove("puff");
-        void d.offsetWidth; // restart the keyframe
-        d.classList.add("puff");
-      });
-    };
-
-    let done = false;
-    const strike = () => {
-      if (done) return;
-      done = true;
-      let f = 0, last = 0, acc = 0;
-      ov.classList.add("on");
-      const step = (ts) => {
-        if (!last) last = ts;
-        acc += ts - last;
-        last = ts;
-        while (acc >= FRAME && f < POSES.length - 1) {
-          acc -= FRAME;
-          f++;
-          gavelEl.style.transform = `rotate(${POSES[f]}deg)`; // discrete pose — no tween
-          if (f === IMPACT_AT) impact();
-        }
-        if (f < POSES.length - 1) {
-          requestAnimationFrame(step);
-        } else {
-          setTimeout(() => {
-            ov.classList.add("off");
-            setTimeout(() => ov.remove(), 650);
-          }, 780); // hold the settled gavel for a beat, then retire
-        }
-      };
-      requestAnimationFrame(step);
-    };
-
-    /* arm on scroll-through: past 40% of the hero but still inside it */
-    let armed = true, pending = false;
-    const check = () => {
-      pending = false;
-      if (!armed) return;
-      const H = heroEl.offsetHeight;
-      if (H < 10) return; // not on the home view
-      const y = window.scrollY;
-      if (y > H * 0.4 && y < H * 0.98) {
-        armed = false;
-        strike();
-      }
-    };
-    window.addEventListener(
-      "scroll",
-      () => {
-        if (!pending) {
-          pending = true;
-          requestAnimationFrame(check);
-        }
-      },
-      { passive: true }
-    );
+    const veil = (hidden) => navEl.classList.toggle("nav--veil", hidden);
+    if ("IntersectionObserver" in window) {
+      veil(true); // the hero is the opening frame — start veiled
+      new IntersectionObserver(
+        (es) => veil(es[0].isIntersecting),
+        { threshold: 0.12 }
+      ).observe(heroEl);
+    } else {
+      const veilOnScroll = () =>
+        veil(window.scrollY < heroEl.offsetHeight - 90);
+      veilOnScroll();
+      window.addEventListener("scroll", veilOnScroll, { passive: true });
+    }
   }
 }
 
