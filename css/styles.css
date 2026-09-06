@@ -1041,6 +1041,25 @@ em.accent {
 }
 .hero .container { position: relative; z-index: 1; width: 100%; margin-top: auto; padding-bottom: 1.4rem; }
 
+/* ————— the plate's front run (mobile): the type dips behind the hammer —————
+   A pixel-identical copy of the scene — same frame, img (with its settle/
+   drift animations), ink shade and grain — stacked ABOVE the wordmark and
+   masked to the gavel. Where the mask is opaque, the gavel occludes the
+   type; everywhere else the mask is transparent, so the seam is invisible. */
+.hero-scene-front { display: none; }
+@media (max-width: 767px) {
+  .hero-scene-front {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 2; /* above .container (z-1) — under the chrome (z-3+) */
+    pointer-events: none;
+    animation: sceneIn 1.6s ease 0.1s both; /* stay in sync with the base scene */
+    -webkit-mask-image: radial-gradient(58% 13% at 54% 63.5%, #000 34%, transparent 74%);
+    mask-image: radial-gradient(58% 13% at 54% 63.5%, #000 34%, transparent 74%);
+  }
+}
+
 /* ————— corner chrome (the nav is veiled inside the hero) ————— */
 .hero-corner {
   position: absolute;
@@ -1330,7 +1349,7 @@ em.accent {
 /* ————— mobile scene tuning: zoom toward the gavel head, protect the type ————— */
 @media (max-width: 767px) {
   .hero-scene-img {
-    object-position: 38% 30%; /* the dark plate, head peeking from the right edge */
+    object-position: 50% 30%; /* centred — the gavel owns the middle of the stage */
     transform: scale(1.3);
     filter: brightness(0.78) contrast(1.05);
   }
@@ -1344,6 +1363,7 @@ em.accent {
   }
   .hero-scene-shade {
     background:
+      radial-gradient(52% 16% at 30% 47%, rgba(13, 10, 8, 0.82) 0%, rgba(13, 10, 8, 0) 72%),
       linear-gradient(180deg, rgba(13, 10, 8, 0.8) 0%, rgba(13, 10, 8, 0.24) 24%, rgba(13, 10, 8, 0) 46%),
       linear-gradient(0deg, #0d0a08 3%, rgba(13, 10, 8, 0.92) 18%, rgba(13, 10, 8, 0.5) 40%, rgba(13, 10, 8, 0) 60%),
       linear-gradient(90deg, rgba(13, 10, 8, 0.55) 0%, rgba(13, 10, 8, 0.2) 45%, rgba(13, 10, 8, 0) 70%),
@@ -5327,4 +5347,87 @@ em.accent {
 @media (prefers-reduced-motion: reduce) {
   .marquee-track { animation: none; }
   .pillar-box::after, .preview-card, .preview-ghost, .hmx-stat-ghost { transition: none; }
+}
+
+/* ————————————————————————————————————————————————————————————————
+   the engraved echo — the hero's intaglio plate whispering through
+   every view: a shared ornament on each section head, plus plates
+   behind the creed band, the final CTA, the sealed veils and the
+   footer. Crimson-on-black line art, screen-blended so the plate's
+   black ground vanishes into whatever it rests on.
+   ———————————————————————————————————————————————————————————————— */
+.section-head { position: relative; }
+.section-head::before {
+  content: "";
+  position: absolute;
+  top: -3.2rem;
+  right: 0;
+  width: min(26rem, 52vw);
+  aspect-ratio: 1344 / 768;
+  background: url("../images/textures/engraved-red.jpg") center / cover no-repeat;
+  mix-blend-mode: screen;
+  opacity: 0.2;
+  pointer-events: none;
+  user-select: none;
+  -webkit-mask-image: radial-gradient(74% 74% at 50% 50%, #000 30%, transparent 72%);
+  mask-image: radial-gradient(74% 74% at 50% 50%, #000 30%, transparent 72%);
+}
+@media (max-width: 767px) {
+  .section-head::before { width: 74vw; top: -1.6rem; opacity: 0.13; }
+}
+
+/* the creed — the plate in full dress on the crimson field */
+.quote-engrave {
+  position: absolute;
+  inset: 0;
+  background: url("../images/textures/engraved-red.jpg") 62% 38% / cover no-repeat;
+  mix-blend-mode: screen;
+  opacity: 0.42;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(100deg, transparent 2%, #000 34%, #000 82%, transparent 98%);
+  mask-image: linear-gradient(100deg, transparent 2%, #000 34%, #000 82%, transparent 98%);
+}
+
+/* the final CTA — a faint plate behind "secure your seat" */
+.cta-engrave {
+  position: absolute;
+  inset: 0;
+  background: url("../images/textures/engraved-red.jpg") center 42% / cover no-repeat;
+  mix-blend-mode: screen;
+  opacity: 0.24;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(84% 88% at 50% 46%, #000 34%, transparent 78%);
+  mask-image: radial-gradient(84% 88% at 50% 46%, #000 34%, transparent 78%);
+}
+
+/* the footer — the faintest whisper of the plate */
+.footer { position: relative; }
+.footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("../images/textures/engraved-red.jpg") 72% 30% / cover no-repeat;
+  mix-blend-mode: screen;
+  opacity: 0.11;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 78%);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 78%);
+}
+
+/* the sealed veils — committees + register share the stamp motif */
+.reg-veil::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(34rem, 92%);
+  aspect-ratio: 1344 / 768;
+  transform: translate(-50%, -50%);
+  background: url("../images/textures/engraved-red.jpg") center / cover no-repeat;
+  mix-blend-mode: screen;
+  opacity: 0.3;
+  z-index: -1;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(72% 72% at 50% 50%, #000 30%, transparent 74%);
+  mask-image: radial-gradient(72% 72% at 50% 50%, #000 30%, transparent 74%);
 }
