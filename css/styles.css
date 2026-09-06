@@ -323,20 +323,27 @@ em.accent {
   left: 0;
   right: 0;
   z-index: 50;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  /* reveal = slow luxurious settle; hide = quick, decisive exit */
   transition:
-    transform 0.6s var(--ease-out),
-    opacity 0.5s ease,
+    transform 0.72s cubic-bezier(0.16, 1, 0.3, 1) 0.05s,
+    opacity 0.45s ease 0.05s,
     background-color 0.5s,
     border-color 0.5s,
     backdrop-filter 0.5s;
   border-bottom: 1px solid transparent;
 }
 /* the nav is veiled while the hero holds the stage — it slides back
-   in once the hero scrolls away (JS toggles this on an IntersectionObserver) */
+   in once the hero scrolls away (JS toggles this with hysteresis so
+   it never flickers at the threshold) */
 .nav.nav--veil {
-  transform: translateY(-102%);
+  transform: translate3d(0, -108%, 0);
   opacity: 0;
   pointer-events: none;
+  transition:
+    transform 0.48s cubic-bezier(0.55, 0, 1, 0.45),
+    opacity 0.32s ease;
 }
 .nav.scrolled {
   background: rgba(13, 10, 8, 0.9);
@@ -1294,6 +1301,114 @@ em.accent {
 @keyframes flapOut { from { transform: rotateX(0); } to { transform: rotateX(-88deg); } }
 @keyframes flapIn  { from { transform: rotateX(88deg); } to { transform: rotateX(0); } }
 
+/* optical centring: big tracking leaves a ghost gap after the last
+   letter — pull the text back half a track so the rules sit evenly */
+.rollcall-kicker-text { margin-right: -0.42em; }
+
+/* ————— committees under seal — the board flips behind a blur ————— */
+.flap-row { transition: filter 0.8s ease; }
+.flap-row--sealed {
+  filter: blur(9px) saturate(0.65) brightness(0.85);
+  user-select: none;
+}
+.rollcall-seal-note {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  text-indent: 0.38em; /* balance the trailing track */
+  color: var(--beige-dim);
+}
+.rollcall-seal-note::before, .rollcall-seal-note::after {
+  content: "";
+  width: 26px;
+  height: 1px;
+  background: var(--line);
+}
+/* the board jumps when the gavel lands on it */
+.flap-row.jolt { animation: flapJolt 0.16s steps(2, jump-none) 2; }
+@keyframes flapJolt {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+
+/* ————— the gavel falls — a one-time scroll-through strike —————
+   Fixed overlay: the chamber gavel swings down in discrete 20ms
+   poses (a 50fps flipbook, no tweens), lands once with a crimson
+   ring + dust puff + two-step quake, holds a beat, retires. */
+.strike-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 45; /* under the nav (50) — it never covers the chrome */
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+.strike-overlay.on { opacity: 1; }
+.strike-overlay.off { opacity: 0; transition: opacity 0.5s ease; }
+.strike-stage {
+  position: relative;
+  width: clamp(190px, 27vh, 270px);
+  transform: translateY(-7%);
+}
+.strike-gavel {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  transform-box: view-box;
+  transform-origin: 238px 40px; /* the grip — the arc's pivot */
+  transform: rotate(47deg);
+  will-change: transform;
+  filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.5));
+}
+.strike-ring {
+  position: absolute;
+  left: 35%;
+  top: 85%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border: 1.5px solid var(--crimson);
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.2);
+}
+.strike-ring.hit { animation: strikeRing 0.46s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+@keyframes strikeRing {
+  0% { opacity: 0.6; transform: scale(0.25); }
+  100% { opacity: 0; transform: scale(2.7); }
+}
+.strike-dust {
+  position: absolute;
+  left: 35%;
+  top: 85%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: rgba(236, 225, 203, 0.75);
+  opacity: 0;
+}
+.strike-dust.puff { animation: dustPuff 0.52s ease-out both; animation-delay: var(--d, 0s); }
+@keyframes dustPuff {
+  0% { opacity: 0.8; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx, 0px), var(--dy, -20px)) scale(0.35); }
+}
+/* two-step quake on the whole chamber — stepped, never a glow */
+.hero.quake { animation: heroQuake 0.19s steps(2, jump-none) 2; }
+@keyframes heroQuake {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(1.5px, 2px); }
+  100% { transform: translate(-1.5px, -1px); }
+}
+
 /* ————— hero choreography overrides once the letter cascade takes over ————— */
 .hero-title--live + .rollcall { animation-delay: 1.5s; }
 .hero-title--live .anim--t2 { animation-delay: 1.05s; }
@@ -1337,6 +1452,7 @@ em.accent {
   .hero-title--live .hero-title-year { animation: none; }
   .flap-out, .flap-in { animation: none; }
   .anim--rollcall { animation-duration: 0.01s; animation-delay: 0s; }
+  .strike-overlay { display: none; }
 }
 
 /* ————— the definition — a quiet dictionary entry, mid-left ————— */
