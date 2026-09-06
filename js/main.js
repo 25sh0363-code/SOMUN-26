@@ -100,7 +100,12 @@ $("#year").textContent = new Date().getFullYear();
         .join("");
     }
 
-    /* —— 2 · split-flap roll call —— */
+    /* —— 2 · split-flap roll call ——
+       Each word is CENTRE-padded into the fixed tile row — a short
+       acronym like "IP" keeps invisible blanks on both sides, so the
+       visible letters always sit dead-centre under the kicker. While
+       COMMITTEES_REVEALED is false the board flips behind a blur and
+       a "chambers under seal" note sits beneath it. */
     const row = $("#rollcall-row");
     if (row) {
       const words = [
@@ -126,10 +131,16 @@ $("#year").textContent = new Date().getFullYear();
           t.textContent = ch;
         }
       };
-      words[0].padEnd(n).split("").forEach((ch, i) => setTile(tiles[i], ch));
+      const centerPad = (word, width) => {
+        const chars = [...word];
+        const total = Math.max(0, width - chars.length);
+        const left = Math.floor(total / 2);
+        return [...Array(left).fill(" "), ...chars, ...Array(total - left).fill(" ")];
+      };
+      centerPad(words[0], n).forEach((ch, i) => setTile(tiles[i], ch));
 
       const flipTo = (word) => {
-        word.padEnd(n, " ").split("").forEach((ch, i) => {
+        centerPad(word, n).forEach((ch, i) => {
           const t = tiles[i];
           const cur = t.classList.contains("flap--blank") ? " " : t.textContent;
           if (cur === ch) return;
@@ -157,6 +168,15 @@ $("#year").textContent = new Date().getFullYear();
         wi = (wi + 1) % words.length;
         flipTo(words[wi]);
       }, 2700);
+
+      /* committees still sealed → the board flips behind a blur */
+      if (!CONFIG.COMMITTEES_REVEALED) {
+        row.classList.add("flap-row--sealed");
+        const note = document.createElement("p");
+        note.className = "rollcall-seal-note";
+        note.textContent = "Chambers under seal";
+        row.parentElement.append(note);
+      }
     }
 
     /* —— 3 + 4 · dust canvas & pointer parallax, one loop —— */

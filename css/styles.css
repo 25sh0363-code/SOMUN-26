@@ -1294,6 +1294,35 @@ em.accent {
 @keyframes flapOut { from { transform: rotateX(0); } to { transform: rotateX(-88deg); } }
 @keyframes flapIn  { from { transform: rotateX(88deg); } to { transform: rotateX(0); } }
 
+/* optical centring: big tracking leaves a ghost gap after the last
+   letter — pull the text back half a track so the rules sit evenly */
+.rollcall-kicker-text { margin-right: -0.42em; }
+
+/* ————— committees under seal — the board flips behind a blur ————— */
+.flap-row { transition: filter 0.8s ease; }
+.flap-row--sealed {
+  filter: blur(9px) saturate(0.65) brightness(0.85);
+  user-select: none;
+}
+.rollcall-seal-note {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  text-indent: 0.38em; /* balance the trailing track */
+  color: var(--beige-dim);
+}
+.rollcall-seal-note::before, .rollcall-seal-note::after {
+  content: "";
+  width: 26px;
+  height: 1px;
+  background: var(--line);
+}
+
 /* ————— hero choreography overrides once the letter cascade takes over ————— */
 .hero-title--live + .rollcall { animation-delay: 1.5s; }
 .hero-title--live .anim--t2 { animation-delay: 1.05s; }
@@ -1326,6 +1355,13 @@ em.accent {
   .hero-def { margin-bottom: 2.1rem; }
   .hero .rollcall { margin-top: 1.7rem; }
   .rollcall-kicker-rule { width: 26px; }
+  /* mobile: give the board real presence — bigger tiles, softer seam */
+  .flap { width: 26px; height: 38px; font-size: 17px; border-radius: 4px; }
+  .flap-row { gap: 3.5px; }
+  /* smaller tiles need a lighter blur — the board must still read as a
+        sealed board, not vanish; letters stay fully unreadable */
+  .flap-row--sealed { filter: blur(6px) saturate(0.7) brightness(0.95); }
+  .rollcall-seal-note { letter-spacing: 0.3em; text-indent: 0.3em; }
 }
 
 /* ————— reduced motion: matte still frame, no canvas, instant flaps ————— */
