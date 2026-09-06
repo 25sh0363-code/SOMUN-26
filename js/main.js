@@ -53,9 +53,9 @@ function showToast(html, isErr = false) {
 
 /* ————————————————— Static copy fill ————————————————— */
 
-$('[data-copy="tagline"]').textContent = CONFERENCE.tagline;
-$('[data-copy="dates"]').textContent = CONFERENCE.dates;
-$('[data-copy="venue"]').textContent = `${CONFERENCE.venue} · ${CONFERENCE.city}`;
+$('[data-copy="tagline"]') && ($('[data-copy="tagline"]').textContent = CONFERENCE.tagline);
+$('[data-copy="dates"]') && ($('[data-copy="dates"]').textContent = CONFERENCE.dates);
+$('[data-copy="venue"]') && ($('[data-copy="venue"]').textContent = `${CONFERENCE.venue} · ${CONFERENCE.city}`);
 $("#itin-intro").textContent =
   `From the first roll call to the final gavel — the full three-day programme at ${CONFERENCE.venue} will be published right here, day by day.`;
 $("#reg-intro").textContent =
@@ -945,6 +945,40 @@ toggleBtn.addEventListener("click", () => {
   toggleBtn.setAttribute("aria-expanded", String(open));
 });
 $("#drawer-overlay").addEventListener("click", closeDrawer);
+
+/* —— hero chrome wiring + nav veil ——
+   The nav stays veiled while the hero holds the stage; the corner
+   Menu button opens the drawer, and the nav slides back in the moment
+   the hero scrolls away. */
+{
+  const heroEl = $("#hero");
+  const heroMenu = $("#hero-menu");
+  const exploreBtn = $("#hero-explore");
+
+  heroMenu && heroMenu.addEventListener("click", () => toggleBtn.click());
+
+  exploreBtn &&
+    exploreBtn.addEventListener("click", () => {
+      const about = document.querySelector(".about");
+      about && about.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+  if (heroEl) {
+    const veil = (hidden) => navEl.classList.toggle("nav--veil", hidden);
+    if ("IntersectionObserver" in window) {
+      veil(true); // the hero is the opening frame — start veiled
+      new IntersectionObserver(
+        (es) => veil(es[0].isIntersecting),
+        { threshold: 0.12 }
+      ).observe(heroEl);
+    } else {
+      const veilOnScroll = () =>
+        veil(window.scrollY < heroEl.offsetHeight - 90);
+      veilOnScroll();
+      window.addEventListener("scroll", veilOnScroll, { passive: true });
+    }
+  }
+}
 
 /* ————————————————— Countdown ————————————————— */
 

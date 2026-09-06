@@ -145,34 +145,46 @@
     <!-- ———————— VIEW: HOME ———————— -->
     <section class="view" data-view="home">
       <main>
-        <!-- Hero — the monolith chamber: graded gavel backdrop · drifting dust · split-flap roll call -->
+        <!-- Hero — the engraved chamber: banknote-plate gavel · drifting dust · split-flap roll call.
+             The nav is veiled while the hero holds the stage — corner chrome + the bottom
+             utility bar carry the controls; the nav slides back in on scroll. -->
         <section class="hero" id="hero">
           <div class="hero-scene" aria-hidden="true">
             <div class="hero-scene-frame par" data-depth="0.55">
-              <img src="images/textures/hero-monolith.jpg" alt="" class="hero-scene-img" fetchpriority="high" />
+              <img src="images/textures/hero-engraved.jpg" alt="" class="hero-scene-img" fetchpriority="high" />
             </div>
             <canvas class="hero-dust par" data-depth="1.15"></canvas>
             <div class="hero-scene-shade"></div>
+            <div class="hero-grain"></div>
           </div>
-          <div class="hero-watermark text-hollow par" data-depth="0.3" aria-hidden="true">26</div>
+
+          <!-- corner chrome -->
+          <div class="hero-corner anim anim--meta">
+            <p class="hero-corner-brand">SOMUN &rsquo;26</p>
+            <p class="hero-corner-sub">Silver Oaks Model United Nations</p>
+          </div>
+          <div class="hero-menu-wrap anim anim--meta">
+            <p class="hero-menu-edition">N&ordm; VIII &middot; MMXXVI</p>
+            <button class="hero-menu" id="hero-menu" type="button" aria-label="Open menu">Menu<span class="hero-menu-plus" aria-hidden="true">+</span></button>
+          </div>
+
+          <span class="hero-edge anim anim--meta" aria-hidden="true">Est. MMXXIII &mdash; Words, not war</span>
+          <div class="hero-pag anim anim--meta" aria-hidden="true">
+            <span class="hero-pag-num">XII</span>
+            <span class="hero-pag-cap">Chambers<br />on the floor</span>
+          </div>
+
           <div class="container">
-            <div class="hero-meta anim anim--meta">
-              <span>Est. MMXXIII · Eighth Edition</span>
-              <span class="hero-regens">
-                <span class="live-dot"><span class="live-dot-ping"></span><span class="live-dot-core"></span></span>
-                Registrations Open
-              </span>
+            <div class="hero-def anim anim--sub">
+              <p class="hero-def-word">diplomacy <span class="hero-def-phon">/di&#183;pl&#333;&#183;ma&#183;si/</span></p>
+              <p class="hero-def-body">the art of letting someone else have your way &mdash;
+              practiced here by twelve chambers of students, clause by clause,
+              until the gavel falls.</p>
             </div>
 
             <h1 class="hero-title">
               <span class="hero-title-line anim anim--t1">SOMUN</span>
-              <span class="hero-title-line anim anim--t2">
-                <em class="hero-title-year">&rsquo;26</em>
-                <span class="hero-title-side">
-                  <span>SILVER OAKS MODEL UNITED</span>
-                  <span class="hero-title-side2">NATIONS · HYDERABAD</span>
-                </span>
-              </span>
+              <em class="hero-title-year anim anim--t2">&rsquo;26</em>
             </h1>
 
             <div class="rollcall anim anim--rollcall" aria-hidden="true">
@@ -183,38 +195,34 @@
               </p>
               <div class="flap-row" id="rollcall-row"></div>
             </div>
+          </div>
 
-            <div class="hero-sub anim anim--sub">
-              <div class="hero-sub-left">
-                <p class="hero-tagline" data-copy="tagline"></p>
-                <p class="hero-about">Twelve committees. Three charged days. One chamber of
-                ideas — where every clause is contested and every voice
-                counts until the final gavel falls.</p>
+          <div class="hero-bar">
+            <button class="hero-bar-explore" id="hero-explore" type="button">
+              Explore
+              <i data-icon="arrow-right" data-cls="hero-bar-arrow"></i>
+            </button>
 
-                <div class="hero-meta-rows">
-                  <p class="meta-row"><i data-icon="calendar-days" data-cls="meta-icon"></i><span data-copy="dates"></span></p>
-                  <p class="meta-row"><i data-icon="map-pin" data-cls="meta-icon"></i><span data-copy="venue"></span></p>
-                </div>
-
-                <div class="hero-ctas">
-                  <button class="btn btn--crimson btn--arrow" data-nav="register">
-                    Delegate Registration <i data-icon="arrow-right" data-cls="btn-arrow-icon"></i>
-                  </button>
-                  <button class="btn btn--outline" data-nav="committees">Explore Committees</button>
-                </div>
-              </div>
-
-              <div class="countdown" id="countdown" aria-label="Countdown to SOMUN">
-                <p class="countdown-kicker"><span class="countdown-kicker-diamond" aria-hidden="true"></span>The gavel falls in</p>
-                <div class="countdown-grid">
-                  <div class="countdown-cell"><span class="countdown-num" id="cd-d">——</span><span class="countdown-label">Days</span></div>
-                  <div class="countdown-cell"><span class="countdown-num" id="cd-h">——</span><span class="countdown-label">Hours</span></div>
-                  <div class="countdown-cell"><span class="countdown-num" id="cd-m">——</span><span class="countdown-label">Mins</span></div>
-                  <div class="countdown-cell"><span class="countdown-num" id="cd-s">——</span><span class="countdown-label">Secs</span></div>
-                </div>
+            <div class="countdown" id="countdown" aria-label="Countdown to SOMUN">
+              <p class="countdown-kicker"><span class="countdown-kicker-diamond" aria-hidden="true"></span>The gavel falls in</p>
+              <div class="countdown-grid">
+                <div class="countdown-cell"><span class="countdown-num" id="cd-d">&mdash;&mdash;</span><span class="countdown-label">Days</span></div>
+                <div class="countdown-cell"><span class="countdown-num" id="cd-h">&mdash;&mdash;</span><span class="countdown-label">Hours</span></div>
+                <div class="countdown-cell"><span class="countdown-num" id="cd-m">&mdash;&mdash;</span><span class="countdown-label">Mins</span></div>
+                <div class="countdown-cell"><span class="countdown-num" id="cd-s">&mdash;&mdash;</span><span class="countdown-label">Secs</span></div>
               </div>
             </div>
 
+            <button class="hero-bar-reg" data-nav="register" type="button">
+              <span class="hero-bar-reg-word">Register</span>
+              <span class="hero-bar-reg-disc"><i data-icon="arrow-right" data-cls="hero-bar-reg-arrow"></i></span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Index band — the dossier in four columns -->
+        <div class="hero-index">
+          <div class="container">
             <div class="stats-strip">
               <div class="stats-cell">
                 <span class="stats-ghost" aria-hidden="true">12</span>
@@ -242,12 +250,7 @@
               </div>
             </div>
           </div>
-
-          <div class="hero-cue" aria-hidden="true">
-            <span class="hero-cue-line"><span class="hero-cue-diamond"></span></span>
-            <span class="hero-cue-label">Scroll the dossier</span>
-          </div>
-        </section>
+        </div>
 
         <!-- Ticker -->
         <div class="ticker" aria-hidden="true">
