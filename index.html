@@ -157,6 +157,16 @@
             <div class="hero-scene-shade"></div>
             <div class="hero-grain"></div>
           </div>
+          <!-- the plate's front run: the gavel's own silhouette (alpha mask baked
+               from the engraving's luminance) rides above the definition, so the
+               entry crosses BEHIND the hammer where the plate is bright and stays
+               readable on ink. SOMUN ’26 sits below the mask's baked kill-line
+               and can never be covered. -->
+          <div class="hero-scene-front" aria-hidden="true">
+            <div class="hero-scene-frame">
+              <img src="images/textures/hero-engraved.jpg" alt="" class="hero-scene-img hero-scene-front-img" />
+            </div>
+          </div>
 
           <!-- corner chrome -->
           <div class="hero-corner anim anim--meta">

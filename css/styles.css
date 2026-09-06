@@ -1041,6 +1041,39 @@ em.accent {
 }
 .hero .container { position: relative; z-index: 1; width: 100%; margin-top: auto; padding-bottom: 1.4rem; }
 
+/* ————— the plate's front run (mobile): the entry sinks behind the hammer —————
+   A twin of the scene img (inherits cover crop, object-position, scale and
+   the settle/drift animations, so its pixels track the backdrop exactly),
+   masked by the gavel's own baked silhouette (plate-alpha.png: bright
+   engraving -> opaque, ink -> transparent, hard zero below the definition
+   so the wordmark can never be caught). mask-size/position mirror
+   object-fit/object-position, and the img's own transform carries both —
+   the occlusion stays welded to the hammer through the drift. */
+.hero-scene-front { display: none; }
+@media (max-width: 767px) {
+  .hero-scene-front {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 2; /* above .container (z-1) — under the chrome (z-3+) */
+    pointer-events: none;
+    animation: sceneIn 1.6s ease 0.1s both; /* stay in sync with the base scene */
+  }
+  .hero-scene-img.hero-scene-front-img {
+    -webkit-mask-image: url("../images/textures/plate-alpha.png");
+    mask-image: url("../images/textures/plate-alpha.png");
+    -webkit-mask-size: cover;
+    mask-size: cover;
+    -webkit-mask-position: 50% 30%; /* mirrors object-position */
+    mask-position: 50% 30%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    /* dimmer than the base plate — it rides above the text and must
+       repay the ink shade (pocket + bottom melt) it doesn't carry */
+    filter: brightness(0.5) contrast(1.05);
+  }
+}
+
 /* ————— corner chrome (the nav is veiled inside the hero) ————— */
 .hero-corner {
   position: absolute;
