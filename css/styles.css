@@ -1041,11 +1041,13 @@ em.accent {
 }
 .hero .container { position: relative; z-index: 1; width: 100%; margin-top: auto; padding-bottom: 1.4rem; }
 
-/* ————— the plate's front run (mobile): the type dips behind the hammer —————
+/* ————— the plate's front run (mobile): the definition sinks behind the hammer —————
    A pixel-identical copy of the scene — same frame, img (with its settle/
-   drift animations), ink shade and grain — stacked ABOVE the wordmark and
-   masked to the gavel. Where the mask is opaque, the gavel occludes the
-   type; everywhere else the mask is transparent, so the seam is invisible. */
+   drift animations), ink shade and grain — stacked ABOVE the type and
+   masked to the gavel head. The mask sits over the definition block's
+   right half (where the plate's bright engraving lives, x ≈ 41–88%), so
+   the dictionary entry half-vanishes behind the hammer while SOMUN ’26,
+   well below the mask's reach, stays fully readable. */
 .hero-scene-front { display: none; }
 @media (max-width: 767px) {
   .hero-scene-front {
@@ -1055,8 +1057,8 @@ em.accent {
     z-index: 2; /* above .container (z-1) — under the chrome (z-3+) */
     pointer-events: none;
     animation: sceneIn 1.6s ease 0.1s both; /* stay in sync with the base scene */
-    -webkit-mask-image: radial-gradient(58% 13% at 54% 63.5%, #000 34%, transparent 74%);
-    mask-image: radial-gradient(58% 13% at 54% 63.5%, #000 34%, transparent 74%);
+    -webkit-mask-image: radial-gradient(36% 12.5% at 58% 49.5%, #000 40%, transparent 78%);
+    mask-image: radial-gradient(36% 12.5% at 58% 49.5%, #000 40%, transparent 78%);
   }
 }
 
@@ -1362,8 +1364,9 @@ em.accent {
     to   { transform: scale(1.38) translateY(-1.4%); }
   }
   .hero-scene-shade {
+    /* no def pocket any more — the definition now hides itself behind the
+       plate's front run, so the ink here must stay clean for the reveal */
     background:
-      radial-gradient(52% 16% at 30% 47%, rgba(13, 10, 8, 0.82) 0%, rgba(13, 10, 8, 0) 72%),
       linear-gradient(180deg, rgba(13, 10, 8, 0.8) 0%, rgba(13, 10, 8, 0.24) 24%, rgba(13, 10, 8, 0) 46%),
       linear-gradient(0deg, #0d0a08 3%, rgba(13, 10, 8, 0.92) 18%, rgba(13, 10, 8, 0.5) 40%, rgba(13, 10, 8, 0) 60%),
       linear-gradient(90deg, rgba(13, 10, 8, 0.55) 0%, rgba(13, 10, 8, 0.2) 45%, rgba(13, 10, 8, 0) 70%),
