@@ -5422,45 +5422,52 @@ em.accent {
 .venue-sealed .ab-map-veil { display: none; }
 .venue-sealed .ab-map-live-note { display: none; }
 
-/* — 3 · countdown focus lift (desktop pointers only) —
-   the whole countdown is one hotbox: enter → the panel scales up with a
-   soft spring, a frosted plate draws itself in, numerals sharpen to a
-   warm halo, labels lift from dim to lit; leave → everything eases back */
+/* — 3 · countdown focus mode (desktop pointers only) —
+   hover = apple spotlight: the page drops behind a frosted veil and the
+   readout detaches as a fixed ghost clone that springs up ~2x, floating
+   above the blur — the only thing in focus. leave = everything settles
+   back. JS (main.js · countdown focus) owns the clone lifecycle. */
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .countdown {
-    position: relative;
-    z-index: 1;
     padding: 0.55rem 0.95rem;
     margin: -0.55rem -0.95rem;  /* hotbox grows, layout untouched */
     cursor: default;
-    transform-origin: 50% 55%;
-    transition: transform 0.6s cubic-bezier(0.32, 1.18, 0.35, 1);
   }
-  .countdown::before {
+  .cd-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: rgba(10, 7, 5, 0.38);
+    -webkit-backdrop-filter: blur(16px) saturate(0.65) brightness(0.62);
+    backdrop-filter: blur(16px) saturate(0.65) brightness(0.62);
+    opacity: 0;
+    transition: opacity 0.38s var(--ease-out);
+    pointer-events: none;
+  }
+  .cd-veil.is-on { opacity: 1; }
+  .cd-ghost {
+    position: fixed;
+    z-index: 91;
+    margin: 0;  /* inline left/top/width must land exactly on the original */
+    pointer-events: auto;
+    cursor: default;
+    transform: translateY(0) scale(1);
+    transform-origin: 50% 50%;
+    transition: transform 0.55s cubic-bezier(0.32, 1.18, 0.35, 1);
+  }
+  .cd-ghost::before {
     content: "";
     position: absolute;
     inset: 0;
-    border: 1px solid rgba(236, 225, 203, 0.14);
-    background: rgba(20, 15, 12, 0.5);
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
-    opacity: 0;
-    transform: scale(0.94);
-    transition: opacity 0.45s var(--ease-out), transform 0.6s cubic-bezier(0.32, 1.18, 0.35, 1);
-    pointer-events: none;
+    border: 1px solid rgba(236, 225, 203, 0.16);
+    background: rgba(15, 11, 9, 0.74);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 34px 90px rgba(0, 0, 0, 0.6);
   }
-  .countdown:hover { transform: scale(1.07); }
-  .countdown:hover::before { opacity: 1; transform: scale(1); }
-  .countdown-num { transition: color 0.4s var(--ease-out), text-shadow 0.5s var(--ease-out); }
-  .countdown:hover .countdown-num { color: #fff8e8; text-shadow: 0 0 16px rgba(236, 225, 203, 0.32); }
-  .countdown-label { transition: color 0.4s var(--ease-out); }
-  .countdown:hover .countdown-label { color: var(--beige); }
-  .countdown-kicker-diamond {
-    transition: box-shadow 0.4s var(--ease-out);
-  }
-  .countdown:hover .countdown-kicker-diamond { box-shadow: 0 0 10px rgba(200, 16, 46, 0.85); }
+  .cd-ghost > * { position: relative; z-index: 1; }
+  .cd-ghost.is-on { transform: translateY(-3rem) scale(2); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .venue-redact, .countdown, .countdown::before, .countdown-num, .countdown-label { transition: none; }
+  .venue-redact { transition: none; }
 }

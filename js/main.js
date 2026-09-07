@@ -1987,3 +1987,102 @@ if (SHOW_ITINERARY) {
 hydrateIcons();
 window.__observeReveals();
 showView(currentView, { animate: false });
+
+/* ————— Countdown focus mode (desktop) — apple spotlight —————
+   hover the readout and the whole page drops behind a frosted veil
+   while the timer detaches as a fixed ghost clone that springs up 2x,
+   floating above the blur — the only thing in focus. Numbers keep
+   ticking into the ghost; leaving the hotbox (or scroll / Escape)
+   settles everything back. Mobile + reduced-motion never bind. */
+{
+  const cd = $("#countdown");
+  const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (cd && finePointer && !reduceMotion) {
+    let ghost = null;
+    let veil = null;
+    let sync = null;
+    let leaving = false;
+    let coolUntil = 0;
+
+    const teardown = () => {
+      if (ghost) ghost.remove();
+      if (veil) veil.remove();
+      if (sync) clearInterval(sync);
+      ghost = veil = null;
+      sync = null;
+      leaving = false;
+      cd.style.visibility = "";
+      window.removeEventListener("wheel", onWheel);
+      document.removeEventListener("mousemove", onMove);
+    };
+
+    const settleBack = () => {
+      if (!ghost || leaving) return;
+      leaving = true;
+      ghost.classList.remove("is-on");
+      veil.classList.remove("is-on");
+      setTimeout(teardown, 380);
+    };
+
+    const onWheel = () => {
+      coolUntil = performance.now() + 650;  /* scroll = deliberate leave */
+      settleBack();
+    };
+
+    /* chromium quirk: after the ghost spawns mid-hover, synthetic single-jump
+       moves hit-test correctly but never dispatch boundary events — so exit
+       detection rides the move stream itself: pointer lands outside the
+       ghost = left the hotbox (mouseleave stays on as belt & suspenders) */
+    const onMove = (e) => {
+      if (ghost && !ghost.contains(e.target)) settleBack();
+    };
+
+    const focusIn = () => {
+      if (performance.now() < coolUntil) return;
+      if (ghost) {
+        if (!leaving) return;
+        teardown();  /* re-entered mid fade-out — start clean */
+      }
+      const r = cd.getBoundingClientRect();
+
+      veil = document.createElement("div");
+      veil.className = "cd-veil";
+      veil.setAttribute("aria-hidden", "true");
+
+      ghost = cd.cloneNode(true);
+      ghost.removeAttribute("id");
+      ghost.setAttribute("aria-hidden", "true");
+      ghost.classList.add("cd-ghost");
+      ghost.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+      ghost.style.left = `${r.left}px`;
+      ghost.style.top = `${r.top}px`;
+      ghost.style.width = `${r.width}px`;
+      ghost.style.height = `${r.height}px`;
+      ghost.addEventListener("mouseleave", settleBack);
+
+      cd.style.visibility = "hidden";
+      document.body.append(veil, ghost);
+      requestAnimationFrame(() => {
+        veil.classList.add("is-on");
+        ghost.classList.add("is-on");
+      });
+
+      /* the real readout keeps ticking (visibility hidden) — mirror it */
+      const src = cd.querySelectorAll(".countdown-num");
+      const dst = ghost.querySelectorAll(".countdown-num");
+      sync = setInterval(() => {
+        src.forEach((n, i) => { if (dst[i]) dst[i].textContent = n.textContent; });
+      }, 200);
+
+      window.addEventListener("wheel", onWheel, { passive: true });
+      document.addEventListener("mousemove", onMove, { passive: true });
+    };
+
+    cd.addEventListener("mouseenter", focusIn);
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") settleBack();
+    });
+  }
+}
