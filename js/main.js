@@ -1992,8 +1992,16 @@ showView(currentView, { animate: false });
    hover the readout and the whole page drops behind a frosted veil
    while the timer detaches as a fixed ghost clone that springs up 2x,
    floating above the blur — the only thing in focus. Numbers keep
-   ticking into the ghost; leaving the hotbox (or scroll / Escape)
-   settles everything back. Mobile + reduced-motion never bind. */
+   ticking into the ghost; leaving (or scroll / Escape) settles it back.
+   Stability contract: the ghost's spring is CONTAINED — its lift never
+   exceeds its scale growth, so the box only ever grows around the parked
+   cursor and can never drift out from under the mouse (the r24 churn:
+   a 48px lift on a 36px readout floated the ghost off the cursor, killed
+   it, respawned it, forever). Exit is a soft ring (26px past the box)
+   with a 140ms dwell, so edge jitter can't toggle the mode; re-entry
+   mid-fade revives instead of fighting; re-arm rides the move stream
+   because chromium skips boundary events after mid-hover spawns.
+   Mobile + reduced-motion never bind. */
 {
   const cd = $("#countdown");
   const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
@@ -2004,26 +2012,49 @@ showView(currentView, { animate: false });
     let veil = null;
     let sync = null;
     let leaving = false;
+    let killTimer = 0;
+    let retryTimer = 0;
+    let firstOutsideAt = 0;
     let coolUntil = 0;
+    let lastX = -1;
+    let lastY = -1;
+    let watch = 0;
+    const OUTSET = 26;   /* soft exit ring — px beyond the ghost box */
+    const DWELL = 140;   /* ms the pointer must stay outside before settle */
 
     const teardown = () => {
+      if (retryTimer) { clearTimeout(retryTimer); retryTimer = 0; }
+      if (watch) { clearInterval(watch); watch = 0; }
       if (ghost) ghost.remove();
       if (veil) veil.remove();
       if (sync) clearInterval(sync);
       ghost = veil = null;
       sync = null;
       leaving = false;
+      firstOutsideAt = 0;
       cd.style.visibility = "";
       window.removeEventListener("wheel", onWheel);
       document.removeEventListener("mousemove", onMove);
+      coolUntil = performance.now() + 300;  /* brief chill — no churn */
     };
 
     const settleBack = () => {
       if (!ghost || leaving) return;
       leaving = true;
+      firstOutsideAt = 0;
       ghost.classList.remove("is-on");
       veil.classList.remove("is-on");
-      setTimeout(teardown, 380);
+      killTimer = setTimeout(teardown, 380);
+    };
+
+    const revive = () => {
+      /* pointer came back during the fade — return to full focus */
+      if (!ghost || !leaving) return;
+      clearTimeout(killTimer);
+      leaving = false;
+      firstOutsideAt = 0;
+      ghost.classList.add("is-on");
+      veil.classList.add("is-on");
     };
 
     const onWheel = () => {
@@ -2031,18 +2062,49 @@ showView(currentView, { animate: false });
       settleBack();
     };
 
-    /* chromium quirk: after the ghost spawns mid-hover, synthetic single-jump
-       moves hit-test correctly but never dispatch boundary events — so exit
-       detection rides the move stream itself: pointer lands outside the
-       ghost = left the hotbox (mouseleave stays on as belt & suspenders) */
-    const onMove = (e) => {
-      if (ghost && !ghost.contains(e.target)) settleBack();
+    const outsideRing = (x, y) => {
+      if (!ghost) return false;
+      const r = ghost.getBoundingClientRect();
+      return x < r.left - OUTSET || x > r.right + OUTSET ||
+             y < r.top - OUTSET || y > r.bottom + OUTSET;
+    };
+
+    /* the move stream only records the pointer; exit is judged on a poll
+       so a cursor whose LAST move landed outside the ring settles even if
+       it never moves again (movement-gated dwell was the lingering ghost) */
+    const onMove = (e) => { lastX = e.clientX; lastY = e.clientY; };
+
+    const poll = () => {
+      if (!ghost || leaving || lastX < 0) return;
+      if (outsideRing(lastX, lastY)) {
+        if (!firstOutsideAt) firstOutsideAt = performance.now();
+        else if (performance.now() - firstOutsideAt > DWELL) settleBack();
+      } else {
+        firstOutsideAt = 0;
+      }
+    };
+
+    /* re-arm from the move stream: a parked cursor over the readout with
+       no ghost alive always re-focuses, whatever killed the last one */
+    const arm = () => {
+      if (ghost || performance.now() < coolUntil) return;
+      if (cd.matches(":hover")) focusIn();
     };
 
     const focusIn = () => {
-      if (performance.now() < coolUntil) return;
+      if (performance.now() < coolUntil) {
+        /* entered during the post-teardown chill — retry once it lifts,
+           so a cursor that lands and stays still is never left unfocused */
+        clearTimeout(retryTimer);
+        retryTimer = setTimeout(() => {
+          retryTimer = 0;
+          if (!ghost && cd.matches(":hover")) focusIn();
+        }, coolUntil - performance.now() + 40);
+        return;
+      }
       if (ghost) {
         if (!leaving) return;
+        clearTimeout(killTimer);
         teardown();  /* re-entered mid fade-out — start clean */
       }
       const r = cd.getBoundingClientRect();
@@ -2060,7 +2122,13 @@ showView(currentView, { animate: false });
       ghost.style.top = `${r.top}px`;
       ghost.style.width = `${r.width}px`;
       ghost.style.height = `${r.height}px`;
-      ghost.addEventListener("mouseleave", settleBack);
+      ghost.addEventListener("mouseleave", () => {
+        if (!firstOutsideAt) firstOutsideAt = performance.now();
+      });
+      ghost.addEventListener("mouseenter", () => {
+        firstOutsideAt = 0;
+        revive();
+      });
 
       cd.style.visibility = "hidden";
       document.body.append(veil, ghost);
@@ -2078,9 +2146,11 @@ showView(currentView, { animate: false });
 
       window.addEventListener("wheel", onWheel, { passive: true });
       document.addEventListener("mousemove", onMove, { passive: true });
+      watch = setInterval(poll, 90);
     };
 
     cd.addEventListener("mouseenter", focusIn);
+    document.addEventListener("mousemove", arm, { passive: true });
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape") settleBack();
     });

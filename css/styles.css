@@ -5466,7 +5466,11 @@ em.accent {
     box-shadow: 0 34px 90px rgba(0, 0, 0, 0.6);
   }
   .cd-ghost > * { position: relative; z-index: 1; }
-  .cd-ghost.is-on { transform: translateY(-3rem) scale(2); }
+  .cd-ghost.is-on { transform: translateY(-0.75rem) scale(2); }
+  /* spring containment: the lift (12px) must stay below the scale's
+     downward growth (~18px on the 36px readout) so the box only ever
+     grows around the parked cursor — the ghost can never drift out
+     from under the mouse mid-hover (that churn was the r24 bug). */
 }
 @media (prefers-reduced-motion: reduce) {
   .venue-redact { transition: none; }
