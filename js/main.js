@@ -731,6 +731,12 @@ function renderResourceCards() {
     </div>`;
   }).join("");
   hydrateIcons($("#res-grid"));
+  /* every render builds fresh .reveal wrappers — any render after boot must
+     be re-observed or the cards keep their layout slot but never leave
+     opacity:0 (the missing-three-boxes bug: the live Supabase re-render
+     replaced the boot-observed wrappers with clones IO never saw). The boot
+     pass picks the first batch up via __observeReveals() at script end. */
+  window.__observeReveals?.();
 }
 
 renderResourceCards();
