@@ -56,8 +56,8 @@ function showToast(html, isErr = false) {
 $('[data-copy="tagline"]') && ($('[data-copy="tagline"]').textContent = CONFERENCE.tagline);
 $('[data-copy="dates"]') && ($('[data-copy="dates"]').textContent = CONFERENCE.dates);
 $('[data-copy="venue"]') && ($('[data-copy="venue"]').textContent = `${CONFERENCE.venue} · ${CONFERENCE.city}`);
-$("#itin-intro").textContent =
-  `From the first roll call to the final gavel — the full three-day programme at ${CONFERENCE.venue} will be published right here, day by day.`;
+$("#itin-intro").innerHTML =
+  `From the first roll call to the final gavel — the full three-day programme at <span class="venue-redact">${CONFERENCE.venue}</span> will be published right here, day by day.`;
 $("#reg-intro").textContent =
   `Complete the four short stages below — information, experience and preferences, payment and extra notes — and the secretariat will respond with your portfolio allotment. For assistance write to ${CONFERENCE.email}.`;
 $("#year").textContent = new Date().getFullYear();
@@ -363,6 +363,21 @@ $("#year").textContent = new Date().getFullYear();
         <p class="preview-foot">Nº ${String(i + 1).padStart(2, "0")} · ${c.agendas.length} agendas →</p>
       </button>
     </div>`).join("");
+
+  /* committees still sealed → the home four-card preview rides under the
+     same veil as the deck: blurred + inert under a "Coming Soon" stamp */
+  if (!CONFIG.COMMITTEES_REVEALED) {
+    const grid = $("#preview-grid");
+    grid.classList.add("is-sealed");
+    grid.setAttribute("inert", "");
+    const pv = document.createElement("div");
+    pv.className = "reg-veil committee-veil preview-veil";
+    pv.innerHTML = `
+      <span class="veil-kicker">The Twelve Chambers</span>
+      <p class="veil-line">Committees convene <em>soon.</em></p>
+      <span class="reg-veil-stamp">Coming Soon</span>`;
+    grid.append(pv);
+  }
 }
 
 /* ————————————————— Committees deck slides ————————————————— */
@@ -468,6 +483,17 @@ if (!CONFIG.COMMITTEES_REVEALED) {
     <span class="reg-veil-sub">Dossiers, daises and portfolios unlock with the first committees reveal.</span>
     <span class="veil-ticks" aria-hidden="true">${"<i></i>".repeat(12)}</span>`;
   $(".deck-sticky", deckEl).append(veil);
+}
+
+/* ————— Venue veiled: the grounds stay classified until the venue drop.
+   Every mention renders in place with a blur-redact pass (.venue-redact —
+   home strip, dossier, timeline, itinerary intro, footer), and the live
+   map exhibit never arms — the Google embed isn't even fetched, so nothing
+   leaks: coordinates, address and deep-link sit under the "Coming Soon"
+   seal in chapter VII. Flip CONFIG.VENUE_REVEALED in config.js and the
+   blur lifts + the map arms itself, zero other edits. ————— */
+if (!CONFIG.VENUE_REVEALED) {
+  $("#site").classList.add("venue-sealed");
 }
 
 
@@ -1525,7 +1551,7 @@ deckInit();
     {
       const map = $("#ab-map", view);
       const frame = map ? $(".ab-map-frame", map) : null;
-      if (map && frame && frame.dataset.src && !frame.getAttribute("src")) {
+      if (CONFIG.VENUE_REVEALED && map && frame && frame.dataset.src && !frame.getAttribute("src")) {
         const arm = () => {
           frame.setAttribute("src", frame.dataset.src);
           frame.addEventListener("load", () => map.classList.add("is-loaded"), { once: true });

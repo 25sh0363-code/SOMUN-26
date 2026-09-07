@@ -5365,3 +5365,102 @@ em.accent {
   .marquee-track { animation: none; }
   .pillar-box::after, .preview-card, .preview-ghost, .hmx-stat-ghost { transition: none; }
 }
+
+/* ————————————————————————————————————————————————————————————————
+   r23 · config-gated seals + countdown focus (desktop)
+   1 · home four-card committees preview under the deck's veil
+   2 · venue redaction — every grounds mention blurs until
+       CONFIG.VENUE_REVEALED flips; the map exhibit swaps its
+       plotting veil for the "Coming Soon" seal and never arms
+   3 · countdown hover — apple-style lift + focus, desktop only
+   ———————————————————————————————————————————————————————————————— */
+
+/* — 1 · home preview sealed (COMMITTEES_REVEALED = false) — */
+.preview-grid.is-sealed { position: relative; }
+.preview-grid.is-sealed > *:not(.reg-veil) {
+  filter: blur(13px) saturate(0.35);
+  opacity: 0.42;
+  pointer-events: none;
+  user-select: none;
+}
+.preview-veil {
+  border: 1px solid var(--line);
+  background: rgba(20, 15, 12, 0.42);
+}
+
+/* — 2 · venue redaction (VENUE_REVEALED = false) —
+   the spans live in the markup permanently; without #site.venue-sealed
+   they are inert wrappers, so reveal day needs zero HTML edits */
+.venue-redact { transition: filter 0.7s var(--ease-out), opacity 0.7s var(--ease-out); }
+.venue-sealed .venue-redact {
+  filter: blur(9px);
+  opacity: 0.8;
+  user-select: none;
+  pointer-events: none;
+  cursor: default;
+}
+/* the map exhibit under seal: instrument strip goes quiet, the plotting
+   veil swaps for the stamp, the frame never loads (js skips arming) */
+.ab-map-sealed {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  text-align: center;
+  padding: 1.5rem;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 23px, rgba(200, 16, 46, 0.055) 23px 24px),
+    repeating-linear-gradient(90deg, transparent 0 23px, rgba(200, 16, 46, 0.055) 23px 24px);
+  background-color: rgba(20, 15, 12, 0.55);
+}
+.venue-sealed .ab-map-sealed { display: flex; }
+.venue-sealed .ab-map-top { visibility: hidden; }
+.venue-sealed .ab-map-veil { display: none; }
+.venue-sealed .ab-map-live-note { display: none; }
+
+/* — 3 · countdown focus lift (desktop pointers only) —
+   the whole countdown is one hotbox: enter → the panel scales up with a
+   soft spring, a frosted plate draws itself in, numerals sharpen to a
+   warm halo, labels lift from dim to lit; leave → everything eases back */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .countdown {
+    position: relative;
+    z-index: 1;
+    padding: 0.55rem 0.95rem;
+    margin: -0.55rem -0.95rem;  /* hotbox grows, layout untouched */
+    cursor: default;
+    transform-origin: 50% 55%;
+    transition: transform 0.6s cubic-bezier(0.32, 1.18, 0.35, 1);
+  }
+  .countdown::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(236, 225, 203, 0.14);
+    background: rgba(20, 15, 12, 0.5);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transform: scale(0.94);
+    transition: opacity 0.45s var(--ease-out), transform 0.6s cubic-bezier(0.32, 1.18, 0.35, 1);
+    pointer-events: none;
+  }
+  .countdown:hover { transform: scale(1.07); }
+  .countdown:hover::before { opacity: 1; transform: scale(1); }
+  .countdown-num { transition: color 0.4s var(--ease-out), text-shadow 0.5s var(--ease-out); }
+  .countdown:hover .countdown-num { color: #fff8e8; text-shadow: 0 0 16px rgba(236, 225, 203, 0.32); }
+  .countdown-label { transition: color 0.4s var(--ease-out); }
+  .countdown:hover .countdown-label { color: var(--beige); }
+  .countdown-kicker-diamond {
+    transition: box-shadow 0.4s var(--ease-out);
+  }
+  .countdown:hover .countdown-kicker-diamond { box-shadow: 0 0 10px rgba(200, 16, 46, 0.85); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .venue-redact, .countdown, .countdown::before, .countdown-num, .countdown-label { transition: none; }
+}
