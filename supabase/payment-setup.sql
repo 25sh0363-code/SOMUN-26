@@ -25,6 +25,9 @@
 --     where name = 'admin_key';   -- unlocks #/verify on the site
 --   update public.app_secrets set value = '<another random string>'
 --     where name = 'ingest_key';  -- goes into the SMS-forwarder app
+--   update public.app_secrets set value = 'somun26@ybl'
+--     where name = 'payee_vpa';   -- your UPI ID — the AI shot-checker
+--                                 -- cross-checks screenshots against it
 -- ————————————————————————————————————————————————————————————————
 
 -- ————— 0 · secrets (private; only SECURITY DEFINER functions read it) —————
@@ -33,7 +36,8 @@ create table if not exists public.app_secrets (
   value text not null
 );
 insert into public.app_secrets (name, value)
-values ('admin_key', 'CHANGE-ME-admin'), ('ingest_key', 'CHANGE-ME-ingest')
+values ('admin_key', 'CHANGE-ME-admin'), ('ingest_key', 'CHANGE-ME-ingest'),
+       ('payee_vpa', '')
 on conflict (name) do nothing;
 revoke all on public.app_secrets from anon, authenticated;
 alter table public.app_secrets enable row level security;
@@ -45,6 +49,7 @@ alter table public.registrations
   add column if not exists utr_raw          text,
   add column if not exists utr_submitted_at timestamptz,
   add column if not exists shot_path        text,
+  add column if not exists shot_check       jsonb,
   add column if not exists matched_credit   uuid,
   add column if not exists status_note      text;
 
@@ -345,13 +350,17 @@ begin
     return jsonb_build_object('status', 'paid', 'ref_code', v_reg.ref_code);
   end if;
 
-  update public.registrations
-     set amount = v_amt,
-         upi_utr = v_utr,
-         utr_raw = trim(p_utr),
-         utr_submitted_at = now(),
-         shot_path = nullif(trim(coalesce(p_shot_path, '')), '')
-   where id = v_reg.id;
+  begin
+    update public.registrations
+       set amount = v_amt,
+           upi_utr = v_utr,
+           utr_raw = trim(p_utr),
+           utr_submitted_at = now(),
+           shot_path = nullif(trim(coalesce(p_shot_path, '')), '')
+     where id = v_reg.id;
+  exception when unique_violation then
+    raise exception 'This transaction ID is already used by another registration — every UPI payment has its own ID. Open your UPI app → that payment → transaction details, and enter YOUR own ID.';
+  end;
 
   -- match against credits that arrived BEFORE the UTR was submitted
   select c.id into v_credit from public.payment_credits c
@@ -451,7 +460,7 @@ begin
     'pending', coalesce((
       select jsonb_agg(to_jsonb(t) order by t.utr_submitted_at desc nulls last)
       from (select id, ref_code, full_name, email, phone, institution, amount,
-                   upi_utr, utr_raw, shot_path, status_note,
+                   upi_utr, utr_raw, shot_path, shot_check, status_note,
                    utr_submitted_at, created_at
               from public.registrations
              where payment_status = 'pending' and upi_utr is not null

@@ -38,6 +38,8 @@ update public.app_secrets set value = 'PASTE-A-LONG-RANDOM-STRING'
   where name = 'admin_key';    -- unlocks #/verify on the site
 update public.app_secrets set value = 'PASTE-ANOTHER-RANDOM-STRING'
   where name = 'ingest_key';   -- goes into the SMS-forwarder app
+update public.app_secrets set value = 'yourname@bank'
+  where name = 'payee_vpa';    -- your UPI ID — the AI shot-checker (§ 2b) reads screenshots against it
 ```
 
 3. In `js/config.js`:
@@ -113,6 +115,42 @@ delegates submit the UTR and attach the UPI success screenshot into the
 Made a mistake? **Revert** on a verified row undoes it and clears the mail.
 Reconcile monthly against the bank statement — nothing else changes.
 
+### Mode C with an assistant · AI shot-check (Gemini 2.5 Flash, optional)
+
+Optional but strongly recommended for Modes B/C: a **Gemini 2.5 Flash**
+edge function reads every uploaded screenshot back and cross-checks it
+against what the delegate *declared* — the UTR, the amount and (if you set
+`payee_vpa` in § 1) your UPI ID. The verdict lands as **AI ✓ / AI ⚠ / AI ?**
+chips in the console, and the delegate is told instantly when their own
+screenshot disagrees with their entry (wrong amount paid, wrong QR, typo'd
+UTR). A one-click daily pass replaces opening every screenshot.
+
+Deploy (5 minutes):
+
+1. Get a free API key at **aistudio.google.com** → "Get API key".
+2. Supabase dashboard → **Edge Functions → Create a new function** (or use
+   the CLI: `supabase functions deploy check-payment-shot`) — the code lives
+   at `supabase/functions/check-payment-shot/index.ts`; paste it in.
+3. Dashboard → **Edge Functions → Secrets**: add `GEMINI_API_KEY = <your key>`.
+4. Nothing else. No key configured → the site silently skips the AI check
+   and everything still works.
+
+What it is and is not — read this once:
+
+- It is a **consistency assistant**: it reads what the screenshot says and
+  compares it to what the delegate typed. It catches wrong amounts, wrong
+  QRs, unreadable shots and UTR typos.
+- It is **not a forgery detector** — no image analysis can be. Screenshots
+  are pixels; a good fake passes. It will never claim a shot is authentic,
+  and its verdict **never flips a row to `paid`** — the switch stays with
+  the bank feed or your Verify click.
+- The real anti-forgery net stays: UTR uniqueness (one payment = one seat)
+  and the eventual statement reconciliation (a forged UTR cannot survive a
+  bank statement).
+- Cost: fractions of a cent per screenshot; each row is read at most 3
+  times (hard cap in the function). The free tier (a few hundred reads a
+  day) covers an MUN comfortably.
+
 ## 3 · Confirmation mail (Brevo, free tier — 5 minutes)
 
 The moment a registration turns `paid`, a row lands in `mail_queue`.
@@ -162,9 +200,11 @@ The page polls every 20 s while open.
 - **Amount path** (when the SMS carries no UTR) — fires only when exactly one
   pending registration has that amount and it was created in the 72 h before
   the credit; any ambiguity leaves it unmatched for the console.
-- One UTR can never verify two registrations (unique index).
+- One UTR can never verify two registrations (unique index — a second
+  submit of the same UTR is rejected with a plain-English warning).
 - No feed at all (Mode C)? Then a UTR claim alone can never flip a row —
   `paid` happens only when a credit lands in the feed or you press Verify.
+- The AI shot-check (§ 2b) is advisory only — its verdict never flips a row.
 - Screenshots upload to the **private** `payment-shots` bucket (no public
   read) — view them from Dashboard → Storage; the console lists the paths.
 
@@ -178,6 +218,9 @@ The page polls every 20 s while open.
    **"Verified — payment matched"**.
 5. Check `mail_queue` got a row (and Brevo sent the mail, once § 3 is wired).
 6. Restore the real fee. Delete the test row in Table Editor → `registrations`.
+7. If the AI shot-check is deployed: repeat once with a screenshot attached
+   and no bank feed — the success box should show the AI read (✓/⚠/?), the
+   console row should carry the chip, and the row must still stay pending.
 
 ## 7 · Fallbacks & ops notes
 

@@ -2086,6 +2086,7 @@ if (SHOW_ITINERARY) {
       } else {
         setUtrStatus(`<strong>Submitted — your UTR is on the verification desk.</strong> It is matched the moment your credit shows up on the bank feed, or verified by the secretariat directly — the confirmation mail goes out right after. Keep your reference code <strong>${esc(refCode)}</strong>.`, "wait");
         showToast("<strong>UTR received</strong>Verification runs against the live bank feed — no need to wait on this page.");
+        if (shotPath) runShotCheck(refCode);   /* async polish — never blocks the flow */
       }
     } catch (err) {
       const msg = String(err.message || "");
@@ -2103,6 +2104,50 @@ if (SHOW_ITINERARY) {
 
   /* re-entering the register view remounts the wizard at stage I */
   window.__regReset = () => show(0);
+
+  /* ——— AI shot-check (Gemini 2.5 Flash, edge function) ———
+     Reads the uploaded screenshot back, cross-checks what it shows
+     against the declared UTR / amount / payee VPA, and answers with a
+     consistency verdict. This is a convenience read — it NEVER flips
+     the registration to paid; that stays with the bank feed or the
+     secretariat. Not configured (no GEMINI_API_KEY) → silent skip. */
+  async function runShotCheck(refCode) {
+    const el = $("#utr-status");
+    if (!el) return;
+    let line = el.querySelector(".ai-line");
+    if (!line) {
+      line = document.createElement("div");
+      el.appendChild(line);
+    }
+    line.className = "ai-line";
+    line.textContent = "AI is reading your screenshot…";
+    try {
+      const res = await fetch(`${CONFIG.SUPABASE_URL.replace(/\/$/, "")}/functions/v1/check-payment-shot`, {
+        method: "POST",
+        headers: {
+          apikey: CONFIG.SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ref_code: refCode }),
+      });
+      if (!res.ok) { line.remove(); return; }          /* 503 not configured, 404, cap — silent */
+      const out = await res.json();
+      if (out.error || out.status === "paid" || !out.verdict) { line.remove(); return; }
+      const v = out.verdict || {};
+      const read = `${v.app ? v.app + " · " : ""}₹${v.amount ?? "?"}${v.payee_vpa ? " → " + v.payee_vpa : ""}${v.utr ? " · UTR " + v.utr : ""}`;
+      if (v.consistency === "match") {
+        line.innerHTML = `<strong>AI read your screenshot — all consistent ✓</strong> ${esc(read)}. ${esc(v.notes || "")} Final verification still happens the moment your bank credit lands.`;
+        line.classList.add("is-ok");
+      } else if (v.consistency === "mismatch") {
+        line.innerHTML = `<strong>AI spotted a problem in your screenshot.</strong> ${esc((v.anomalies || []).join(" · ") || read)} ${esc(v.notes || "")} If the payment is wrong, pay the exact fee to the conference UPI ID and re-submit; if the screenshot is wrong, upload the correct one.`;
+        line.classList.add("is-bad");
+      } else {
+        line.textContent = `AI couldn't fully read your screenshot — the secretariat will check it by hand. ${v.notes || ""}`;
+        line.classList.add("is-meh");
+      }
+    } catch { line.remove(); }   /* AI polish must never break the flow */
+  }
 
   /* ——— allocation matrix modal ——— */
   const overlay = $("#matrix-overlay");
@@ -2264,6 +2309,17 @@ function whenIST(t) {
 
   function renderOverview(o) {
     const s = o.stats || {};
+    const aiBadge = (r) => {
+      const v = r.shot_check && r.shot_check.verdict;
+      if (!v) return "";
+      if (v.consistency === "match") {
+        return `<span class="pa-ai pa-ai--ok" title="${esc(v.notes || "AI read: consistent")}">AI ✓</span>`;
+      }
+      if (v.consistency === "mismatch") {
+        return `<span class="pa-ai pa-ai--bad" title="${esc((v.anomalies || []).join(" · ") || v.notes || "AI read: mismatch")}">AI ⚠</span>`;
+      }
+      return `<span class="pa-ai pa-ai--meh" title="${esc(v.notes || "AI could not read the shot")}">AI ?</span>`;
+    };
     $("#pay-admin-stats").innerHTML = [
       ["Awaiting UTR check", s.pending_utr || 0, s.pending_utr ? "hot" : ""],
       ["Registered · fee pending", s.pending_no_utr || 0, ""],
@@ -2284,7 +2340,7 @@ function whenIST(t) {
           <div class="pa-row-main">
             <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
             <p class="pa-row-sub">${esc(r.email)} · ${esc(r.phone || "")}${r.institution ? " · " + esc(r.institution) : ""}</p>
-            <p class="pa-row-meta">declared <strong>${fmtINR(r.amount)}</strong> · UTR <span class="pa-mono">${esc(r.upi_utr || "")}</span> · submitted ${whenIST(r.utr_submitted_at)}${r.status_note ? ` · <em>${esc(r.status_note)}</em>` : ""}${r.shot_path ? ` · shot <span class="pa-mono" title="${esc(r.shot_path)}">${esc(shortPath(r.shot_path))}</span> (view in Dashboard → Storage → payment-shots)` : ""}</p>
+            <p class="pa-row-meta">declared <strong>${fmtINR(r.amount)}</strong> · UTR <span class="pa-mono">${esc(r.upi_utr || "")}</span> · submitted ${whenIST(r.utr_submitted_at)}${r.status_note ? ` · <em>${esc(r.status_note)}</em>` : ""}${r.shot_path ? ` · shot <span class="pa-mono" title="${esc(r.shot_path)}">${esc(shortPath(r.shot_path))}</span> (view in Dashboard → Storage → payment-shots)` : ""}${aiBadge(r)}</p>
           </div>
           <div class="pa-row-actions">
             <button class="pa-btn pa-btn--ok" data-act="paid" data-id="${esc(r.id)}">Verify</button>

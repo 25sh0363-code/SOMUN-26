@@ -5698,6 +5698,23 @@ em.accent {
   list-style: none;
 }
 .pay-admin-paste summary::before { content: "◇ "; color: var(--crimson); }
+
+/* ————— AI shot-check (Gemini verdicts) ————— */
+.pa-ai {
+  display: inline-block; margin-left: 0.45rem; padding: 0.04rem 0.45rem;
+  border: 1px solid currentColor; font-size: 0.68rem; letter-spacing: 0.08em;
+  font-family: "Sarasa Mono SC", ui-monospace, monospace; cursor: help;
+}
+.pa-ai--ok  { color: var(--beige); }
+.pa-ai--bad { color: var(--crimson); }
+.pa-ai--meh { color: var(--beige-dim); opacity: 0.75; }
+.pay-qr-status .ai-line {
+  margin-top: 0.65rem; padding-top: 0.65rem;
+  border-top: 1px dashed rgba(179, 164, 135, 0.35);
+  font-size: 0.86rem; color: var(--beige-dim);
+}
+.pay-qr-status .ai-line strong { color: var(--beige); }
+.pay-qr-status .ai-line.is-bad strong { color: var(--crimson); }
 .pay-admin-paste[open] summary { border-bottom: 1px solid var(--line); }
 .pay-admin-paste .textarea { margin: 0.8rem 0.9rem 0.5rem; width: calc(100% - 1.8rem); }
 .pay-admin-paste .btn { margin: 0 0.9rem 0.9rem; }
