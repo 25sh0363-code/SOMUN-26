@@ -7,7 +7,7 @@
    ———————————————————————————————————————————————————————— */
 
 import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, ALLOCATION_MATRIX } from "./data.js";
-import { CONFIG, supabaseConfigured, cashfreeEnabled, feeAnnounced, formatINR } from "./config.js";
+import { CONFIG, supabaseConfigured, cashfreeEnabled, feeAnnounced, qrPayEnabled, payFlow, formatINR } from "./config.js";
 import { icon, hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
 
@@ -19,6 +19,10 @@ const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 /* stagger delays for the dossier entrance choreography (0.08 + i·0.085s) */
 const stag = (i) => `transition-delay:${(0.08 + i * 0.085).toFixed(3)}s`;
+
+/* escape anything data-driven before it meets innerHTML (console rows,
+   status lines — registrations are visitor input, never trust them) */
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 /* ————————————————— Supabase REST helper ————————————————— */
 
@@ -794,7 +798,7 @@ $$("[data-committee-select]").forEach((sel) => {
 
 /* ————————————————— Router ————————————————— */
 
-const VIEWS = ["home", "about", "committees", "committee", "itinerary", "resources", "register", "faqs"];
+const VIEWS = ["home", "about", "committees", "committee", "itinerary", "resources", "register", "verify", "faqs"];
 const HASHES = {
   home: "#/",
   about: "#/about",
@@ -802,6 +806,7 @@ const HASHES = {
   itinerary: "#/itinerary",
   resources: "#/resources",
   register: "#/register",
+  verify: "#/verify",
   faqs: "#/faqs",
 };
 
@@ -864,6 +869,8 @@ function showView(view, { animate = true } = {}) {
     if (f) f.hidden = false;
     if (window.__regReset) window.__regReset(); /* wizard back to stage I */
   }
+  /* verification console — session key is re-checked lazily on entry */
+  if (view === "verify" && window.__verifyEnter) window.__verifyEnter();
   setActiveNav(view);
   if (view === "home" && window.__litText) requestAnimationFrame(window.__litText);
   if (view === "about" && window.__aboutEnter) requestAnimationFrame(window.__aboutEnter);
@@ -945,24 +952,35 @@ if (!CONFIG.REGISTRATIONS_OPEN) {
     const textNode = [...heroRegens.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
     if (textNode) textNode.nodeValue = "Registrations Opening Soon";
   }
+} else {
+  /* portal open — the payment status lookup may face the world */
+  $("#status-card")?.removeAttribute("hidden");
 }
 
 /* ————— Stage III payment panel: fee comes from CONFIG.REGISTRATION_FEE.
    While the fee is 0 (undisclosed) the panel keeps its placeholder copy.
-   Once announced, the amount fills in — and if Cashfree is wired
-   (app id + fee both set) the success box gains a live pay button. ————— */
-{
+   Once announced the amount fills in, and the copy follows the ACTIVE
+   flow: Cashfree (if ever wired with an app id + fee) or the UPI QR
+   auto-verification path. Exposed for re-render after config changes. ————— */
+function renderPayStage() {
   const amt = $("#pay-amount");
   const badge = $("#pay-badge");
   const copy = $("#pay-copy");
   if (amt && feeAnnounced()) {
     amt.textContent = formatINR(CONFIG.REGISTRATION_FEE);
     if (badge) badge.textContent = "Per delegate · International Press alike";
-    if (copy) copy.textContent = cashfreeEnabled()
-      ? "You can settle the fee online right after submitting — UPI, cards and netbanking, checkout powered by Cashfree."
-      : "Online checkout is being wired up. Your fee is locked in — settle it from the confirmation screen or the payment link emailed to you.";
+    if (copy) {
+      const flow = payFlow();
+      copy.textContent = flow === "cashfree"
+        ? "You can settle the fee online right after submitting — UPI, cards and netbanking, checkout powered by Cashfree."
+        : flow === "qr"
+        ? "Right after you submit, the confirmation screen shows the SOMUN UPI QR. Pay the exact fee from any UPI app, then enter the 12-digit transaction ID (UTR) — verification against the bank feed is automatic, and your confirmation mail follows the match."
+        : "Online checkout is being wired up. Your fee is locked in — settle it from the confirmation screen or the payment link emailed to you.";
+    }
   }
 }
+renderPayStage();
+window.__renderPayStage = renderPayStage;
 
 document.addEventListener("click", (e) => {
   const btn = e.target.closest("[data-committee]");
@@ -1794,12 +1812,38 @@ if (SHOW_ITINERARY) {
     };
 
     try {
-      const inserted = await sb(CONFIG.REGISTRATIONS_TABLE, {
-        method: "POST",
-        headers: { Prefer: "return=representation" },
-        body: JSON.stringify(row),
-      });
-      const code = (Array.isArray(inserted) && inserted[0] && inserted[0].ref_code) || refCode;
+      let code = refCode;
+      try {
+        /* the RPC door (payment-setup.sql): server-side validation,
+           ref-code deconfliction, no dependence on insert policies */
+        const out = await sb("rpc/register_delegate", {
+          method: "POST",
+          body: JSON.stringify({
+            p_ref_code: refCode,
+            p_full_name: payload.fullName,
+            p_email: payload.email,
+            p_phone: payload.phone,
+            p_institution: payload.institution,
+            p_grade_or_title: payload.gradeOrTitle || null,
+            p_experience: payload.experience,
+            p_pref1: payload.committeePref1,
+            p_pref2: payload.committeePref2 || null,
+            p_pref3: payload.committeePref3 || null,
+            p_portfolio: payload.portfolio || null,
+            p_notes: payload.notes || null,
+          }),
+        });
+        code = (out && out.ref_code) || refCode;
+      } catch (rpcErr) {
+        /* RPC not installed yet → legacy direct insert (schema.sql path) */
+        if (!/could not find the function|pgrst202|schema cache/i.test(String(rpcErr.message || ""))) throw rpcErr;
+        const inserted = await sb(CONFIG.REGISTRATIONS_TABLE, {
+          method: "POST",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify(row),
+        });
+        code = (Array.isArray(inserted) && inserted[0] && inserted[0].ref_code) || refCode;
+      }
       $("#refcode").textContent = code;
       $("#reg-form-wrap").hidden = true;
       $("#reg-success").hidden = false;
@@ -1807,7 +1851,11 @@ if (SHOW_ITINERARY) {
       showToast(`<strong>Registration received</strong>Your reference code is ${code}.`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      showToast(`<strong>Could not submit</strong>${err.message || "Unexpected error. Please retry."}`, true);
+      const msg = String(err.message || "");
+      const hint = /row-level security|permission denied/i.test(msg)
+        ? " The registration desk isn't installed on the database yet — run supabase/schema.sql + supabase/payment-setup.sql in the SQL Editor."
+        : "";
+      showToast(`<strong>Could not submit</strong>${msg || "Unexpected error. Please retry."}${hint}`, true);
     } finally {
       submitBtn.classList.remove("submitting");
       submitBtn.disabled = false;
@@ -1869,34 +1917,180 @@ if (SHOW_ITINERARY) {
   function armPayNow(refCode) {
     const box = $("#pay-now-box");
     const btn = $("#pay-now-btn");
-    if (!box || !btn || !cashfreeEnabled()) return; // box stays hidden
-    $("#pay-now-amount").textContent = formatINR(CONFIG.REGISTRATION_FEE);
-    box.hidden = false;
-    btn.addEventListener("click", async () => {
-      if (btn.classList.contains("submitting")) return;
-      btn.classList.add("submitting");
-      btn.disabled = true;
-      const label = $("#pay-now-label");
-      const prev = label.textContent;
-      label.textContent = "Opening checkout…";
-      try {
-        const result = await payNow(refCode);
-        if (result && result.status === "PAID") {
-          box.classList.add("is-paid");
-          label.textContent = "Payment received — see you at the table.";
-          showToast(`<strong>Payment received</strong>Your fee is settled. The receipt travels to ${$("#email") ? $("#email").value : "your email"}.`);
-        } else {
+    if (box && btn && cashfreeEnabled()) {
+      $("#pay-now-amount").textContent = formatINR(CONFIG.REGISTRATION_FEE);
+      box.hidden = false;
+      btn.addEventListener("click", async () => {
+        if (btn.classList.contains("submitting")) return;
+        btn.classList.add("submitting");
+        btn.disabled = true;
+        const label = $("#pay-now-label");
+        const prev = label.textContent;
+        label.textContent = "Opening checkout…";
+        try {
+          const result = await payNow(refCode);
+          if (result && result.status === "PAID") {
+            box.classList.add("is-paid");
+            label.textContent = "Payment received — see you at the table.";
+            showToast(`<strong>Payment received</strong>Your fee is settled. The receipt travels to ${$("#email") ? $("#email").value : "your email"}.`);
+          } else {
+            label.textContent = prev;
+            showToast("<strong>Payment pending</strong>If the checkout closed early you can retry — or wait for the email receipt.", true);
+          }
+        } catch (err) {
           label.textContent = prev;
-          showToast("<strong>Payment pending</strong>If the checkout closed early you can retry — or wait for the email receipt.", true);
+          showToast(`<strong>Payment not completed</strong>${err.message || "Please retry."}`, true);
+        } finally {
+          btn.classList.remove("submitting");
+          btn.disabled = false;
         }
-      } catch (err) {
-        label.textContent = prev;
-        showToast(`<strong>Payment not completed</strong>${err.message || "Please retry."}`, true);
-      } finally {
-        btn.classList.remove("submitting");
-        btn.disabled = false;
-      }
+      });
+      return;
+    }
+    armPayQR(refCode);
+  }
+
+  /* ——— UPI QR payment (the no-gateway path) ———
+     The delegate scans the conference QR, pays the EXACT fee and submits
+     the UPI transaction id (UTR) with an optional screenshot. Nothing is
+     verified here in the browser: supabase/payment-setup.sql (SECURITY
+     DEFINER RPCs) cross-matches the UTR/amount against the bank's credit-
+     SMS feed — forwarded automatically from the treasurer's phone — and
+     flips the row to paid, which queues the confirmation mail. Both time
+     orders work: the credit may land before or after the UTR does. ——— */
+  function armPayQR(refCode) {
+    if (payFlow() !== "qr") return; // fee undisclosed → nothing to pay yet
+    const box = $("#pay-qr-box");
+    if (!box || box.dataset.armed) return;
+    box.dataset.armed = "1";
+    box.hidden = false;
+
+    $("#pay-qr-amount").textContent = formatINR(CONFIG.REGISTRATION_FEE);
+
+    /* QR plate: the image, or a graceful engraved placeholder until the
+       treasurer drops images/payment-qr.png (a UPI id shown as text is
+       always enough to pay) */
+    const img = $("#pay-qr-img");
+    const empty = $("#pay-qr-empty");
+    const vpa = ((CONFIG.UPI_QR && CONFIG.UPI_QR.UPI_ID) || "").trim();
+    const imgSrc = ((CONFIG.UPI_QR && CONFIG.UPI_QR.IMAGE) || "").trim();
+    if (imgSrc) {
+      img.addEventListener("load", () => { img.hidden = false; empty.hidden = true; }, { once: true });
+      img.addEventListener("error", () => {
+        img.hidden = true;
+        empty.hidden = Boolean(vpa);
+        if (!vpa) {
+          const t = empty.querySelector("span");
+          if (t) t.textContent = "The QR is being engraved — pay via the UPI ID the secretariat shares, then submit the UTR below.";
+        }
+      }, { once: true });
+      img.src = imgSrc;
+    } else {
+      empty.hidden = false;
+    }
+
+    if (vpa) {
+      const vpaEl = $("#pay-qr-vpa");
+      vpaEl.textContent = vpa;
+      vpaEl.hidden = false;
+      const cp = $("#pay-qr-copy");
+      cp.hidden = false;
+      cp.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(vpa);
+          cp.classList.add("is-copied");
+          setTimeout(() => cp.classList.remove("is-copied"), 2200);
+          showToast("<strong>UPI ID copied</strong>Paste it into any UPI app and pay the exact fee.");
+        } catch {
+          showToast("Couldn't reach the clipboard — note the UPI ID down manually.", true);
+        }
+      });
+    }
+
+    $("#utr-submit").addEventListener("click", () => submitUTR(refCode));
+  }
+
+  function setUtrStatus(html, mood) {
+    const el = $("#utr-status");
+    if (!el) return;
+    el.hidden = !html;
+    el.innerHTML = html || "";
+    el.className = "pay-qr-status" + (mood ? ` is-${mood}` : "");
+  }
+
+  /* screenshot is optional evidence — private bucket, delegate can only
+     push (no read policy), the secretariat views it from the dashboard */
+  async function uploadShot(refCode) {
+    const input = $("#utr-shot");
+    const file = input && input.files && input.files[0];
+    if (!file) return null;
+    if (file.size > 5 * 1024 * 1024) throw new Error("Screenshot is over 5 MB — pick a smaller one or continue without it.");
+    const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "png";
+    const path = `${refCode}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const res = await fetch(`${CONFIG.SUPABASE_URL.replace(/\/$/, "")}/storage/v1/object/payment-shots/${path}`, {
+      method: "POST",
+      headers: {
+        apikey: CONFIG.SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+        "Content-Type": file.type || "image/png",
+      },
+      body: file,
     });
+    if (!res.ok) throw new Error("Screenshot upload failed — you can retry without it.");
+    return path;
+  }
+
+  async function submitUTR(refCode) {
+    const btn = $("#utr-submit");
+    const label = $("#utr-submit-label");
+    if (!btn || btn.classList.contains("submitting")) return;
+    const utr = ($("#utr-input").value || "").replace(/\s+/g, "");
+    if (!/^[A-Za-z0-9]{10,16}$/.test(utr)) {
+      return showToast("<strong>Almost there</strong>The UPI transaction ID is 10–16 letters and digits — usually the 12-digit UTR shown under transaction details in your UPI app.", true);
+    }
+    if (!supabaseConfigured()) {
+      return showToast(`<strong>Service not configured</strong>Write to ${CONFERENCE.email} with your reference code — the secretariat will verify your payment directly.`, true);
+    }
+
+    btn.classList.add("submitting");
+    btn.disabled = true;
+    label.textContent = "Checking the ledger…";
+    setUtrStatus("Cross-matching your UTR against the bank feed…");
+    try {
+      let shotPath = null;
+      try { shotPath = await uploadShot(refCode); } catch (e) {
+        setUtrStatus(`${esc(e.message || "")}`, "err");
+      }
+      const out = await sb("rpc/submit_payment_utr", {
+        method: "POST",
+        body: JSON.stringify({
+          p_ref_code: refCode,
+          p_utr: utr,
+          p_amount: Number(CONFIG.REGISTRATION_FEE),
+          p_shot_path: shotPath,
+        }),
+      });
+      if (out && out.status === "paid") {
+        setUtrStatus("<strong>Verified — payment matched.</strong> Your fee is settled and the confirmation mail is on its way to your inbox.", "paid");
+        $("#utr-input").disabled = true;
+        btn.disabled = true;
+        showToast("<strong>Payment verified</strong>The bank feed matched your UTR — see you at the table.");
+      } else {
+        setUtrStatus(`<strong>Submitted — the verifier is watching the feed.</strong> The moment your credit lands it is matched automatically and the confirmation mail goes out, usually within minutes. Keep your reference code <strong>${esc(refCode)}</strong>.`, "wait");
+        showToast("<strong>UTR received</strong>Verification runs against the live bank feed — no need to wait on this page.");
+      }
+    } catch (err) {
+      const msg = String(err.message || "");
+      if (/could not find the function|pgrst202|schema cache/i.test(msg)) {
+        setUtrStatus("<strong>The payment desk is still being set up.</strong> Quote your reference code in an email to the secretariat and they will verify your payment directly.", "wait");
+      } else {
+        setUtrStatus(`<strong>Could not submit.</strong> ${esc(msg || "Unexpected error — retry in a moment.")}`, "err");
+      }
+    } finally {
+      btn.classList.remove("submitting");
+      btn.disabled = false;
+      label.textContent = "Verify my payment";
+    }
   }
 
   /* re-entering the register view remounts the wizard at stage I */
@@ -1986,6 +2180,262 @@ if (SHOW_ITINERARY) {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !eggOverlay.hidden) closeEgg();
   });
+}
+
+/* ————— Payment status lookup — a delegate's ref code + email pair,
+   nothing fishable. Visible only while the portal is open. ————— */
+
+{
+  const card = $("#status-card");
+  const btn = $("#status-check");
+  if (card && btn) {
+    const res = $("#status-result");
+    const show = (html, mood) => {
+      res.hidden = !html;
+      res.innerHTML = html || "";
+      res.className = "status-result" + (mood ? ` is-${mood}` : "");
+    };
+    btn.addEventListener("click", async () => {
+      const ref = ($("#status-ref").value || "").trim().toUpperCase();
+      const email = ($("#status-email").value || "").trim().toLowerCase();
+      if (!ref || !email) return show("Both the reference code and the email you registered with are needed.", "err");
+      show("Checking the ledger…");
+      try {
+        const out = await sb("rpc/payment_status", {
+          method: "POST",
+          body: JSON.stringify({ p_ref_code: ref, p_email: email }),
+        });
+        if (out.status === "paid") {
+          show(`<strong>Paid &amp; verified.</strong> The confirmation mail is on its way to your inbox${out.paid_at ? ` · verified ${whenIST(out.paid_at)}` : ""}.`, "paid");
+        } else if (out.status === "failed") {
+          show("<strong>Not verified.</strong> The secretariat could not match this payment — check the UTR you submitted or write in.", "err");
+        } else {
+          show(out.utr_set
+            ? "<strong>Verifying.</strong> Your UTR is in — the bank feed is watched and the mail fires the moment it matches."
+            : "<strong>Registered — fee pending.</strong> Settle the fee to lock your seat; the payment screens live on your confirmation page.", "wait");
+        }
+      } catch (err) {
+        const msg = String(err.message || "");
+        show(/could not find the function|pgrst202|schema cache/i.test(msg)
+          ? "The status desk isn't installed yet — run supabase/payment-setup.sql."
+          : esc(msg || "Lookup failed — retry in a moment."), "err");
+      }
+    });
+  }
+}
+
+/* timestamps in the console + status line render in IST */
+function whenIST(t) {
+  try {
+    return new Date(t).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return String(t || "");
+  }
+}
+
+/* ————————————————— Verification console (#/verify — secretariat) —————
+   The payment desk: pending UTRs, the live bank credit feed, manual
+   verify / reject / bind and the mail queue. Gated by the console key
+   held ONLY inside Supabase (app_secrets.admin_key) — every read and
+   write flows through SECURITY DEFINER RPCs, so the public anon key can
+   neither read rows nor call anything without the key. Polls every 20 s
+   while the page is open. No nav link anywhere — shared by URL only. */
+
+{
+  const view = $('.view[data-view="verify"]');
+  const gate = $("#pay-admin-gate");
+  const body = $("#pay-admin-body");
+  const keyInput = $("#pay-admin-key");
+  const errEl = $("#pay-admin-err");
+  let key = "";
+  let pollTimer = 0;
+
+  const rpc = (fn, args) => sb(`rpc/${fn}`, { method: "POST", body: JSON.stringify(args) });
+  const fmtINR = (n) => (n == null || n === "" ? "—" : `₹ ${Number(n).toLocaleString("en-IN")}`);
+  const shortPath = (p) => (p ? String(p).split("/").pop() : "");
+
+  function renderOverview(o) {
+    const s = o.stats || {};
+    $("#pay-admin-stats").innerHTML = [
+      ["Awaiting UTR check", s.pending_utr || 0, s.pending_utr ? "hot" : ""],
+      ["Registered · fee pending", s.pending_no_utr || 0, ""],
+      ["Verified", s.paid || 0, "ok"],
+      ["Rejected", s.failed || 0, s.failed ? "bad" : ""],
+      ["Unmatched credits", s.unmatched || 0, s.unmatched ? "hot" : ""],
+      ["Mails queued", s.mail_waiting || 0, s.mail_waiting ? "hot" : ""],
+    ].map(([l, v, c]) => `<div class="pa-stat${c ? ` pa-stat--${c}` : ""}"><span class="pa-stat-v">${esc(v)}</span><span class="pa-stat-l">${esc(l)}</span></div>`).join("");
+
+    /* pending UTRs */
+    const pend = $("#pay-admin-pending");
+    const pending = o.pending || [];
+    if (!pending.length) {
+      pend.innerHTML = `<p class="pa-empty">No UTRs waiting — the feed verifies them on arrival.</p>`;
+    } else {
+      pend.innerHTML = pending.map((r) => `
+        <div class="pa-row" data-id="${esc(r.id)}">
+          <div class="pa-row-main">
+            <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
+            <p class="pa-row-sub">${esc(r.email)} · ${esc(r.phone || "")}${r.institution ? " · " + esc(r.institution) : ""}</p>
+            <p class="pa-row-meta">declared <strong>${fmtINR(r.amount)}</strong> · UTR <span class="pa-mono">${esc(r.upi_utr || "")}</span> · submitted ${whenIST(r.utr_submitted_at)}${r.status_note ? ` · <em>${esc(r.status_note)}</em>` : ""}${r.shot_path ? ` · shot <span class="pa-mono" title="${esc(r.shot_path)}">${esc(shortPath(r.shot_path))}</span> (view in Dashboard → Storage → payment-shots)` : ""}</p>
+          </div>
+          <div class="pa-row-actions">
+            <button class="pa-btn pa-btn--ok" data-act="paid" data-id="${esc(r.id)}">Verify</button>
+            <button class="pa-btn pa-btn--bad" data-act="failed" data-id="${esc(r.id)}">Reject</button>
+          </div>
+        </div>`).join("");
+    }
+
+    /* credit feed */
+    const allPend = pending.map((r) => ({ id: r.id, label: `${r.ref_code} — ${r.full_name}` }))
+      .concat((o.no_utr || []).map((r) => ({ id: r.id, label: `${r.ref_code} — ${r.full_name}` })));
+    const opts = allPend.map((p) => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join("");
+    const crel = $("#pay-admin-credits");
+    const credits = o.credits || [];
+    if (!credits.length) {
+      crel.innerHTML = `<p class="pa-empty">The feed is quiet — credit SMS land here the moment the forwarder posts them.</p>`;
+    } else {
+      crel.innerHTML = credits.map((c) => `
+        <div class="pa-row pa-row--credit${c.consumed_by ? " is-consumed" : ""}${c.ignored ? " is-ignored" : ""}" data-id="${esc(c.id)}">
+          <div class="pa-row-main">
+            <p class="pa-row-meta">${whenIST(c.recv_at)} · ${esc((c.src || "sms").toUpperCase())}${c.sender ? " · " + esc(c.sender) : ""}</p>
+            <p class="pa-row-body">${esc(c.body || "")}</p>
+            <p class="pa-row-meta">amount <strong>${fmtINR(c.amount_inr)}</strong>${c.utr ? ` · UTR <span class="pa-mono">${esc(c.utr)}</span>` : " · <em>no UTR in text</em>"}${c.consumed_by ? ` · <span class="pa-ok">consumed</span>` : c.ignored ? ` · ignored` : ` · <span class="pa-hot">unmatched</span>`}</p>
+          </div>
+          ${c.consumed_by || c.ignored ? `
+          <div class="pa-row-actions">
+            ${c.consumed_by ? `<button class="pa-btn" data-act="restore" data-id="${esc(c.id)}">Unbind</button>` : `<button class="pa-btn" data-act="restore" data-id="${esc(c.id)}">Restore</button>`}
+          </div>` : `
+          <div class="pa-row-actions">
+            <select class="pa-select" aria-label="Bind this credit to a registration">${opts ? `<option value="">Bind to…</option>${opts}` : `<option value="">No pending rows</option>`}</select>
+            <button class="pa-btn pa-btn--ok" data-act="bind" data-id="${esc(c.id)}">Bind</button>
+            <button class="pa-btn" data-act="ignore" data-id="${esc(c.id)}">Ignore</button>
+          </div>`}
+        </div>`).join("");
+    }
+
+    /* mail queue */
+    const mail = $("#pay-admin-mail");
+    const mails = o.mail || [];
+    mail.innerHTML = mails.length
+      ? mails.map((m) => `
+        <div class="pa-row" data-id="${esc(m.registration_id || "")}">
+          <div class="pa-row-main">
+            <p class="pa-row-title"><strong>${esc(m.full_name || m.to_email)}</strong>${m.ref_code ? `<span class="pa-code">${esc(m.ref_code)}</span>` : ""}</p>
+            <p class="pa-row-meta">queued ${whenIST(m.created_at)} → ${esc(m.to_email)}</p>
+          </div>
+          <div class="pa-row-actions">
+            ${m.registration_id ? `<button class="pa-btn" data-act="requeue" data-id="${esc(m.registration_id)}">Requeue</button>` : ""}
+          </div>
+        </div>`).join("")
+      : `<p class="pa-empty">Nothing queued — mails fire the moment a payment verifies.</p>`;
+
+    /* recently verified */
+    const paid = $("#pay-admin-paid");
+    const paidRows = o.paid_recent || [];
+    paid.innerHTML = paidRows.length
+      ? paidRows.map((r) => `
+        <div class="pa-row" data-id="${esc(r.id)}">
+          <div class="pa-row-main">
+            <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
+            <p class="pa-row-meta">verified ${whenIST(r.paid_at)} · ${fmtINR(r.amount)}${r.upi_utr ? ` · UTR <span class="pa-mono">${esc(r.upi_utr)}</span>` : " · manual"}</p>
+          </div>
+          <div class="pa-row-actions">
+            <button class="pa-btn" data-act="pending" data-id="${esc(r.id)}" title="Revert to pending — mail queue is cleared">Revert</button>
+            <button class="pa-btn" data-act="requeue" data-id="${esc(r.id)}">Requeue mail</button>
+          </div>
+        </div>`).join("")
+      : `<p class="pa-empty">No verified payments yet.</p>`;
+  }
+
+  async function load() {
+    const out = await rpc("pay_admin_overview", { p_key: key });
+    renderOverview(out || {});
+  }
+
+  function setErr(msg) {
+    errEl.hidden = !msg;
+    errEl.textContent = msg || "";
+  }
+
+  async function openWith(k) {
+    const out = await rpc("pay_admin_overview", { p_key: k });
+    key = k;
+    try { sessionStorage.setItem("somun-pay-key", k); } catch { /* private mode */ }
+    gate.hidden = true;
+    body.hidden = false;
+    renderOverview(out || {});
+    if (!pollTimer) {
+      pollTimer = setInterval(() => {
+        if (document.hidden || !view.classList.contains("active") || !key) return;
+        load().catch(() => { /* transient — next poll retries */ });
+      }, 20000);
+    }
+  }
+
+  async function unlock() {
+    setErr("");
+    const k = keyInput.value.trim();
+    if (k.length < 8) return setErr("That key is too short.");
+    try {
+      await openWith(k);
+    } catch (err) {
+      const msg = String(err.message || "");
+      setErr(/could not find the function|pgrst202|schema cache/i.test(msg)
+        ? "The console isn't installed on the database yet — run supabase/payment-setup.sql in the SQL Editor first."
+        : msg || "Wrong key.");
+    }
+  }
+
+  $("#pay-admin-enter").addEventListener("click", unlock);
+  keyInput.addEventListener("keydown", (e) => { if (e.key === "Enter") unlock(); });
+
+  body.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-act]");
+    if (!b) return;
+    const act = b.dataset.act;
+    const id = b.dataset.id;
+    try {
+      if (act === "paid" || act === "failed" || act === "pending") {
+        const note = act === "failed" ? (window.prompt("Rejection reason (stored on the row):") || "rejected by secretariat") : null;
+        await rpc("pay_admin_decide", { p_key: key, p_registration: id, p_action: act, p_note: note });
+        showToast(act === "paid" ? "<strong>Verified</strong>The confirmation mail is queued." : "<strong>Done</strong>The row is updated.");
+      } else if (act === "ignore") {
+        await rpc("pay_admin_ignore", { p_key: key, p_credit: id, p_ignore: true });
+      } else if (act === "restore") {
+        await rpc("pay_admin_ignore", { p_key: key, p_credit: id, p_ignore: false });
+      } else if (act === "bind") {
+        const sel = b.closest(".pa-row-actions").querySelector("select");
+        if (!sel || !sel.value) return showToast("Pick the delegate this credit belongs to first.", true);
+        await rpc("pay_admin_bind", { p_key: key, p_credit: id, p_registration: sel.value });
+        showToast("<strong>Bound</strong>The credit now verifies that registration — mail queued.");
+      } else if (act === "requeue") {
+        await rpc("pay_admin_requeue", { p_key: key, p_registration: id });
+        showToast("<strong>Requeued</strong>The mail webhook fires again for this delegate.");
+      } else if (act === "ingest") {
+        const t = $("#pay-admin-sms");
+        if (!t || !t.value.trim()) return;
+        await rpc("ingest_credit", { p_key: key, p_body: t.value.trim(), p_src: "manual" });
+        t.value = "";
+        showToast("<strong>Ingested</strong>Parsed and matched — see the feed below.");
+      }
+      await load();
+    } catch (err) {
+      showToast(`<strong>Failed</strong>${esc(err.message || "Retry in a moment.")}`, true);
+    }
+  });
+
+  /* entering the view re-checks the session key lazily */
+  window.__verifyEnter = async () => {
+    if (key) return;
+    let saved = null;
+    try { saved = sessionStorage.getItem("somun-pay-key"); } catch { /* private mode */ }
+    if (!saved) return;
+    try {
+      await openWith(saved);
+    } catch {
+      try { sessionStorage.removeItem("somun-pay-key"); } catch { /* ignore */ }
+    }
+  };
 }
 
 /* ————————————————— Boot ————————————————— */

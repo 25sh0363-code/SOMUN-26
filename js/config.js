@@ -1,9 +1,14 @@
 /* ————————————————————————————————————————————————————————————————
-   SOMUN '26 — SITE CONFIGURATION (Supabase + Cashfree)
+   SOMUN '26 — SITE CONFIGURATION (Supabase + payments)
    ————————————————————————————————————————————————————————
    The registration form and the resource downloads talk to Supabase.
-   Payments (stage III → success box) go through Cashfree, driven by
-   Supabase Edge Functions so the secret key never touches the browser.
+
+   PAYMENTS — the school's PAN/KYC is unavailable, so there is NO
+   gateway. The fee is paid to the conference UPI QR and verified
+   AUTOMATICALLY (see supabase/PAYMENT-SETUP.md): the delegate submits
+   the UPI transaction id (UTR), the database cross-matches it against
+   the bank's credit-SMS feed → paid → the confirmation mail queues.
+   The dormant Cashfree path below stays for the day KYC ever arrives.
 
    SUPABASE — LIVE (keys wired in):
    1. Run supabase/schema.sql ONCE in the Supabase SQL Editor — it
@@ -79,6 +84,26 @@ export const CONFIG = {
   CASHFREE_SECRET_KEY: "",
   CASHFREE_MODE: "sandbox",
   REGISTRATION_FEE: 0,
+
+  /* ——— UPI QR payments (the live path — no gateway, no KYC) ———
+     IMAGE     → the conference payment QR. Drop the screenshot at
+                 images/payment-qr.png (or paste any hosted URL here).
+     UPI_ID    → the VPA printed under the QR (e.g. "somun26@ybl").
+                 Shown as copyable text beside the QR. Keep "" until
+                 the treasurer shares it.
+     PAYEE_NAME → name displayed with the QR.
+
+     Verification keys do NOT live in this file — they are set inside
+     Supabase (app_secrets table, see supabase/PAYMENT-SETUP.md):
+       admin_key  → unlocks the secretariat console at #/verify
+       ingest_key → goes into the SMS-forwarder app
+     While REGISTRATION_FEE is 0 every payment surface stays dormant
+     (stage III keeps the "to be disclosed" panel). */
+  UPI_QR: {
+    IMAGE: "images/payment-qr.png",
+    UPI_ID: "",
+    PAYEE_NAME: "SOMUN '26",
+  },
 };
 
 /* Quick checks used across the site */
@@ -99,6 +124,21 @@ export function cashfreeEnabled() {
 /* fee announced but checkout not wired yet → show the amount, no button */
 export function feeAnnounced() {
   return Number(CONFIG.REGISTRATION_FEE) > 0;
+}
+
+/* the QR flow is live once a QR image or a UPI id is configured */
+export function qrPayEnabled() {
+  const q = CONFIG.UPI_QR || {};
+  return Boolean((q.IMAGE && q.IMAGE.trim()) || (q.UPI_ID && q.UPI_ID.trim()));
+}
+
+/* which payment flow the site should run right now:
+   "cashfree" → gateway checkout · "qr" → QR + auto verification · "none" */
+export function payFlow() {
+  if (!feeAnnounced()) return "none";
+  if (cashfreeEnabled()) return "cashfree";
+  if (qrPayEnabled()) return "qr";
+  return "none";
 }
 
 const inrFmt = new Intl.NumberFormat("en-IN");

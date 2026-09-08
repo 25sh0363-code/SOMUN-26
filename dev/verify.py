@@ -195,7 +195,39 @@ def run():
               and rescards["minOpacity"] > 0.95, json.dumps(rescards))
         pg.screenshot(path=f"{OUT}/d-resources.png")
 
-        # 11 · committees deck still veiled (regression)
+        # 11 · payment surfaces (r28): QR box dormant, console unlisted, register sealed
+        pg.evaluate("location.hash = '#/register'")
+        pg.wait_for_timeout(1600)
+        pay = pg.evaluate("""(() => {
+          const box = document.querySelector('#pay-qr-box');
+          const stage = document.querySelector('#pay-amount');
+          const gate = document.querySelector('#pay-admin-gate');
+          return {
+            qrBox: !!box,
+            qrDormant: box ? box.hidden : null,
+            stage: !!stage,
+            gate: !!gate,
+            regSealed: !!document.querySelector('#reg-box.is-veiled .reg-veil'),
+            consoleUnlisted: ![...document.querySelectorAll('[data-nav]')]
+              .some((el) => el.dataset.nav === 'verify'),
+          };
+        })()""")
+        check("payment surfaces: QR box + console gate present & dormant, console unlisted",
+              all(pay.values()), json.dumps(pay))
+        pg.screenshot(path=f"{OUT}/d-register-payment.png")
+
+        # 12 · verification console view — gate only, zero network on entry
+        pg.evaluate("location.hash = '#/verify'")
+        pg.wait_for_timeout(1600)
+        vfy = pg.evaluate("""(() => ({
+          active: document.querySelector('.view[data-view="verify"]').classList.contains('active'),
+          gate: !document.querySelector('#pay-admin-gate').hidden,
+          body: document.querySelector('#pay-admin-body').hidden,
+        }))()""")
+        check("verify console: gate sealed, body locked, no data on entry", all(vfy.values()), json.dumps(vfy))
+        pg.screenshot(path=f"{OUT}/d-verify-console.png")
+
+        # 13 · committees deck still veiled (regression)
         pg.evaluate("location.hash = '#/committees'")
         pg.wait_for_timeout(1500)
         deck = pg.evaluate("!!document.querySelector('#deck.is-veiled .reg-veil')")

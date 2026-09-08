@@ -936,6 +936,47 @@
               </button>
               <p class="pay-now-sub">Secure checkout by Cashfree · UPI, cards &amp; netbanking</p>
             </div>
+            <!-- UPI QR payment (the no-gateway flow): delegate scans the QR,
+                 pays the exact fee, then submits the UPI transaction id (UTR).
+                 The database auto-matches it against the bank's credit-SMS feed
+                 and flips the registration to paid — the confirmation mail is
+                 queued on the match (supabase/payment-setup.sql). -->
+            <div class="pay-qr-box" id="pay-qr-box" hidden>
+              <div class="pay-qr-head">
+                <p class="pay-qr-kicker"><span class="pay-qr-diamond"></span>Settle the fee</p>
+                <p class="pay-qr-title">Scan · Pay · <em class="accent">Confirmed.</em></p>
+              </div>
+              <div class="pay-qr-grid">
+                <div class="pay-qr-card">
+                  <img class="pay-qr-img" id="pay-qr-img" alt="SOMUN '26 payment QR" hidden />
+                  <div class="pay-qr-empty" id="pay-qr-empty" hidden>
+                    <i data-icon="landmark" data-cls="pay-qr-empty-ic" data-sw="1.2"></i>
+                    <span>QR goes live here — pay to the UPI ID below</span>
+                  </div>
+                  <p class="pay-qr-vpa" id="pay-qr-vpa" hidden></p>
+                  <button type="button" class="pay-qr-copy" id="pay-qr-copy" hidden>
+                    <i data-icon="copy" data-cls="pay-qr-copy-ic"></i>Copy UPI ID
+                  </button>
+                  <p class="pay-qr-amount">Exact amount <strong id="pay-qr-amount">₹ —</strong></p>
+                  <p class="pay-qr-note">Pay from <strong>any UPI app</strong>. The amount must match to the rupee — the auto-verifier pairs your transaction ID with the bank's credit feed the moment it lands.</p>
+                </div>
+                <div class="pay-qr-form">
+                  <div class="field">
+                    <label class="field-label" for="utr-input">UPI Transaction ID (UTR) <span class="req">*</span></label>
+                    <input class="input input--mono" id="utr-input" inputmode="numeric" maxlength="16" autocomplete="off" placeholder="12-digit UTR / UPI reference no." />
+                    <p class="field-note">GPay · PhonePe · Paytm → open the payment → <strong>transaction details</strong> → UPI transaction ID. The bank's credit SMS carries it too.</p>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="utr-shot">Payment screenshot <span class="opt">(optional — helps the secretariat)</span></label>
+                    <input class="input input--file" id="utr-shot" type="file" accept="image/png,image/jpeg,image/webp" />
+                  </div>
+                  <button type="button" class="btn btn--crimson" id="utr-submit">
+                    <i data-icon="loader-2" data-cls="submit-spinner"></i><span id="utr-submit-label">Verify my payment</span>
+                  </button>
+                  <p class="pay-qr-status" id="utr-status" hidden></p>
+                </div>
+              </div>
+            </div>
             <div class="success-next">
               <div class="about-item"><i data-icon="badge-check" data-cls="about-icon"></i><p class="about-item-text"><span class="about-item-strong">Payment</span> — The invoice attached to your allocation email is payable via UPI or bank transfer.</p></div>
               <div class="about-item"><i data-icon="badge-check" data-cls="about-icon"></i><p class="about-item-text"><span class="about-item-strong">Background guides</span> — Release soon under the Resources page.</p></div>
@@ -1117,6 +1158,81 @@
                     <li><span>Final changes</span><span class="dl-strong">Releasing soon</span></li>
                   </ul>
                 </div>
+                <!-- payment status lookup — needs the ref code AND the email,
+                     so nothing can be fished. Hidden while the portal is sealed. -->
+                <div class="status-card" id="status-card" hidden>
+                  <p class="status-kicker"><span class="status-diamond"></span>Already registered?</p>
+                  <p class="status-title">Check your payment status</p>
+                  <input class="input" id="status-ref" placeholder="Reference code · SM26-XXXXX" autocomplete="off" />
+                  <input class="input" id="status-email" type="email" placeholder="The email you registered with" />
+                  <button type="button" class="btn btn--outline btn--sm" id="status-check">Check status</button>
+                  <p class="status-result" id="status-result" hidden></p>
+                </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ———————— VIEW: VERIFY (secretariat console · unlisted) ————————
+         Payment verification desk: pending UTRs, the live bank credit
+         feed, manual verify/reject/bind and the mail queue. Gated by the
+         console key inside Supabase (app_secrets.admin_key) — no nav link,
+         shared by URL only. All data flows through SECURITY DEFINER RPCs
+         (supabase/payment-setup.sql); the anon key can read nothing. -->
+    <section class="view" data-view="verify">
+      <main>
+        <div class="page-wrap">
+          <div class="section-head reveal">
+            <div class="section-head-row">
+              <span class="section-head-index">§</span>
+              <span class="section-head-rule"></span>
+              <span class="section-head-kicker">Secretariat · Verification Console</span>
+            </div>
+            <h2 class="section-head-title">The <em class="accent">ledger.</em></h2>
+            <p class="section-head-intro">Every UPI payment, cross-matched against the bank's credit feed the moment
+            it lands. Nothing is verified by hand unless the feed disagrees — and everything leaves a trace.</p>
+          </div>
+
+          <div class="pay-admin reveal" data-delay="0.05" id="pay-admin">
+            <div class="pay-admin-gate" id="pay-admin-gate">
+              <i data-icon="key" data-cls="pay-admin-gate-ic" data-sw="1.3"></i>
+              <p class="pay-admin-gate-label">The console is sealed — enter the key</p>
+              <div class="pay-admin-gate-row">
+                <input class="input" id="pay-admin-key" type="password" placeholder="Console key" autocomplete="off" />
+                <button type="button" class="btn btn--crimson" id="pay-admin-enter">Unlock</button>
+              </div>
+              <p class="pay-admin-gate-err" id="pay-admin-err" hidden></p>
+            </div>
+
+            <div class="pay-admin-body" id="pay-admin-body" hidden>
+              <div class="pay-admin-stats" id="pay-admin-stats"></div>
+              <div class="pay-admin-cols">
+                <section class="pay-admin-card">
+                  <h3 class="pay-admin-h"><i data-icon="badge-check" data-cls="pay-admin-h-ic"></i>Payments awaiting verification</h3>
+                  <div class="pay-admin-list" id="pay-admin-pending"></div>
+                </section>
+                <section class="pay-admin-card">
+                  <h3 class="pay-admin-h"><i data-icon="landmark" data-cls="pay-admin-h-ic"></i>Bank credit feed</h3>
+                  <p class="pay-admin-sub">Auto-forwarded credit SMS — a matched row is consumed the moment it lands.</p>
+                  <details class="pay-admin-paste">
+                    <summary>Paste a credit SMS manually</summary>
+                    <textarea class="input textarea" id="pay-admin-sms" rows="3" placeholder="Paste the full bank SMS — the parser extracts the amount and UTR."></textarea>
+                    <button type="button" class="btn btn--outline btn--sm" id="pay-admin-sms-btn">Ingest</button>
+                  </details>
+                  <div class="pay-admin-list" id="pay-admin-credits"></div>
+                </section>
+              </div>
+              <div class="pay-admin-cols">
+                <section class="pay-admin-card">
+                  <h3 class="pay-admin-h"><i data-icon="mail" data-cls="pay-admin-h-ic"></i>Confirmation mail queue</h3>
+                  <div class="pay-admin-list" id="pay-admin-mail"></div>
+                </section>
+                <section class="pay-admin-card">
+                  <h3 class="pay-admin-h"><i data-icon="gavel" data-cls="pay-admin-h-ic"></i>Recently verified</h3>
+                  <div class="pay-admin-list" id="pay-admin-paid"></div>
+                </section>
+              </div>
             </div>
           </div>
         </div>

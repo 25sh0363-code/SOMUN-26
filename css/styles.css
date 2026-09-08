@@ -5478,3 +5478,229 @@ em.accent {
 @media (prefers-reduced-motion: reduce) {
   .venue-redact { transition: none; }
 }
+
+/* ————————————————————————————————————————————————————————————————
+   UPI QR PAYMENT FLOW (no gateway) · r28
+   Success-box Scan·Pay·Confirm panel, stage III, status lookup card
+   and the #/verify secretariat console. Engraved system throughout.
+   ———————————————————————————————————————————————————————————————— */
+
+/* ————— success box · Scan · Pay · Confirm ————— */
+.pay-qr-box {
+  margin-top: 1.75rem;
+  border: 1px solid var(--line);
+  background: rgba(22, 17, 13, 0.6);
+  padding: 1.75rem;
+}
+.pay-qr-head { margin-bottom: 1.25rem; }
+.pay-qr-kicker {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--beige-dim); margin-bottom: 0.35rem;
+}
+.pay-qr-diamond { width: 7px; height: 7px; background: var(--crimson); transform: rotate(45deg); flex: none; }
+.pay-qr-title { font-family: var(--font-display); font-size: 1.6rem; line-height: 1.1; }
+.pay-qr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 720px) { .pay-qr-grid { grid-template-columns: 1fr; } }
+
+.pay-qr-card {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 1.25rem;
+  display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+  text-align: center;
+}
+.pay-qr-img {
+  width: 210px; height: 210px; max-width: 100%;
+  background: #fff;           /* QR scans need a light plate */
+  padding: 8px;
+  border: 1px solid rgba(236, 225, 203, 0.2);
+  image-rendering: pixelated;
+}
+.pay-qr-empty {
+  width: 210px; height: 210px; max-width: 100%;
+  border: 1px dashed rgba(179, 164, 135, 0.5);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.6rem; padding: 1rem; color: var(--beige-dim); font-size: 0.8rem; line-height: 1.5;
+}
+.pay-qr-empty-ic { width: 26px; height: 26px; color: var(--beige-dim); }
+.pay-qr-vpa {
+  font-family: "Sarasa Mono SC", ui-monospace, monospace;
+  font-size: 0.95rem; color: var(--beige); letter-spacing: 0.03em;
+}
+.pay-qr-copy {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: none; border: 1px solid var(--border); color: var(--beige-dim);
+  font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 0.45rem 0.9rem; cursor: pointer; transition: color 0.25s, border-color 0.25s;
+}
+.pay-qr-copy:hover { color: var(--beige); border-color: rgba(236, 225, 203, 0.4); }
+.pay-qr-copy.is-copied { color: var(--crimson); border-color: rgba(200, 16, 46, 0.6); }
+.pay-qr-copy-ic { width: 13px; height: 13px; }
+.pay-qr-amount { font-size: 0.85rem; color: var(--beige-dim); }
+.pay-qr-amount strong {
+  display: block; font-family: var(--font-display); font-size: 1.9rem;
+  color: var(--beige); margin-top: 0.15rem;
+}
+.pay-qr-note { font-size: 0.78rem; line-height: 1.6; color: var(--beige-dim); }
+.pay-qr-note strong { color: var(--beige); }
+
+.pay-qr-form { display: flex; flex-direction: column; gap: 1.1rem; }
+.pay-qr-form .btn { justify-content: center; }
+.pay-qr-status {
+  font-size: 0.85rem; line-height: 1.65;
+  border-left: 2px solid var(--line); padding: 0.65rem 0 0.65rem 0.9rem;
+  color: var(--beige-dim);
+}
+.pay-qr-status strong { color: var(--beige); }
+.pay-qr-status.is-paid { border-left-color: rgba(200, 16, 46, 0.85); color: var(--beige); }
+.pay-qr-status.is-wait { border-left-color: rgba(179, 164, 135, 0.7); }
+.pay-qr-status.is-err { border-left-color: rgba(200, 16, 46, 0.5); }
+
+.input--mono {
+  font-family: "Sarasa Mono SC", ui-monospace, monospace;
+  letter-spacing: 0.18em; font-size: 1.05rem;
+}
+.input--file { padding: 0.6rem 0.75rem; font-size: 0.8rem; color: var(--beige-dim); }
+.input--file::file-selector-button {
+  background: none; border: 1px solid var(--border); color: var(--beige-dim);
+  font-family: var(--font-sans); font-size: 0.7rem; letter-spacing: 0.12em;
+  text-transform: uppercase; padding: 0.4rem 0.8rem; margin-right: 0.8rem;
+  cursor: pointer;
+}
+.opt { color: var(--beige-dim); text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+/* ————— stage III panel picks up the QR line via #pay-copy ————— */
+.pay-panel .pay-copy { max-width: 46ch; }
+
+/* ————— status lookup card (register sidebar) ————— */
+.status-card {
+  margin-top: 1.5rem;
+  border: 1px solid var(--line);
+  background: rgba(22, 17, 13, 0.6);
+  padding: 1.5rem;
+  display: flex; flex-direction: column; gap: 0.7rem;
+}
+.status-kicker {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--beige-dim);
+}
+.status-diamond { width: 6px; height: 6px; background: var(--crimson); transform: rotate(45deg); flex: none; }
+.status-title { font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 0.25rem; }
+.status-card .btn { align-self: flex-start; }
+.status-result {
+  font-size: 0.82rem; line-height: 1.6; color: var(--beige-dim);
+  border-left: 2px solid var(--line); padding: 0.55rem 0 0.55rem 0.9rem;
+}
+.status-result strong { color: var(--beige); }
+.status-result.is-paid { border-left-color: rgba(200, 16, 46, 0.85); color: var(--beige); }
+.status-result.is-wait { border-left-color: rgba(179, 164, 135, 0.7); }
+.status-result.is-err { border-left-color: rgba(200, 16, 46, 0.5); }
+
+/* ————— #/verify — the secretariat console ————— */
+.pay-admin { margin-top: 0.5rem; }
+.pay-admin-gate {
+  border: 1px solid var(--line);
+  background: rgba(22, 17, 13, 0.6);
+  padding: 2.5rem 1.75rem;
+  display: flex; flex-direction: column; align-items: center; gap: 1rem;
+  text-align: center;
+}
+.pay-admin-gate-ic { width: 30px; height: 30px; color: var(--beige-dim); }
+.pay-admin-gate-label {
+  font-family: var(--font-display); font-size: 1.2rem; color: var(--beige);
+}
+.pay-admin-gate-row { display: flex; gap: 0.6rem; width: 100%; max-width: 430px; }
+.pay-admin-gate-row .input { flex: 1; }
+.pay-admin-gate-err { font-size: 0.8rem; color: rgba(200, 16, 46, 0.9); line-height: 1.5; }
+
+.pay-admin-body { display: flex; flex-direction: column; gap: 1.5rem; }
+.pay-admin-stats {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px;
+  background: var(--line); border: 1px solid var(--line);
+}
+@media (max-width: 900px) { .pay-admin-stats { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 540px) { .pay-admin-stats { grid-template-columns: repeat(2, 1fr); } }
+.pa-stat {
+  background: var(--panel); padding: 1.1rem 1rem;
+  display: flex; flex-direction: column; gap: 0.3rem;
+}
+.pa-stat-v { font-family: var(--font-display); font-size: 1.7rem; line-height: 1; color: var(--beige); }
+.pa-stat-l { font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--beige-dim); }
+.pa-stat--hot .pa-stat-v { color: var(--crimson); }
+.pa-stat--ok .pa-stat-v { color: var(--beige); }
+.pa-stat--bad .pa-stat-v { color: var(--beige-dim); }
+
+.pay-admin-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 900px) { .pay-admin-cols { grid-template-columns: 1fr; } }
+.pay-admin-card {
+  border: 1px solid var(--line); background: rgba(22, 17, 13, 0.6);
+  padding: 1.4rem;
+}
+.pay-admin-h {
+  display: flex; align-items: center; gap: 0.55rem;
+  font-family: var(--font-display); font-size: 1.05rem; font-weight: 400;
+  margin-bottom: 1rem; color: var(--beige);
+}
+.pay-admin-h-ic { width: 16px; height: 16px; color: var(--crimson); flex: none; }
+.pay-admin-sub { font-size: 0.78rem; color: var(--beige-dim); margin-bottom: 0.9rem; line-height: 1.5; }
+.pay-admin-list { display: flex; flex-direction: column; gap: 0.8rem; }
+.pa-empty { font-size: 0.8rem; color: var(--beige-dim); line-height: 1.6; padding: 0.4rem 0; }
+
+.pa-row {
+  border: 1px solid var(--line); background: var(--panel);
+  padding: 0.9rem 1rem;
+  display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between;
+}
+.pa-row--credit.is-consumed { border-color: rgba(200, 16, 46, 0.35); }
+.pa-row--credit.is-ignored { opacity: 0.45; }
+.pa-row-main { min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.pa-row-title { font-size: 0.9rem; color: var(--beige); display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.pa-code {
+  font-family: "Sarasa Mono SC", ui-monospace, monospace; font-size: 0.7rem;
+  color: var(--beige-dim); border: 1px solid var(--border); padding: 0.1rem 0.45rem;
+  letter-spacing: 0.08em;
+}
+.pa-row-sub, .pa-row-meta { font-size: 0.76rem; color: var(--beige-dim); line-height: 1.55; }
+.pa-row-meta strong { color: var(--beige); }
+.pa-row-meta em { color: var(--beige-dim); }
+.pa-row-body {
+  font-size: 0.74rem; color: var(--beige-dim); line-height: 1.5;
+  border-left: 2px solid var(--line); padding-left: 0.7rem;
+  word-break: break-word;
+}
+.pa-mono { font-family: "Sarasa Mono SC", ui-monospace, monospace; letter-spacing: 0.06em; }
+.pa-ok { color: var(--beige); }
+.pa-hot { color: var(--crimson); }
+.pa-row-actions { display: flex; gap: 0.45rem; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+.pa-btn {
+  background: none; border: 1px solid var(--border); color: var(--beige-dim);
+  font-family: var(--font-sans); font-size: 0.7rem; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 0.42rem 0.8rem; cursor: pointer;
+  transition: color 0.2s, border-color 0.2s; text-decoration: none;
+  white-space: nowrap;
+}
+.pa-btn:hover { color: var(--beige); border-color: rgba(236, 225, 203, 0.4); }
+.pa-btn--ok { border-color: rgba(200, 16, 46, 0.55); color: var(--beige); }
+.pa-btn--ok:hover { border-color: var(--crimson); color: var(--crimson); }
+.pa-btn--bad { border-color: var(--border); }
+.pa-btn--bad:hover { border-color: rgba(200, 16, 46, 0.7); color: var(--crimson); }
+.pa-select {
+  background: var(--ink); border: 1px solid var(--border); color: var(--beige-dim);
+  font-family: var(--font-sans); font-size: 0.72rem; padding: 0.4rem 0.5rem;
+  max-width: 200px;
+}
+
+.pay-admin-paste { margin-bottom: 0.9rem; border: 1px dashed rgba(179, 164, 135, 0.4); }
+.pay-admin-paste summary {
+  cursor: pointer; padding: 0.6rem 0.9rem; font-size: 0.74rem;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--beige-dim);
+  list-style: none;
+}
+.pay-admin-paste summary::before { content: "◇ "; color: var(--crimson); }
+.pay-admin-paste[open] summary { border-bottom: 1px solid var(--line); }
+.pay-admin-paste .textarea { margin: 0.8rem 0.9rem 0.5rem; width: calc(100% - 1.8rem); }
+.pay-admin-paste .btn { margin: 0 0.9rem 0.9rem; }
+
+/* small button variant used by the status card + console */
+.btn--sm { padding: 0.55rem 1.1rem; font-size: 0.78rem; }
