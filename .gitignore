@@ -28,3 +28,6 @@ download/
 
 # staging dirs (never commit)
 tmp-deploy/
+
+# dev harness screenshots (keep harness tracked, shots local)
+dev/shots/
