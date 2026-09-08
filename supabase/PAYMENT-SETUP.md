@@ -5,12 +5,12 @@ pay the conference **UPI QR** and this pipeline **verifies every payment
 automatically** before the confirmation mail goes out.
 
 ```
-delegate scans QR → pays exact fee → submits UTR on the site
+delegate scans QR → pays exact fee → submits UTR (+ screenshot)
                                           │
-your phone: bank sends "Rs X credited" SMS│
-   SMS-forwarder app POSTs it ────────────┤
+the bank's "Rs X credited" signal reaches
+the feed one of three ways (§ 2) ─────────┤
                                           ▼
-                    Supabase parses AMOUNT + UTR from every credit SMS
+                    Supabase parses AMOUNT + UTR from every credit
                                           │
                 UTR match (exact)  or  amount match (only if unambiguous)
                                           ▼
@@ -55,9 +55,14 @@ That's it — stage III of the wizard explains the QR flow, and the success
 box after registration shows **Scan · Pay · Confirm** with the QR, the exact
 amount and a UTR field.
 
-## 2 · Auto-feed the bank credits (the SMS forwarder)
+## 2 · Feed the bank credits — pick the mode that matches your access
 
-1. On the phone **that receives the receiving bank's credit SMS**, install a
+The matcher only needs the *text* of each credit. Three ways to get it in —
+any one is enough, and you can switch any time.
+
+### Mode A · You control the bank phone → automate it (best)
+
+1. On the phone that receives the receiving bank's credit SMS, install a
    free forwarder (Play Store: **"SMS Forwarder"**, or MacroDroid).
 2. Forward rule: messages from your bank's sender ID (e.g. `HDFCBK`, `SBIN`,
    `AXISBK`) → **HTTP POST**:
@@ -78,8 +83,35 @@ Only **credit** SMS should be forwarded (debit texts are ignored by the
 parser anyway — `debited / sent to / paid to` bodies never match).
 Nothing matched stays in the feed for the console (§ 5).
 
-No Android phone handy? Use the console's **"Paste a credit SMS manually"**
-box — same parser, same matcher.
+### Mode B · The bank phone belongs to the school → borrow its signal
+
+No access to the device — you only hold the QR and the UPI ID? The feed
+doesn't care where the text comes from. Ask the one person who CAN see the
+account (the coordinator whose phone gets the SMS, the bursar, whoever can
+pull a statement) to forward each credit to you — the raw SMS text is ideal,
+but a statement line (`UPI/CR/331234567812/NAME/INR 1,499.00`) parses too.
+Open `#/verify` → **"Paste a credit SMS manually"** → paste → Ingest: the
+same parser extracts amount + UTR, the same matcher flips the registration,
+the same mail goes out. A 30-second ritual each evening during the
+registration window; delegates never notice the difference.
+
+### Mode C · Nobody at the school cooperates → verify by eye
+
+Then nothing auto-verifies — and crucially nothing auto-confirms either:
+without a credit in the feed no row can reach `paid` on its own, so no
+goodies ever ship by accident. Your evidence lives on the site already:
+delegates submit the UTR and attach the UPI success screenshot into the
+**private** `payment-shots` bucket (make it mandatory by setting
+`REQUIRE_PAYMENT_SHOT: true` in `js/config.js`). Then either:
+
+- open Supabase Dashboard → Storage → `payment-shots`, check each screenshot
+  (payee VPA, amount, UTR) and hit **Verify** on the matching pending row in
+  the console — the mail fires exactly as the auto-matcher would have; or
+- wait for whatever statement the school eventually shows you, paste those
+  lines in the console, let the matcher do it.
+
+Made a mistake? **Revert** on a verified row undoes it and clears the mail.
+Reconcile monthly against the bank statement — nothing else changes.
 
 ## 3 · Confirmation mail (Brevo, free tier — 5 minutes)
 
@@ -131,6 +163,8 @@ The page polls every 20 s while open.
   pending registration has that amount and it was created in the 72 h before
   the credit; any ambiguity leaves it unmatched for the console.
 - One UTR can never verify two registrations (unique index).
+- No feed at all (Mode C)? Then a UTR claim alone can never flip a row —
+  `paid` happens only when a credit lands in the feed or you press Verify.
 - Screenshots upload to the **private** `payment-shots` bucket (no public
   read) — view them from Dashboard → Storage; the console lists the paths.
 
@@ -151,6 +185,9 @@ The page polls every 20 s while open.
   just updates); or you fix it in the console via **Bind**.
 - Bank sends no UTR in credit SMS? The amount path still auto-matches single
   pending registrations; the rest take one click in the console.
+- Mode B routine: set a daily reminder during the registration window —
+  ping your school contact, paste what they sent, done. An unmatched paste
+  (odd format) is never lost: it sits in the feed for a manual **Bind**.
 - Want zero risk on ambiguous amounts? Give each delegate a unique-amount
   invoice (₹1499 + paise suffix) — the amount path becomes deterministic.
 - The dormant Cashfree files (`schema.sql` fee columns, `functions/`) can

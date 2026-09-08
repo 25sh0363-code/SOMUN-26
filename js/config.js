@@ -103,6 +103,13 @@ export const CONFIG = {
     IMAGE: "images/payment-qr.png",
     UPI_ID: "",
     PAYEE_NAME: "SOMUN '26",
+
+    /* REQUIRE_PAYMENT_SHOT → true when nobody at the bank can feed credits
+       (no forwarder, no statements reaching the secretariat). Delegates
+       must then attach the UPI success screenshot — private bucket — and
+       the secretariat verifies each payment by eye in #/verify. Keep
+       false while any automated feed (forwarder or pasted credits) runs. */
+    REQUIRE_PAYMENT_SHOT: false,
   },
 };
 

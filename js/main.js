@@ -2058,7 +2058,15 @@ if (SHOW_ITINERARY) {
     setUtrStatus("Cross-matching your UTR against the bank feed…");
     try {
       let shotPath = null;
-      try { shotPath = await uploadShot(refCode); } catch (e) {
+      try {
+        shotPath = await uploadShot(refCode);
+        if (!shotPath && CONFIG.UPI_QR.REQUIRE_PAYMENT_SHOT) {
+          return setUtrStatus("<strong>One thing missing.</strong> Attach the UPI app's payment-success screenshot — it is the proof the secretariat verifies against. It goes to a private bucket only the secretariat can open.", "err");
+        }
+      } catch (e) {
+        if (CONFIG.UPI_QR.REQUIRE_PAYMENT_SHOT) {
+          return setUtrStatus(`${esc(e.message || "")}`, "err");
+        }
         setUtrStatus(`${esc(e.message || "")}`, "err");
       }
       const out = await sb("rpc/submit_payment_utr", {
@@ -2076,7 +2084,7 @@ if (SHOW_ITINERARY) {
         btn.disabled = true;
         showToast("<strong>Payment verified</strong>The bank feed matched your UTR — see you at the table.");
       } else {
-        setUtrStatus(`<strong>Submitted — the verifier is watching the feed.</strong> The moment your credit lands it is matched automatically and the confirmation mail goes out, usually within minutes. Keep your reference code <strong>${esc(refCode)}</strong>.`, "wait");
+        setUtrStatus(`<strong>Submitted — your UTR is on the verification desk.</strong> It is matched the moment your credit shows up on the bank feed, or verified by the secretariat directly — the confirmation mail goes out right after. Keep your reference code <strong>${esc(refCode)}</strong>.`, "wait");
         showToast("<strong>UTR received</strong>Verification runs against the live bank feed — no need to wait on this page.");
       }
     } catch (err) {
@@ -2292,7 +2300,7 @@ function whenIST(t) {
     const crel = $("#pay-admin-credits");
     const credits = o.credits || [];
     if (!credits.length) {
-      crel.innerHTML = `<p class="pa-empty">The feed is quiet — credit SMS land here the moment the forwarder posts them.</p>`;
+      crel.innerHTML = `<p class="pa-empty">The feed is quiet — credits land here from the forwarder, or paste one in below.</p>`;
     } else {
       crel.innerHTML = credits.map((c) => `
         <div class="pa-row pa-row--credit${c.consumed_by ? " is-consumed" : ""}${c.ignored ? " is-ignored" : ""}" data-id="${esc(c.id)}">

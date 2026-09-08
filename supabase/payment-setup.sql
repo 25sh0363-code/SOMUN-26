@@ -117,7 +117,9 @@ end $$;
 
 create or replace function public.somun_body_is_credit(p_body text)
 returns boolean language sql immutable as $$
-  select p_body ~* '(credited|received|deposited)'
+  -- 'credited/received/deposited' (bank SMS) or statement notation
+  -- 'UPI/CR/…', 'CR 1499.00', 'cr:' — pasted statement lines count too
+  select p_body ~* '(credited|received|deposited|(^|[^a-z])cr(/|:| |$))'
      and p_body !~* '(debited|sent to|paid to|withdrawn|purchase|spent)';
 $$;
 
@@ -148,9 +150,11 @@ declare
   v_cnt  int;
 begin
   select * into c from public.payment_credits where id = p_credit;
-  if c.consumed_by is not null or c.ignored or c.amount_inr is null then
+  if c.consumed_by is not null or c.ignored then
     return null;
   end if;
+  -- amount is NOT required here: the UTR path is decisive on its own
+  -- (a pasted statement line may carry the UTR but no parseable ₹)
   if not public.somun_body_is_credit(c.body) then
     return null;
   end if;
