@@ -38,6 +38,7 @@ export const CONFIG = {
      While false: the register page stays browsable, but the wizard box
      is blurred + inert under an "Opening Soon" stamp. */
   REGISTRATIONS_OPEN: false,
+  TESTER_PIN: "somun26",
 
   /* Committees reveal gate — flip to true on reveal day.
      While false: the committees deck, the home four-card preview and every

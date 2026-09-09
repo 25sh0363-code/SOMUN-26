@@ -934,36 +934,60 @@ document.addEventListener("click", (e) => {
 });
 
 /* [data-committee] buttons open that committee's own page */
-/* ————— Registrations veiled: the wizard box renders blurred + inert under an
-   "Opening Soon" stamp (fees sidebar, headings and CTAs stay normal).
-   Flip CONFIG.REGISTRATIONS_OPEN in config.js to release. ————— */
-if (!CONFIG.REGISTRATIONS_OPEN) {
+
+const testerOn = () => { try { return localStorage.getItem("somun-tester") === "1"; } catch { return false; } };
+const setTester = (v) => { try { v ? localStorage.setItem("somun-tester", "1") : localStorage.removeItem("somun-tester"); } catch {} };
+
+const heroRegens0 = $(".hero-regens");
+const heroText0 = heroRegens0
+  ? ([...heroRegens0.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim()) || {}).nodeValue ?? null
+  : null;
+
+function applyRegGate() {
+  const open = Boolean(CONFIG.REGISTRATIONS_OPEN) || testerOn();
   const regBox = $("#reg-box");
   if (regBox) {
-    regBox.classList.add("is-veiled");
-    regBox.setAttribute("inert", "");
-    const veil = document.createElement("div");
-    veil.className = "reg-veil";
-    const stamp = document.createElement("span");
-    stamp.className = "reg-veil-stamp";
-    stamp.textContent = "Opening Soon";
-    const sub = document.createElement("span");
-    sub.className = "reg-veil-sub";
-    sub.textContent = "Registrations haven’t opened yet — the portal goes live shortly.";
-    veil.append(stamp, sub);
-    regBox.append(veil);
+    const veil = regBox.querySelector(":scope > .reg-veil");
+    if (open) {
+      regBox.classList.remove("is-veiled");
+      regBox.removeAttribute("inert");
+      veil?.remove();
+    } else {
+      regBox.classList.add("is-veiled");
+      regBox.setAttribute("inert", "");
+      if (!veil) {
+        const v = document.createElement("div");
+        v.className = "reg-veil";
+        const stamp = document.createElement("span");
+        stamp.className = "reg-veil-stamp";
+        stamp.textContent = "Opening Soon";
+        const sub = document.createElement("span");
+        sub.className = "reg-veil-sub";
+        sub.textContent = "Registrations haven’t opened yet — the portal goes live shortly.";
+        v.append(stamp, sub);
+        regBox.append(v);
+      }
+    }
   }
-  /* hero status pill must not contradict the veil */
   const heroRegens = $(".hero-regens");
   if (heroRegens) {
-    heroRegens.classList.add("is-idle");
     const textNode = [...heroRegens.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
-    if (textNode) textNode.nodeValue = "Registrations Opening Soon";
+    if (!open) {
+      heroRegens.classList.add("is-idle");
+      if (textNode) textNode.nodeValue = "Registrations Opening Soon";
+    } else {
+      heroRegens.classList.remove("is-idle");
+      if (textNode && heroText0) textNode.nodeValue = heroText0;
+    }
   }
-} else {
-  /* portal open — the payment status lookup may face the world */
-  $("#status-card")?.removeAttribute("hidden");
+  const statusCard = $("#status-card");
+  if (statusCard) {
+    if (open) statusCard.removeAttribute("hidden");
+    else statusCard.setAttribute("hidden", "");
+  }
 }
+
+applyRegGate();
 
 /* ————— Stage III payment panel: fee comes from CONFIG.REGISTRATION_FEE.
    While the fee is 0 (undisclosed) the panel keeps its placeholder copy.
@@ -2362,6 +2386,105 @@ if (SHOW_ITINERARY) {
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !eggOverlay.hidden) closeEgg();
+  });
+}
+
+/* ————— Secret tester switch ————— */
+
+{
+  const ov = document.createElement("div");
+  ov.className = "matrix-overlay";
+  ov.hidden = true;
+  ov.innerHTML = `
+    <div class="matrix-modal" role="dialog" aria-modal="true" id="tester-panel" style="position:relative;width:min(430px,100%);padding:2rem">
+      <button type="button" class="matrix-close" id="tester-close" aria-label="Close" style="position:absolute;top:14px;right:14px">&times;</button>
+      <p style="font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--crimson)">Restricted · Secretariat only</p>
+      <h3 style="font-family:var(--font-display);font-size:1.45rem;color:var(--beige);margin:.5rem 0 .35rem">Tester access</h3>
+      <p id="tester-state" style="font-size:12.5px;line-height:1.7;color:rgba(179,164,135,.95);margin:0 0 1.15rem"></p>
+      <div style="display:flex;gap:.6rem">
+        <input id="tester-pin" type="password" autocomplete="off" placeholder="Access code"
+          style="flex:1;min-width:0;background:rgba(13,10,8,.55);border:1px solid var(--line);color:var(--beige);padding:.72rem .9rem;font-size:14px;letter-spacing:.12em;outline:none;border-radius:2px" />
+        <button type="button" id="tester-go" class="egg-seal" style="margin:0">Unlock</button>
+      </div>
+      <p id="tester-msg" style="font-size:11px;letter-spacing:.06em;color:var(--crimson);margin:.65rem 0 0;min-height:1em"></p>
+    </div>`;
+  document.body.append(ov);
+
+  const panel = $("#tester-panel", ov);
+  const pinInput = $("#tester-pin", ov);
+  const goBtn = $("#tester-go", ov);
+  const msg = $("#tester-msg", ov);
+  const stateLine = $("#tester-state", ov);
+
+  const paint = () => {
+    const on = testerOn();
+    stateLine.innerHTML = on
+      ? "Access is <b style='color:var(--beige)'>ON</b> — the portal is open on this browser only; everyone else still sees “Opening Soon”. Enter the code to switch it back off."
+      : "Registrations are closed for the world right now. Enter the access code to open the portal on this browser only — nothing changes for anyone else.";
+    goBtn.textContent = on ? "Lock again" : "Unlock";
+  };
+
+  const openModal = () => {
+    pinInput.value = "";
+    msg.textContent = "";
+    paint();
+    ov.hidden = false;
+    document.body.style.overflow = "hidden";
+    setTimeout(() => pinInput.focus(), 30);
+  };
+  const closeModal = () => {
+    ov.hidden = true;
+    document.body.style.overflow = "";
+  };
+
+  const tryPin = () => {
+    const got = (pinInput.value || "").trim();
+    if (!got) return;
+    if (got === String(CONFIG.TESTER_PIN || "")) {
+      const on = !testerOn();
+      setTester(on);
+      applyRegGate();
+      closeModal();
+      showToast(on
+        ? "<strong>Tester mode on</strong>Registrations are open on this browser only — the world still sees “Opening Soon”."
+        : "<strong>Tester mode off</strong>This browser is back to the public view — registrations closed.", !on);
+    } else {
+      msg.textContent = "Wrong code.";
+      pinInput.value = "";
+      pinInput.focus();
+      panel.animate(
+        [{ transform: "translateX(0)" }, { transform: "translateX(-7px)" }, { transform: "translateX(7px)" }, { transform: "translateX(-4px)" }, { transform: "translateX(0)" }],
+        { duration: 260, easing: "ease-in-out" }
+      );
+    }
+  };
+
+  goBtn.addEventListener("click", tryPin);
+  pinInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") tryPin();
+  });
+  $("#tester-close", ov).addEventListener("click", closeModal);
+  ov.addEventListener("click", (e) => {
+    if (e.target === ov) closeModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !ov.hidden) closeModal();
+  });
+
+  const yr = $("#year");
+  yr.style.cursor = "pointer";
+  yr.style.userSelect = "none";
+  yr.style.touchAction = "manipulation";
+  let taps = 0, tapTimer;
+  yr.addEventListener("click", () => {
+    taps++;
+    clearTimeout(tapTimer);
+    tapTimer = setTimeout(() => { taps = 0; }, 1600);
+    if (taps >= 3) {
+      taps = 0;
+      clearTimeout(tapTimer);
+      openModal();
+    }
   });
 }
 
