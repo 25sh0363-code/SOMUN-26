@@ -634,8 +634,6 @@ begin
     update registrations
        set payment_status = case when upi_utr is not null then 'verifying' else 'registered' end,
            paid_at = null, paid_via = null,
-           -- restoring a rejected row drops its stale rejection reason;
-           -- reverting a paid row keeps any verification note
            status_note = case when payment_status = 'failed' then null else status_note end
      where id = v_id;
     delete from mail_queue where registration_id = v_id::text and sent_at is null;
@@ -706,7 +704,7 @@ do $$ begin
     execute 'create extension http with schema extensions';
   end if;
 exception when others then
-  null; -- route 2 only — route 1 needs no extension
+  null;
 end $$;
 
 create or replace function pay_admin_shot_url(p_key text, p_registration text)
@@ -741,7 +739,6 @@ begin
   v_skey := nullif((select value from app_secrets where key = 'service_key'), '');
   v_jsec := nullif((select value from app_secrets where key = 'jwt_secret'), '');
 
-  -- where the http extension's functions actually live (pg_proc, not guesswork)
   v_ext := (select n.nspname from pg_proc p
               join pg_namespace n on n.oid = p.pronamespace
              where p.proname = 'http_post'
@@ -753,9 +750,6 @@ begin
              order by n.nspname <> 'extensions', n.nspname
              limit 1);
 
-  -- ── route 2 · storage signs the link itself — primary, because a URL
-  --      storage built is a URL storage will honour; there is no claim
-  --      format to drift. Needs only service_key + the http extension.
   if v_ext is null then
     v_r2 := 'the http extension is not installed';
   elsif v_skey is null or v_skey like 'PASTE-%' then
@@ -769,20 +763,20 @@ begin
            from %I.http_post(%L, %L, %L, array[%I.http_header(''Authorization'', %L)]) s',
         v_ext, v_sign, '{"expiresIn": 3600}', 'application/json', v_ext, 'Bearer ' || v_skey
       ) into v_status, v_body;
-    exception when undefined_function or undefined_object
-               or wrong_object_type or invalid_schema_name then
-      -- older pgsql-http builds: same request through the generic entry point
-      begin
-        execute format(
-          'select s.status, convert_from(s.content, ''utf8'')::jsonb
-             from %I.http(%L, %L, %L, %L, array[%I.http_header(''Authorization'', %L)]) s',
-          v_ext, 'POST', v_sign, 'application/json', '{"expiresIn": 3600}', v_ext, 'Bearer ' || v_skey
-        ) into v_status, v_body;
-      exception when others then
+    exception
+      when undefined_function or undefined_object
+           or wrong_object_type or invalid_schema_name then
+        begin
+          execute format(
+            'select s.status, convert_from(s.content, ''utf8'')::jsonb
+               from %I.http(%L, %L, %L, %L, array[%I.http_header(''Authorization'', %L)]) s',
+            v_ext, 'POST', v_sign, 'application/json', '{"expiresIn": 3600}', v_ext, 'Bearer ' || v_skey
+          ) into v_status, v_body;
+        exception when others then
+          v_r2 := sqlerrm;
+        end;
+      when others then
         v_r2 := sqlerrm;
-      end;
-    exception when others then
-      v_r2 := sqlerrm;
     end;
 
     if v_status = 200 and v_body->>'signedURL' is not null then
@@ -796,13 +790,8 @@ begin
     end if;
   end if;
 
-  -- ── route 1 · sign the token here — a storage signed URL is just an
-  --      HS256 JWT whose `url` claim is the BARE bucket/object path:
-  --      storage compares the claim against 'payment-shots/<file>' and
-  --      any other value (v3 carried a /object/sign prefix) reads as
-  --      "Invalid signature" the moment the browser opens the link.
   if v_jsec is not null and v_jsec not like 'PASTE-%' then
-    v_hdr := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'; -- {"alg":"HS256","typ":"JWT"}
+    v_hdr := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
     v_pl  := translate(replace(encode(convert_to(json_build_object(
                  'url', 'payment-shots/' || v_path,
                  'iat', extract(epoch from now())::bigint,
@@ -815,23 +804,21 @@ begin
     v_url := trim(trailing '/' from v_base)
          || '/storage/v1/object/sign/payment-shots/' || v_path
          || '?token=' || v_hdr || '.' || v_pl || '.' || v_sig;
-    -- when the extension is up we can prove the link before shipping it:
-    -- storage answers 400 for a token minted with the wrong jwt_secret,
-    -- and a broken link must never reach the console as a tab
     if v_get is not null then
       begin
         execute format('select s.status from %I.http_get(%L) s', v_get, v_url)
           into v_status;
-      exception when undefined_function or undefined_object
-                 or wrong_object_type or invalid_schema_name then
-        begin
-          execute format('select s.status from %I.http(%L, %L) s', v_get, 'GET', v_url)
-            into v_status;
-        exception when others then
-          v_status := null; -- cannot verify here — ship best-effort
-        end;
-      exception when others then
-        v_status := null;
+      exception
+        when undefined_function or undefined_object
+             or wrong_object_type or invalid_schema_name then
+          begin
+            execute format('select s.status from %I.http(%L, %L) s', v_get, 'GET', v_url)
+              into v_status;
+          exception when others then
+            v_status := null;
+          end;
+        when others then
+          v_status := null;
       end;
       if v_status is not null and v_status <> 200 then
         raise exception 'Storage rejected the locally-signed link (%) — the jwt_secret row does not match this project. Re-copy it (Dashboard → Settings → API → JWT Secrets, the legacy secret) into app_secrets.', v_status::text;
