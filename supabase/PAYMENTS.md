@@ -40,12 +40,14 @@ one delegate, ₹2799.07 for the next. The paise are the payment's identity.
    supabase secrets set GEMINI_API_KEY=...
    ```
    No key → the site simply skips the AI read, everything else works.
-4. **Screenshot viewing** — the signing RPC signs each storage token itself
-   in pure SQL (pgcrypto `hmac`, keyed by `jwt_secret`) — no extension, no
-   network hop. Without `jwt_secret` it falls back to the `http` extension
-   asking storage to sign (schema resolved from `pg_proc` at run time), and
-   if neither route is ready the console says exactly which cell to fill.
-   One-off upgrade for an older install: re-run `supabase/fix-view-payment.sql`.
+4. **Screenshot viewing** — two signing routes, storage-sign first: when the
+   `http` extension is on (schema resolved from `pg_proc` at run time), storage
+   itself signs the link with the `service_key` — a URL storage built is always
+   valid. Fallback: the RPC signs the token in pure SQL (pgcrypto `hmac`, keyed
+   by `jwt_secret`; the JWT `url` claim must be the **bare** `payment-shots/<file>`
+   path) and proves the link with a storage GET before returning it. If neither
+   route is ready the console says exactly which cell to fill. One-off upgrade
+   for an older install: re-run `supabase/fix-view-payment.sql`.
 5. **QR (built in)** — the pay panel generates a fresh QR per delegate with
    the exact watermark amount encoded inside; no image file needed.
 
@@ -65,7 +67,8 @@ stays **verifying** until you confirm.
 - **Payments awaiting verification**: each row shows the invoice amount,
   declared UTR, the delegate's committee + portfolio preference and any
   allergy flag. **View payment** opens the delegate's submitted screenshot
-  (signed 1-hour URL — the bucket stays private). Click **Verify** when the
+  in a popup inside the page (signed 1-hour URL — the bucket stays private;
+  an "open raw" link remains as fallback). Click **Verify** when the
   UTR + screenshot + your bank app all agree — that flips paid and queues
   the confirmation email.
 - **Confirmation emails**: the outbox — waiting to send / sent times, with
@@ -73,7 +76,8 @@ stays **verifying** until you confirm.
 - **Recently verified / Rejected payments**: the two books. Rejected rows
   keep their rejection reason and a **Restore** button that puts the row
   back into the waiting queue (reason cleared); verified rows can be
-  reverted the same way.
+  reverted the same way. Both books get **View payment** too, so a shot
+  can be re-opened after the fact.
 
 > The old paste-a-bank-statement credits desk was retired: with a mandatory
 > screenshot + UTR per row, the secretariat verifies each payment directly

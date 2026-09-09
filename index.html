@@ -1237,6 +1237,20 @@
                 <div class="pay-admin-list" id="pay-admin-rejected"></div>
               </section>
             </div>
+
+            <!-- payment screenshot lightbox — the signed link renders
+                 inside this page as a popup; the raw link stays one
+                 click away in case the image itself fails to load -->
+            <div class="pa-light" id="pa-light" hidden>
+              <div class="pa-light-veil" data-close></div>
+              <figure class="pa-light-box" role="dialog" aria-modal="true" aria-label="Payment screenshot">
+                <button type="button" class="pa-light-x" data-close aria-label="Close the screenshot">&times;</button>
+                <div class="pa-light-load" id="pa-light-load"><span></span><p>Fetching the secure link&hellip;</p></div>
+                <img class="pa-light-img" id="pa-light-img" alt="Payment screenshot submitted by the delegate" />
+                <p class="pa-light-err" id="pa-light-err" hidden></p>
+                <figcaption class="pa-light-cap" id="pa-light-cap" hidden></figcaption>
+              </figure>
+            </div>
           </div>
         </div>
       </main>

@@ -2502,7 +2502,7 @@ function whenIST(t) {
             <p class="pa-row-meta">${r.committee_pref1 ? `wants <strong>${esc(String(r.committee_pref1).toUpperCase())}</strong>${r.portfolio ? ` · ${esc(r.portfolio)}` : ""}` : ""}${r.allergies && !/^none$/i.test(r.allergies) ? ` · <span class="pa-hot">ALLERGY: ${esc(r.allergies)}</span>` : ""}</p>
           </div>
           <div class="pa-row-actions">
-            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
+            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
             <button class="pa-btn pa-btn--ok" data-act="paid" data-id="${esc(r.id)}">Verify</button>
             <button class="pa-btn pa-btn--bad" data-act="failed" data-id="${esc(r.id)}">Reject</button>
           </div>
@@ -2536,6 +2536,7 @@ function whenIST(t) {
             <p class="pa-row-meta">verified ${whenIST(r.paid_at)} · ${fmtINR(r.amount)}${r.upi_utr ? ` · UTR <span class="pa-mono">${esc(r.upi_utr)}</span>` : " · manual"}</p>
           </div>
           <div class="pa-row-actions">
+            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
             <button class="pa-btn" data-act="pending" data-id="${esc(r.id)}" title="Revert to pending — mail queue is cleared">Revert</button>
             <button class="pa-btn" data-act="requeue" data-id="${esc(r.id)}">Requeue mail</button>
           </div>
@@ -2554,6 +2555,7 @@ function whenIST(t) {
             ${r.status_note ? `<p class="pa-row-meta"><span class="pa-hot">reason — ${esc(r.status_note)}</span></p>` : ""}
           </div>
           <div class="pa-row-actions">
+            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
             <button class="pa-btn" data-act="pending" data-id="${esc(r.id)}" title="Put this row back into the waiting queue">Restore</button>
           </div>
         </div>`).join("")
@@ -2618,7 +2620,7 @@ function whenIST(t) {
           const out = await rpc("pay_admin_shot_url", { p_key: key, p_registration: id });
           const url = typeof out === "string" ? out : (out && out.signed_url);
           if (!url) throw new Error("Storage signing is not configured — fill service_key and project_url in app_secrets.");
-          window.open(url, "_blank", "noopener");
+          viewShot(url, b.dataset.name);
         } finally {
           b.disabled = false;
         }
@@ -2631,6 +2633,36 @@ function whenIST(t) {
       showToast(`<strong>Failed</strong>${esc(err.message || "Retry in a moment.")}`, true);
     }
   });
+
+  /* the screenshot lightbox — the signed link renders inside this page
+     as a popup instead of flinging the console into a raw new tab;
+     the raw link stays one click away in case the image errors out */
+  function viewShot(url, name) {
+    const light = $("#pa-light");
+    if (!light) { window.open(url, "_blank", "noopener"); return; }
+    const img = $("#pa-light-img"), load = $("#pa-light-load"),
+          errBox = $("#pa-light-err"), cap = $("#pa-light-cap");
+    light.hidden = false;
+    img.hidden = true; img.removeAttribute("src");
+    errBox.hidden = true; cap.hidden = true; load.hidden = false;
+    cap.innerHTML = `<strong>${esc(name || "Delegate")}</strong><span>signed link · live for one hour</span><a href="${esc(url)}" target="_blank" rel="noopener" title="Fallback — opens outside the console">open raw ↗</a>`;
+    img.onload = () => { load.hidden = true; img.hidden = false; cap.hidden = false; };
+    img.onerror = () => {
+      load.hidden = true;
+      errBox.hidden = false;
+      errBox.innerHTML = `Storage refused the signed link — close this and try once more, or <a href="${esc(url)}" target="_blank" rel="noopener">open raw ↗</a>`;
+    };
+    img.src = url;
+  }
+  const paLight = $("#pa-light");
+  if (paLight) {
+    paLight.addEventListener("click", (e) => {
+      if (e.target.closest("[data-close]")) paLight.hidden = true;
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !paLight.hidden) paLight.hidden = true;
+    });
+  }
 
   /* entering the view re-checks the session key lazily */
   window.__verifyEnter = async () => {

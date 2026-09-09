@@ -590,7 +590,7 @@ begin
     'paid_recent', coalesce((
       select json_agg(x) from (
         select id::text, ref_code, full_name, expected_amount as amount,
-               upi_utr, paid_at, paid_via
+               upi_utr, paid_at, paid_via, shot_path
           from registrations
          where payment_status = 'paid'
          order by paid_at desc
@@ -599,7 +599,7 @@ begin
       select json_agg(x) from (
         select id::text, ref_code, full_name, email,
                expected_amount as amount, upi_utr,
-               status_note, utr_submitted_at
+               status_note, utr_submitted_at, shot_path
           from registrations
          where payment_status = 'failed'
          order by utr_submitted_at desc nulls last
@@ -721,10 +721,12 @@ declare
   v_pl     text;
   v_sig    text;
   v_ext    text;
+  v_get    text;
   v_sign   text;
   v_status int;
   v_body   jsonb;
   v_url    text;
+  v_r2     text;
 begin
   perform somun_guard(p_key);
   select shot_path into v_path from registrations where id::text = p_registration;
@@ -732,75 +734,114 @@ begin
   if coalesce(v_path, '') = '' then
     raise exception 'No screenshot on this row yet.';
   end if;
-  v_skey := nullif((select value from app_secrets where key = 'service_key'), '');
   v_base := nullif((select value from app_secrets where key = 'project_url'), '');
-  if v_skey is null or v_skey like 'PASTE-%'
-     or v_base is null or v_base like 'PASTE-%' then
-    raise exception 'Screenshot viewing is not configured yet — fill service_key and project_url in app_secrets (Dashboard → Settings → API).';
+  if v_base is null or v_base like 'PASTE-%' then
+    raise exception 'Screenshot viewing is not configured yet — fill project_url in app_secrets (Dashboard → Settings → API).';
+  end if;
+  v_skey := nullif((select value from app_secrets where key = 'service_key'), '');
+  v_jsec := nullif((select value from app_secrets where key = 'jwt_secret'), '');
+
+  -- where the http extension's functions actually live (pg_proc, not guesswork)
+  v_ext := (select n.nspname from pg_proc p
+              join pg_namespace n on n.oid = p.pronamespace
+             where p.proname = 'http_post'
+             order by n.nspname <> 'extensions', n.nspname
+             limit 1);
+  v_get := (select n.nspname from pg_proc p
+              join pg_namespace n on n.oid = p.pronamespace
+             where p.proname = 'http_get'
+             order by n.nspname <> 'extensions', n.nspname
+             limit 1);
+
+  -- ── route 2 · storage signs the link itself — primary, because a URL
+  --      storage built is a URL storage will honour; there is no claim
+  --      format to drift. Needs only service_key + the http extension.
+  if v_ext is null then
+    v_r2 := 'the http extension is not installed';
+  elsif v_skey is null or v_skey like 'PASTE-%' then
+    v_r2 := 'the service_key row is still empty or a placeholder';
+  else
+    v_sign := trim(trailing '/' from v_base)
+            || '/storage/v1/object/sign/payment-shots/' || v_path;
+    begin
+      execute format(
+        'select s.status, convert_from(s.content, ''utf8'')::jsonb
+           from %I.http_post(%L, %L, %L, array[%I.http_header(''Authorization'', %L)]) s',
+        v_ext, v_sign, '{"expiresIn": 3600}', 'application/json', v_ext, 'Bearer ' || v_skey
+      ) into v_status, v_body;
+    exception when undefined_function or undefined_object
+               or wrong_object_type or invalid_schema_name then
+      -- older pgsql-http builds: same request through the generic entry point
+      begin
+        execute format(
+          'select s.status, convert_from(s.content, ''utf8'')::jsonb
+             from %I.http(%L, %L, %L, %L, array[%I.http_header(''Authorization'', %L)]) s',
+          v_ext, 'POST', v_sign, 'application/json', '{"expiresIn": 3600}', v_ext, 'Bearer ' || v_skey
+        ) into v_status, v_body;
+      exception when others then
+        v_r2 := sqlerrm;
+      end;
+    exception when others then
+      v_r2 := sqlerrm;
+    end;
+
+    if v_status = 200 and v_body->>'signedURL' is not null then
+      return trim(trailing '/' from v_base) || (v_body->>'signedURL');
+    elsif v_status is not null then
+      v_r2 := 'storage answered ' || v_status::text
+              || coalesce(' — ' || nullif(v_body->>'message', ''), '')
+              || ' (is service_key the service_role key?)';
+    elsif v_r2 is null then
+      v_r2 := 'storage did not answer the sign request';
+    end if;
   end if;
 
-  -- ── route 1 · sign the storage token right here, no extension ──
-  --    token = base64url(header).base64url(payload).base64url(
-  --            hmac-sha256(header.payload, jwt_secret))
-  v_jsec := nullif((select value from app_secrets where key = 'jwt_secret'), '');
+  -- ── route 1 · sign the token here — a storage signed URL is just an
+  --      HS256 JWT whose `url` claim is the BARE bucket/object path:
+  --      storage compares the claim against 'payment-shots/<file>' and
+  --      any other value (v3 carried a /object/sign prefix) reads as
+  --      "Invalid signature" the moment the browser opens the link.
   if v_jsec is not null and v_jsec not like 'PASTE-%' then
     v_hdr := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'; -- {"alg":"HS256","typ":"JWT"}
     v_pl  := translate(replace(encode(convert_to(json_build_object(
-                 'url', '/object/sign/payment-shots/' || v_path,
+                 'url', 'payment-shots/' || v_path,
+                 'iat', extract(epoch from now())::bigint,
                  'exp', extract(epoch from now())::bigint + 3600)::text,
                  'utf8'), 'base64'), chr(10), ''), '+/', '-_');
     v_pl  := rtrim(v_pl, '=');
     v_sig := translate(replace(encode(hmac(v_hdr || '.' || v_pl, v_jsec, 'sha256'),
                  'base64'), chr(10), ''), '+/', '-_');
     v_sig := rtrim(v_sig, '=');
-    return trim(trailing '/' from v_base)
+    v_url := trim(trailing '/' from v_base)
          || '/storage/v1/object/sign/payment-shots/' || v_path
          || '?token=' || v_hdr || '.' || v_pl || '.' || v_sig;
+    -- when the extension is up we can prove the link before shipping it:
+    -- storage answers 400 for a token minted with the wrong jwt_secret,
+    -- and a broken link must never reach the console as a tab
+    if v_get is not null then
+      begin
+        execute format('select s.status from %I.http_get(%L) s', v_get, v_url)
+          into v_status;
+      exception when undefined_function or undefined_object
+                 or wrong_object_type or invalid_schema_name then
+        begin
+          execute format('select s.status from %I.http(%L, %L) s', v_get, 'GET', v_url)
+            into v_status;
+        exception when others then
+          v_status := null; -- cannot verify here — ship best-effort
+        end;
+      exception when others then
+        v_status := null;
+      end;
+      if v_status is not null and v_status <> 200 then
+        raise exception 'Storage rejected the locally-signed link (%) — the jwt_secret row does not match this project. Re-copy it (Dashboard → Settings → API → JWT Secrets, the legacy secret) into app_secrets.', v_status::text;
+      end if;
+    end if;
+    return v_url;
   end if;
 
-  -- ── route 2 · the http extension asks storage to sign (fallback) ──
-  v_ext := (select n.nspname from pg_proc p
-              join pg_namespace n on n.oid = p.pronamespace
-             where p.proname = 'http_post'
-             order by n.nspname <> 'extensions', n.nspname
-             limit 1);
-  if v_ext is null then
-    raise exception 'No signing route ready — paste your JWT secret into app_secrets (jwt_secret row; Dashboard → Settings → API → JWT Secret → reveal), or enable the http extension and re-run fix-view-payment.sql.';
-  end if;
-
-  v_sign := trim(trailing '/' from v_base) || '/storage/v1/object/sign/payment-shots/' || v_path;
-
-  begin
-    execute format(
-      'select s.status, convert_from(s.content, ''utf8'')::jsonb
-         from %I.http_post(%L, %L, %L, array[%I.http_header(''Authorization'', %L)]) s',
-      v_ext, v_sign, '{"expiresIn": 3600}', 'application/json', v_ext, 'Bearer ' || v_skey
-    ) into v_status, v_body;
-  exception when undefined_function or undefined_object
-             or wrong_object_type or invalid_schema_name then
-    -- older pgsql-http builds: same request through the generic entry point
-    begin
-      execute format(
-        'select s.status, convert_from(s.content, ''utf8'')::jsonb
-           from %I.http(%L, %L, %L, %L, array[%I.http_header(''Authorization'', %L)]) s',
-        v_ext, 'POST', v_sign, 'application/json', '{"expiresIn": 3600}', v_ext, 'Bearer ' || v_skey
-      ) into v_status, v_body;
-    exception when others then
-      raise exception 'No signing route ready (%) — paste your JWT secret into app_secrets (jwt_secret row; Dashboard → Settings → API → JWT Secret).', sqlerrm;
-    end;
-  end;
-
-  if v_status is null then
-    raise exception 'Storage did not answer the signing request.';
-  end if;
-  if v_status <> 200 then
-    raise exception 'Storage refused to sign the screenshot (%).', coalesce(v_body->>'message', v_status::text);
-  end if;
-  v_url := v_body->>'signedURL';
-  if v_url is null then
-    raise exception 'Storage returned no signed URL — check the service_key.';
-  end if;
-  return trim(trailing '/' from v_base) || v_url;
+  raise exception 'No signing route worked — %. Fix service_key (the service_role key) or paste the project''s JWT secret into the jwt_secret row (both on Dashboard → Settings → API).',
+    coalesce(v_r2, 'no route had its credentials');
 end $$;
 
 -- ─────────────────────────────────────────────────────────────

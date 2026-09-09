@@ -5691,6 +5691,27 @@ em.accent {
   max-width: 200px;
 }
 
+/* payment screenshot lightbox — opens in-page, never a raw tab */
+.pa-light { position: fixed; inset: 0; z-index: 220; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+.pa-light[hidden] { display: none; }
+.pa-light-veil { position: absolute; inset: 0; background: rgba(12, 9, 7, 0.88); backdrop-filter: blur(7px); }
+.pa-light-box { position: relative; margin: 0; max-width: min(94vw, 860px); display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+.pa-light-img { max-width: 92vw; max-height: 74vh; width: auto; height: auto; border: 1px solid var(--line); background: var(--panel); }
+.pa-light-x { position: absolute; top: -2.6rem; right: -0.4rem; width: 2.1rem; height: 2.1rem; border-radius: 50%; border: 1px solid var(--border); background: var(--ink); color: var(--beige); font-size: 1.05rem; line-height: 1; cursor: pointer; z-index: 2; transition: color 0.2s, border-color 0.2s; }
+.pa-light-x:hover { border-color: var(--crimson); color: var(--crimson); }
+.pa-light-load { display: flex; flex-direction: column; align-items: center; gap: 0.9rem; padding: 3rem 4rem; border: 1px dashed var(--border); background: var(--panel); }
+.pa-light-load span { width: 26px; height: 26px; border: 2px solid var(--border); border-top-color: var(--crimson); border-radius: 50%; animation: pa-spin 0.8s linear infinite; }
+.pa-light-load p { margin: 0; font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--beige-dim); }
+@keyframes pa-spin { to { transform: rotate(360deg); } }
+.pa-light-err { margin: 0; font-size: 0.78rem; color: var(--crimson); line-height: 1.6; border: 1px dashed rgba(200, 16, 46, 0.45); background: var(--panel); padding: 1rem 1.2rem; max-width: 92vw; }
+.pa-light-err a { color: var(--beige); text-decoration: none; border-bottom: 1px solid var(--border); }
+.pa-light-err a:hover { color: var(--crimson); border-color: var(--crimson); }
+.pa-light-cap { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; font-size: 0.72rem; letter-spacing: 0.08em; color: var(--beige-dim); }
+.pa-light-cap strong { color: var(--beige); font-weight: 400; }
+.pa-light-cap a { color: var(--beige-dim); text-decoration: none; border-bottom: 1px solid var(--border); transition: color 0.2s, border-color 0.2s; }
+.pa-light-cap a:hover { color: var(--crimson); border-color: var(--crimson); }
+@media (max-width: 540px) { .pa-light { padding: 1rem; } .pa-light-x { top: -2.4rem; right: 0; } }
+
 .pay-admin-paste { margin-bottom: 0.9rem; border: 1px dashed rgba(179, 164, 135, 0.4); }
 .pay-admin-paste summary {
   cursor: pointer; padding: 0.6rem 0.9rem; font-size: 0.74rem;
