@@ -2042,12 +2042,13 @@ if (SHOW_ITINERARY) {
       if (vpa) {
         appBtn.hidden = false;
         appBtn.addEventListener("click", () => {
-          /* pn is just a label — apps display the VPA's registered name
-             anyway. Strip exotic chars (the apostrophe in "SOMUN '26" is a
-             known UPI-parser landmine) and drop pn entirely if nothing
-             survives: apps then show the registered name unprompted. */
-          const pnSafe = String(payeeName).replace(/[^A-Za-z0-9 .\-]/g, " ").replace(/ +/g, " ").trim();
-          const link = `upi://pay?pa=${encodeURIComponent(vpa)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent("SOMUN " + refCode)}${pnSafe ? `&pn=${encodeURIComponent(pnSafe)}` : ""}`;
+          /* Bare-spec link: pa+am+cu only. Declared pn/tn params make some
+             apps run their risk engine harder on intent payments; the app
+             shows the VPA's registered name anyway, and the watermark
+             amount — not the link — is what matches the payment. If an app
+             still refuses, the delegate copies the UPI ID and pays manually
+             (same amount, same watermark, verification unaffected). */
+          const link = `upi://pay?pa=${encodeURIComponent(vpa)}&am=${amount.toFixed(2)}&cu=INR`;
           if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             window.location.href = link;
           } else {
