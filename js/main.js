@@ -2565,20 +2565,76 @@ function whenIST(t) {
     return `₹ ${v.toLocaleString("en-IN", { minimumFractionDigits: paise ? 2 : 0, maximumFractionDigits: 2 })}`;
   };
 
+  const bookSearch = { pending: null, paid: null, rejected: null };
+  let lastOverview = null;
+
+  const aiBadge = (r) => {
+    const v = r.shot_check && r.shot_check.verdict;
+    if (!v) return "";
+    if (v.consistency === "match") {
+      return `<span class="pa-ai pa-ai--ok" title="${esc(v.notes || "AI read: consistent")}">AI ✓</span>`;
+    }
+    if (v.consistency === "mismatch") {
+      return `<span class="pa-ai pa-ai--bad" title="${esc((v.anomalies || []).join(" · ") || v.notes || "AI read: mismatch")}">AI ⚠</span>`;
+    }
+    return `<span class="pa-ai pa-ai--meh" title="${esc(v.notes || "AI could not read the shot")}">AI ?</span>`;
+  };
+
+  const rowTpl = {
+    pending: (r) => `
+        <div class="pa-row" data-id="${esc(r.id)}">
+          <div class="pa-row-main">
+            <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
+            <p class="pa-row-sub">${esc(r.email)} · ${esc(r.phone || "")}${r.institution ? " · " + esc(r.institution) : ""}</p>
+            <p class="pa-row-meta">invoice <strong>${fmtINR(r.expected_amount)}</strong>${r.amount != null ? ` · declared ${fmtINR(r.amount)}` : ""} · UTR <span class="pa-mono">${esc(r.upi_utr || "")}</span> · submitted ${whenIST(r.utr_submitted_at)}${r.status_note ? ` · <em>${esc(r.status_note)}</em>` : ""}${aiBadge(r)}</p>
+            <p class="pa-row-meta">${r.committee_pref1 ? `wants <strong>${esc(String(r.committee_pref1).toUpperCase())}</strong>${r.portfolio ? ` · ${esc(r.portfolio)}` : ""}` : ""}${r.allergies && !/^none$/i.test(r.allergies) ? ` · <span class="pa-hot">ALLERGY: ${esc(r.allergies)}</span>` : ""}</p>
+          </div>
+          <div class="pa-row-actions">
+            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>
+            <button class="pa-btn" data-act="aichk" data-id="${esc(r.id)}" data-ref="${esc(r.ref_code)}" title="Have the AI desk read this screenshot now">AI check</button>` : ""}
+            <button class="pa-btn pa-btn--ok" data-act="paid" data-id="${esc(r.id)}">Verify</button>
+            <button class="pa-btn pa-btn--bad" data-act="failed" data-id="${esc(r.id)}">Reject</button>
+          </div>
+        </div>`,
+    paid: (r) => `
+        <div class="pa-row" data-id="${esc(r.id)}">
+          <div class="pa-row-main">
+            <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
+            <p class="pa-row-sub">${esc(r.email || "")}</p>
+            <p class="pa-row-meta">verified ${whenIST(r.paid_at)} · ${fmtINR(r.amount)}${r.upi_utr ? ` · UTR <span class="pa-mono">${esc(r.upi_utr)}</span>` : " · manual"}${r.paid_via ? ` · via ${esc(r.paid_via)}` : ""}</p>
+          </div>
+          <div class="pa-row-actions">
+            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
+            <button class="pa-btn" data-act="pending" data-id="${esc(r.id)}" title="Revert to pending — mail queue is cleared">Revert</button>
+            <button class="pa-btn" data-act="requeue" data-id="${esc(r.id)}">Requeue mail</button>
+          </div>
+        </div>`,
+    rejected: (r) => `
+        <div class="pa-row" data-id="${esc(r.id)}">
+          <div class="pa-row-main">
+            <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
+            <p class="pa-row-sub">${esc(r.email)}</p>
+            <p class="pa-row-meta">${r.amount != null ? `invoice <strong>${fmtINR(r.amount)}</strong>` : ""}${r.upi_utr ? ` · UTR <span class="pa-mono">${esc(r.upi_utr)}</span>` : ""}${r.utr_submitted_at ? ` · submitted ${whenIST(r.utr_submitted_at)}` : ""}</p>
+            ${r.status_note ? `<p class="pa-row-meta"><span class="pa-hot">reason — ${esc(r.status_note)}</span></p>` : ""}
+          </div>
+          <div class="pa-row-actions">
+            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
+            <button class="pa-btn" data-act="pending" data-id="${esc(r.id)}" title="Put this row back into the waiting queue">Restore</button>
+          </div>
+        </div>`,
+  };
+
+  const bookHtml = (book, rows, emptyText) => {
+    const s = bookSearch[book];
+    if (!s) return rows.length ? rows.map(rowTpl[book]).join("") : `<p class="pa-empty">${emptyText}</p>`;
+    const n = s.rows.length;
+    const head = `<div class="pa-search-hint"><span><b>${n}</b> match${n === 1 ? "" : "es"} for “<b>${esc(s.q)}</b>” — searched the whole book</span><button type="button" class="pa-search-clear" data-clearsearch="${book}">Show recent</button></div>`;
+    return head + (n ? s.rows.map(rowTpl[book]).join("") : `<p class="pa-empty">No matches in this book — try another spelling or the ref code.</p>`);
+  };
+
   function renderOverview(o) {
     const s = o.stats || {};
     const t = o.totals || {};
-    const aiBadge = (r) => {
-      const v = r.shot_check && r.shot_check.verdict;
-      if (!v) return "";
-      if (v.consistency === "match") {
-        return `<span class="pa-ai pa-ai--ok" title="${esc(v.notes || "AI read: consistent")}">AI ✓</span>`;
-      }
-      if (v.consistency === "mismatch") {
-        return `<span class="pa-ai pa-ai--bad" title="${esc((v.anomalies || []).join(" · ") || v.notes || "AI read: mismatch")}">AI ⚠</span>`;
-      }
-      return `<span class="pa-ai pa-ai--meh" title="${esc(v.notes || "AI could not read the shot")}">AI ?</span>`;
-    };
     $("#pay-admin-stats").innerHTML = [
       ["Awaiting UTR check", s.pending_utr || 0, s.pending_utr ? "hot" : ""],
       ["Registered · fee pending", s.pending_no_utr || 0, ""],
@@ -2603,25 +2659,7 @@ function whenIST(t) {
     /* pending UTRs */
     const pend = $("#pay-admin-pending");
     const pending = o.pending || [];
-    if (!pending.length) {
-      pend.innerHTML = `<p class="pa-empty">No UTRs waiting — the feed verifies them on arrival.</p>`;
-    } else {
-      pend.innerHTML = pending.map((r) => `
-        <div class="pa-row" data-id="${esc(r.id)}">
-          <div class="pa-row-main">
-            <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
-            <p class="pa-row-sub">${esc(r.email)} · ${esc(r.phone || "")}${r.institution ? " · " + esc(r.institution) : ""}</p>
-            <p class="pa-row-meta">invoice <strong>${fmtINR(r.expected_amount)}</strong>${r.amount != null ? ` · declared ${fmtINR(r.amount)}` : ""} · UTR <span class="pa-mono">${esc(r.upi_utr || "")}</span> · submitted ${whenIST(r.utr_submitted_at)}${r.status_note ? ` · <em>${esc(r.status_note)}</em>` : ""}${aiBadge(r)}</p>
-            <p class="pa-row-meta">${r.committee_pref1 ? `wants <strong>${esc(String(r.committee_pref1).toUpperCase())}</strong>${r.portfolio ? ` · ${esc(r.portfolio)}` : ""}` : ""}${r.allergies && !/^none$/i.test(r.allergies) ? ` · <span class="pa-hot">ALLERGY: ${esc(r.allergies)}</span>` : ""}</p>
-          </div>
-          <div class="pa-row-actions">
-            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>
-            <button class="pa-btn" data-act="aichk" data-id="${esc(r.id)}" data-ref="${esc(r.ref_code)}" title="Have the AI desk read this screenshot now">AI check</button>` : ""}
-            <button class="pa-btn pa-btn--ok" data-act="paid" data-id="${esc(r.id)}">Verify</button>
-            <button class="pa-btn pa-btn--bad" data-act="failed" data-id="${esc(r.id)}">Reject</button>
-          </div>
-        </div>`).join("");
-    }
+    pend.innerHTML = bookHtml("pending", pending, `No UTRs waiting — the feed verifies them on arrival.`);
 
     /* mail queue — the confirmation emails outbox */
     const mail = $("#pay-admin-mail");
@@ -2639,47 +2677,31 @@ function whenIST(t) {
         </div>`).join("")
       : `<p class="pa-empty">Nothing here yet — confirmation emails fire the moment a payment verifies.</p>`;
 
-    /* recently verified */
+    /* verified */
     const paid = $("#pay-admin-paid");
     const paidRows = o.paid_recent || [];
-    paid.innerHTML = paidRows.length
-      ? paidRows.map((r) => `
-        <div class="pa-row" data-id="${esc(r.id)}">
-          <div class="pa-row-main">
-            <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
-            <p class="pa-row-meta">verified ${whenIST(r.paid_at)} · ${fmtINR(r.amount)}${r.upi_utr ? ` · UTR <span class="pa-mono">${esc(r.upi_utr)}</span>` : " · manual"}</p>
-          </div>
-          <div class="pa-row-actions">
-            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
-            <button class="pa-btn" data-act="pending" data-id="${esc(r.id)}" title="Revert to pending — mail queue is cleared">Revert</button>
-            <button class="pa-btn" data-act="requeue" data-id="${esc(r.id)}">Requeue mail</button>
-          </div>
-        </div>`).join("")
-      : `<p class="pa-empty">No verified payments yet.</p>`;
+    paid.innerHTML = bookHtml("paid", paidRows, `No verified payments yet.`);
 
     /* rejected — the second book, with a way back in */
     const rej = $("#pay-admin-rejected");
     const rejected = o.rejected_recent || [];
-    rej.innerHTML = rejected.length
-      ? rejected.map((r) => `
-        <div class="pa-row" data-id="${esc(r.id)}">
-          <div class="pa-row-main">
-            <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
-            <p class="pa-row-meta">${esc(r.email)}${r.amount != null ? ` · invoice <strong>${fmtINR(r.amount)}</strong>` : ""}${r.upi_utr ? ` · UTR <span class="pa-mono">${esc(r.upi_utr)}</span>` : ""}${r.utr_submitted_at ? ` · submitted ${whenIST(r.utr_submitted_at)}` : ""}</p>
-            ${r.status_note ? `<p class="pa-row-meta"><span class="pa-hot">reason — ${esc(r.status_note)}</span></p>` : ""}
-          </div>
-          <div class="pa-row-actions">
-            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
-            <button class="pa-btn" data-act="pending" data-id="${esc(r.id)}" title="Put this row back into the waiting queue">Restore</button>
-          </div>
-        </div>`).join("")
-      : `<p class="pa-empty">No rejected payments — the ledger is clean.</p>`;
+    rej.innerHTML = bookHtml("rejected", rejected, `No rejected payments — the ledger is clean.`);
   }
 
   async function load() {
     const out = await rpc("pay_admin_overview", { p_key: key });
-    renderOverview(out || {});
+    lastOverview = out || {};
+    renderOverview(lastOverview);
   }
+
+  const refreshBookSearch = async (book) => {
+    const s = bookSearch[book];
+    if (!s) return;
+    try {
+      const rows = await rpc("pay_admin_search", { p_key: key, p_book: book, p_query: s.q });
+      bookSearch[book] = { q: s.q, rows: rows || [] };
+    } catch { /* keep the stale rows — next poll or keystroke refreshes */ }
+  };
 
   function setErr(msg) {
     errEl.hidden = !msg;
@@ -2692,7 +2714,8 @@ function whenIST(t) {
     try { sessionStorage.setItem("somun-pay-key", k); } catch { /* private mode */ }
     gate.hidden = true;
     body.hidden = false;
-    renderOverview(out || {});
+    lastOverview = out || {};
+    renderOverview(lastOverview);
     if (!pollTimer) {
       pollTimer = setInterval(() => {
         if (document.hidden || !view.classList.contains("active") || !key) return;
@@ -2718,16 +2741,61 @@ function whenIST(t) {
   $("#pay-admin-enter").addEventListener("click", unlock);
   keyInput.addEventListener("keydown", (e) => { if (e.key === "Enter") unlock(); });
 
+  $$(".pa-search input").forEach((inp) => {
+    const book = inp.dataset.book;
+    let searchTimer = 0;
+    inp.addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      const q = inp.value.trim();
+      if (q.length < 2) {
+        if (bookSearch[book]) {
+          bookSearch[book] = null;
+          if (lastOverview) renderOverview(lastOverview);
+        }
+        return;
+      }
+      searchTimer = setTimeout(async () => {
+        try {
+          const rows = await rpc("pay_admin_search", { p_key: key, p_book: book, p_query: q });
+          bookSearch[book] = { q, rows: rows || [] };
+          if (lastOverview) renderOverview(lastOverview);
+        } catch (err) {
+          showToast(`<strong>Search failed</strong>${esc(err.message || "Retry in a moment.")}`, true);
+        }
+      }, 320);
+    });
+  });
+
   body.addEventListener("click", async (e) => {
+    const cs = e.target.closest("[data-clearsearch]");
+    if (cs) {
+      const bk = cs.dataset.clearsearch;
+      bookSearch[bk] = null;
+      const inp = $(`#pay-search-${bk}`);
+      if (inp) inp.value = "";
+      if (lastOverview) renderOverview(lastOverview);
+      return;
+    }
     const b = e.target.closest("[data-act]");
     if (!b) return;
     const act = b.dataset.act;
     const id = b.dataset.id;
     try {
       if (act === "paid" || act === "failed" || act === "pending") {
-        const note = act === "failed" ? (window.prompt("Rejection reason (stored on the row):") || "rejected by secretariat") : null;
+        let note = null;
+        if (act === "failed") {
+          note = (window.prompt("Rejection reason — this exact line is emailed to the delegate:") || "").trim();
+          if (!note) {
+            showToast("<strong>Reject cancelled</strong>A reason is required — it travels to the delegate in the rejection mail.", true);
+            return;
+          }
+        }
         await rpc("pay_admin_decide", { p_key: key, p_registration: id, p_action: act, p_note: note });
-        showToast(act === "paid" ? "<strong>Verified</strong>The confirmation email is queued." : "<strong>Done</strong>The row is updated.");
+        showToast(act === "paid"
+          ? "<strong>Verified</strong>The confirmation email is queued."
+          : act === "failed"
+          ? "<strong>Rejected</strong>The row is updated — the reason mail is queued for the delegate."
+          : "<strong>Done</strong>The row is updated.");
       } else if (act === "shot") {
         b.disabled = true;
         try {
@@ -2755,7 +2823,13 @@ function whenIST(t) {
         await rpc("pay_admin_requeue", { p_key: key, p_registration: id });
         showToast("<strong>Requeued</strong>The confirmation email fires again for this delegate.");
       }
-      if (act !== "shot") await load();
+      if (act !== "shot") {
+        const card = b.closest(".pay-admin-card");
+        const list = card && card.querySelector(".pay-admin-list");
+        const bk = list ? list.id.replace("pay-admin-", "") : null;
+        if (bk && bookSearch[bk]) await refreshBookSearch(bk);
+        await load();
+      }
     } catch (err) {
       showToast(`<strong>Failed</strong>${esc(err.message || "Retry in a moment.")}`, true);
     }

@@ -79,13 +79,24 @@ stays **verifying** until you confirm.
   fills in — the same read delegates trigger by submitting). Click
   **Verify** when the UTR + screenshot + your bank app all agree — that
   flips paid and queues the confirmation email.
+- **Search**: every book (pending · verified · rejected) has its own search
+  box — type a name, ref code, email or UTR and that whole book is searched
+  server-side (`pay_admin_search`, supabase/search-reject-mail.sql), not
+  just the recent 20. "Show recent" clears the search.
 - **Confirmation emails**: the outbox — waiting to send / sent times, with
   a Requeue button per delegate.
-- **Recently verified / Rejected payments**: the two books. Rejected rows
-  keep their rejection reason and a **Restore** button that puts the row
-  back into the waiting queue (reason cleared); verified rows can be
-  reverted the same way. Both books get **View payment** too, so a shot
-  can be re-opened after the fact.
+- **Verified / Rejected payments**: the two books. Rejected rows keep their
+  rejection reason and a **Restore** button that puts the row back into the
+  waiting queue (reason cleared); verified rows can be reverted the same
+  way. Both books get **View payment** too, so a shot can be re-opened
+  after the fact.
+- **Rejection mails**: clicking **Reject** demands a reason (cancel aborts).
+  The row is stored with that reason AND a `payment_rejected` mail is
+  queued — the hook (mailer-hook.sql) posts it with the reason to the Apps
+  Script mailer, which sends the delegate a branded notice: the reason, the
+  invoice, and somunpr@gmail.com to discuss it further. Update Code.gs and
+  re-deploy the web app (Deploy → Manage deployments → New version) to get
+  the rejection template.
 
 > The old paste-a-bank-statement credits desk was retired: with a mandatory
 > screenshot + UTR per row, the secretariat verifies each payment directly

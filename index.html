@@ -1220,6 +1220,7 @@
               <div class="pay-admin-sales" id="pay-admin-sales"></div>
               <section class="pay-admin-card">
                 <h3 class="pay-admin-h"><i data-icon="badge-check" data-cls="pay-admin-h-ic"></i>Payments awaiting verification</h3>
+                <div class="pa-search"><input class="input" id="pay-search-pending" data-book="pending" type="text" placeholder="Search pending by name, ref code, email or UTR" autocomplete="off" /></div>
                 <div class="pay-admin-list" id="pay-admin-pending"></div>
               </section>
               <div class="pay-admin-cols">
@@ -1228,12 +1229,14 @@
                   <div class="pay-admin-list" id="pay-admin-mail"></div>
                 </section>
                 <section class="pay-admin-card">
-                  <h3 class="pay-admin-h"><i data-icon="gavel" data-cls="pay-admin-h-ic"></i>Recently verified</h3>
+                  <h3 class="pay-admin-h"><i data-icon="gavel" data-cls="pay-admin-h-ic"></i>Verified payments</h3>
+                  <div class="pa-search"><input class="input" id="pay-search-paid" data-book="paid" type="text" placeholder="Search verified by name, ref code, email or UTR" autocomplete="off" /></div>
                   <div class="pay-admin-list" id="pay-admin-paid"></div>
                 </section>
               </div>
               <section class="pay-admin-card">
                 <h3 class="pay-admin-h"><i data-icon="x" data-cls="pay-admin-h-ic"></i>Rejected payments</h3>
+                <div class="pa-search"><input class="input" id="pay-search-rejected" data-book="rejected" type="text" placeholder="Search rejected by name, ref code, email or UTR" autocomplete="off" /></div>
                 <div class="pay-admin-list" id="pay-admin-rejected"></div>
               </section>
             </div>

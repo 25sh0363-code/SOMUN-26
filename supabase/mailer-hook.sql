@@ -64,7 +64,8 @@ begin
     'tier',        r.tier,
     'institution', r.institution,
     'pref1',       r.committee_pref1,
-    'paid_at',     r.paid_at
+    'paid_at',     r.paid_at,
+    'reason',      r.status_note
   )
   into v_body
   from registrations r

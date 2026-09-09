@@ -611,6 +611,62 @@ begin
 end $$;
 
 -- ─────────────────────────────────────────────────────────────
+   8b · CONSOLE — search a book (pending / paid / rejected) by
+        name, ref code, email or UTR — case-insensitive contains
+   ───────────────────────────────────────────────────────────── */
+
+create or replace function pay_admin_search(p_key text, p_book text, p_query text)
+returns json
+language plpgsql stable security definer set search_path = public as $$
+declare
+  v_q text;
+begin
+  perform somun_guard(p_key);
+  v_q := '%' || replace(replace(trim(coalesce(p_query, '')), '%', '\%'), '_', '\_') || '%';
+
+  if p_book = 'pending' then
+    return coalesce((
+      select json_agg(x) from (
+        select id::text, ref_code, full_name, email, phone, institution,
+               committee_pref1, committee_pref2, committee_pref3, portfolio,
+               allergies, declared_amount as amount, expected_amount, upi_utr,
+               utr_submitted_at, status_note, shot_path, shot_check
+          from registrations
+         where payment_status = 'verifying'
+           and (full_name ilike v_q or ref_code ilike v_q
+                or email ilike v_q or coalesce(upi_utr, '') ilike v_q)
+         order by utr_submitted_at desc nulls last
+         limit 50) x), json_build_array());
+  elsif p_book = 'paid' then
+    return coalesce((
+      select json_agg(x) from (
+        select id::text, ref_code, full_name, email,
+               expected_amount as amount, upi_utr,
+               paid_at, paid_via, shot_path
+          from registrations
+         where payment_status = 'paid'
+           and (full_name ilike v_q or ref_code ilike v_q
+                or email ilike v_q or coalesce(upi_utr, '') ilike v_q)
+         order by paid_at desc
+         limit 50) x), json_build_array());
+  elsif p_book = 'rejected' then
+    return coalesce((
+      select json_agg(x) from (
+        select id::text, ref_code, full_name, email,
+               expected_amount as amount, upi_utr,
+               status_note, utr_submitted_at, shot_path
+          from registrations
+         where payment_status = 'failed'
+           and (full_name ilike v_q or ref_code ilike v_q
+                or email ilike v_q or coalesce(upi_utr, '') ilike v_q)
+         order by utr_submitted_at desc nulls last
+         limit 50) x), json_build_array());
+  end if;
+
+  raise exception 'Unknown book — pending, paid or rejected.';
+end $$;
+
+-- ─────────────────────────────────────────────────────────────
    9 · CONSOLE — actions (verify / reject / revert / bind / requeue)
    ───────────────────────────────────────────────────────────── */
 
@@ -634,6 +690,14 @@ begin
        set payment_status = 'failed',
            status_note = coalesce(nullif(p_note, ''), status_note)
      where id = v_id;
+    delete from mail_queue
+     where registration_id = v_id::text
+       and template = 'payment_rejected'
+       and sent_at is null;
+    insert into mail_queue (registration_id, to_email, template)
+    select v_id::text, r.email, 'payment_rejected'
+      from registrations r
+     where r.id = v_id;
   elsif p_action = 'pending' then
     update registrations
        set payment_status = case when upi_utr is not null then 'verifying' else 'registered' end,
@@ -1091,6 +1155,8 @@ grant execute on function
   ingest_credit(text, text, text) to anon, authenticated;
 grant execute on function
   pay_admin_overview(text) to anon, authenticated;
+grant execute on function
+  pay_admin_search(text, text, text) to anon, authenticated;
 grant execute on function
   pay_admin_decide(text, text, text, text) to anon, authenticated;
 grant execute on function
