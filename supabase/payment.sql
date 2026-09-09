@@ -41,7 +41,8 @@ create table if not exists registrations (
   committee_pref2  text,
   committee_pref3  text,
   portfolio        text,
-  notes            text
+  notes            text,
+  allergies        text
 );
 
 alter table registrations add column if not exists tier             text not null default 'early';
@@ -57,6 +58,7 @@ alter table registrations add column if not exists payment_status   text not nul
 alter table registrations add column if not exists status_note      text;
 alter table registrations add column if not exists paid_at          timestamptz;
 alter table registrations add column if not exists paid_via         text;
+alter table registrations add column if not exists allergies        text;
 
 -- legacy rows (if any) get the current base fee stamped in
 update registrations set fee_base = 2799 where fee_base is null;
@@ -91,17 +93,25 @@ insert into app_secrets (key, value) values
   ('admin_key',      'PASTE-A-LONG-RANDOM-KEY-HERE'),   -- console key (≥12 chars) — REPLACE
   ('payee_vpa',      'PASTE-YOUR-UPI-ID-HERE'),          -- e.g. 'somun26@ybl' — REPLACE
   ('payee_name',     'SOMUN ''26'),
-  ('fee_base_early', '2799')
+  ('fee_base_early', '2799'),
+  ('service_key',    'PASTE-YOUR-SERVICE-ROLE-KEY-HERE'), -- Dashboard → Settings → API → service_role — REPLACE
+  ('project_url',    'PASTE-YOUR-PROJECT-URL-HERE')       -- e.g. 'https://abcdefgh.supabase.co' — REPLACE
 on conflict (key) do nothing;
 
--- ▼▼▼ FILL THESE TWO VALUES: Table Editor → app_secrets, edit the cells ▼▼▼
---    (or run the two updates below once, with your real values)
--- ▲▲▲ re-running this file NEVER overwrites a real value — the update
---     only fires while the cell is still empty or still says PASTE-… ▲▲▲
+-- ▼▼▼ FILL THESE VALUES: Table Editor → app_secrets, edit the cells ▼▼▼
+--    admin_key + payee_vpa (as before), and now service_key + project_url
+--    so the console can open delegates' payment screenshots (signed URLs,
+--    valid 1 hour — the private bucket stays sealed to everyone else).
+-- ▲▲▲ re-running this file NEVER overwrites a real value — the updates
+--     only fire while a cell is still empty or still says PASTE-… ▲▲▲
 update app_secrets set value = 'PASTE-YOUR-UPI-ID-HERE'
   where key = 'payee_vpa' and (value = '' or value like 'PASTE-%');
 update app_secrets set value = 'PASTE-A-LONG-RANDOM-KEY-HERE'
   where key = 'admin_key' and (value = '' or value like 'PASTE-%');
+update app_secrets set value = 'PASTE-YOUR-SERVICE-ROLE-KEY-HERE'
+  where key = 'service_key' and (value = '' or value like 'PASTE-%');
+update app_secrets set value = 'PASTE-YOUR-PROJECT-URL-HERE'
+  where key = 'project_url' and (value = '' or value like 'PASTE-%');
 
 -- ─────────────────────────────────────────────────────────────
    2 · ROW SECURITY
@@ -226,6 +236,7 @@ create or replace function register_delegate(
   p_pref2         text default null,
   p_pref3         text default null,
   p_portfolio     text default null,
+  p_allergies     text default null,
   p_notes         text default null
 ) returns json
 language plpgsql security definer set search_path = public as $$
@@ -239,6 +250,9 @@ begin
   p_phone       := nullif(trim(coalesce(p_phone, '')), '');
   p_institution := nullif(trim(coalesce(p_institution, '')), '');
   p_pref1       := nullif(trim(coalesce(p_pref1, '')), '');
+  p_portfolio   := nullif(trim(coalesce(p_portfolio, '')), '');
+  p_allergies   := nullif(trim(coalesce(p_allergies, '')), '');
+  p_notes       := nullif(trim(coalesce(p_notes, '')), '');
 
   if p_full_name is null or length(p_full_name) < 3 then
     raise exception 'Please share your full name.';
@@ -254,6 +268,9 @@ begin
   end if;
   if p_pref1 is null then
     raise exception 'Please choose at least one committee preference.';
+  end if;
+  if p_portfolio is null then
+    raise exception 'Please enter your preferred country / portfolio — browse the allocation matrix if you''re unsure.';
   end if;
 
   -- deconflict the client's reference code (or mint a fresh one)
@@ -296,12 +313,12 @@ begin
         insert into registrations
           (ref_code, full_name, email, phone, institution, grade_or_title,
            experience, committee_pref1, committee_pref2, committee_pref3,
-           portfolio, notes, tier, fee_base, expected_paise, expected_amount,
+           portfolio, allergies, notes, tier, fee_base, expected_paise, expected_amount,
            payment_status)
         values
           (v_ref, p_full_name, p_email, p_phone, p_institution, p_grade_or_title,
            coalesce(p_experience, 'novice'), p_pref1, p_pref2, p_pref3,
-           p_portfolio, p_notes, 'early', v_base, v_paise,
+           p_portfolio, p_allergies, p_notes, 'early', v_base, v_paise,
            v_base + v_paise / 100.0, 'registered')
         returning id into v_id;
         exit;
@@ -317,11 +334,11 @@ begin
     insert into registrations
       (ref_code, full_name, email, phone, institution, grade_or_title,
        experience, committee_pref1, committee_pref2, committee_pref3,
-       portfolio, notes, tier, fee_base, payment_status)
+       portfolio, allergies, notes, tier, fee_base, payment_status)
     values
       (v_ref, p_full_name, p_email, p_phone, p_institution, p_grade_or_title,
        coalesce(p_experience, 'novice'), p_pref1, p_pref2, p_pref3,
-       p_portfolio, p_notes, 'early', null, 'registered')
+       p_portfolio, p_allergies, p_notes, 'early', null, 'registered')
     returning id into v_id;
   end if;
 
@@ -371,6 +388,12 @@ begin
   if exists (select 1 from registrations r
               where upper(r.upi_utr) = v_utr and r.id is distinct from v.id) then
     raise exception 'This transaction ID is already used by another registration — every UPI payment has its own ID. Please enter the UTR from YOUR payment receipt.';
+  end if;
+
+  -- the screenshot is mandatory, server-side too — the proof the
+  -- secretariat verifies against travels with every UTR
+  if coalesce(p_shot_path, '') = '' and coalesce(v.shot_path, '') = '' then
+    raise exception 'The payment screenshot is required — attach the UPI success screen before submitting.';
   end if;
 
   if p_amount is not null and v.expected_amount is not null
@@ -531,7 +554,8 @@ begin
     'pending', coalesce((
       select json_agg(x) from (
         select id::text, ref_code, full_name, email, phone, institution,
-               declared_amount as amount, expected_amount, upi_utr,
+               committee_pref1, committee_pref2, committee_pref3, portfolio,
+               allergies, declared_amount as amount, expected_amount, upi_utr,
                utr_submitted_at, status_note, shot_path, shot_check
           from registrations
          where payment_status = 'verifying'
@@ -649,11 +673,78 @@ begin
 end $$;
 
 -- ─────────────────────────────────────────────────────────────
+   9b · CONSOLE — open a delegate's payment screenshot
+       The bucket is private (anon can push, never read) — the console
+       gets a 1-hour signed URL minted server-side with the service key.
+       Requires the `http` extension (Supabase → Database → Extensions)
+       and service_key + project_url filled in app_secrets.
+   ───────────────────────────────────────────────────────────── */
+
+create extension if not exists http;
+
+create or replace function pay_admin_shot_url(p_key text, p_registration text)
+returns text
+language plpgsql security definer set search_path = public as $$
+declare
+  v_path    text;
+  v_skey    text;
+  v_base    text;
+  v_status  int;
+  v_body    jsonb;
+  v_url     text;
+begin
+  perform somun_guard(p_key);
+  select shot_path into v_path from registrations where id::text = p_registration;
+  if not found then raise exception 'Registration not found.'; end if;
+  if coalesce(v_path, '') = '' then
+    raise exception 'No screenshot on this row yet.';
+  end if;
+  v_skey := nullif((select value from app_secrets where key = 'service_key'), '');
+  v_base := nullif((select value from app_secrets where key = 'project_url'), '');
+  if v_skey is null or v_skey like 'PASTE-%'
+     or v_base is null or v_base like 'PASTE-%' then
+    raise exception 'Screenshot viewing is not configured yet — fill service_key and project_url in app_secrets (Dashboard → Settings → API).';
+  end if;
+
+  begin
+    select s.status, convert_from(s.content, 'utf8')::jsonb
+      into v_status, v_body
+      from http.http_post(
+             trim(trailing '/' from v_base) || '/storage/v1/object/sign/payment-shots/' || v_path,
+             '{"expiresIn": 3600}',
+             'application/json',
+             array[http.http_header('Authorization', 'Bearer ' || v_skey)]) s;
+  exception when undefined_function or undefined_object or wrong_object_type then
+    -- older pgsql-http builds: same pieces through the generic entry point
+    select s.status, convert_from(s.content, 'utf8')::jsonb
+      into v_status, v_body
+      from http.http(
+             'POST',
+             trim(trailing '/' from v_base) || '/storage/v1/object/sign/payment-shots/' || v_path,
+             'application/json',
+             '{"expiresIn": 3600}',
+             array[http.http_header('Authorization', 'Bearer ' || v_skey)]) s;
+  end;
+
+  if v_status is null then
+    raise exception 'Storage did not answer the signing request.';
+  end if;
+  if v_status <> 200 then
+    raise exception 'Storage refused to sign the screenshot (%).', coalesce(v_body->>'message', v_status::text);
+  end if;
+  v_url := v_body->>'signedURL';
+  if v_url is null then
+    raise exception 'Storage returned no signed URL — check the service_key.';
+  end if;
+  return trim(trailing '/' from v_base) || v_url;
+end $$;
+
+-- ─────────────────────────────────────────────────────────────
    10 · GRANTS — the public doors, nothing more
    ───────────────────────────────────────────────────────────── */
 
 grant execute on function
-  register_delegate(text, text, text, text, text, text, text, text, text, text, text, text)
+  register_delegate(text, text, text, text, text, text, text, text, text, text, text, text, text)
   to anon, authenticated;
 grant execute on function
   submit_payment_utr(text, text, numeric, text) to anon, authenticated;
@@ -671,3 +762,5 @@ grant execute on function
   pay_admin_ignore(text, text, boolean) to anon, authenticated;
 grant execute on function
   pay_admin_requeue(text, text) to anon, authenticated;
+grant execute on function
+  pay_admin_shot_url(text, text) to anon, authenticated;

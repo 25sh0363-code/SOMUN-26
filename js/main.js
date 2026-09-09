@@ -982,7 +982,7 @@ function renderPayStage() {
       copy.textContent = flow === "cashfree"
         ? "You can settle the fee online right after submitting — UPI, cards and netbanking, checkout powered by Cashfree."
         : flow === "qr"
-        ? "Right after you submit, the confirmation screen shows YOUR exact amount — the fee plus a personal paise ID that is yours alone. Pay it with the app button or the QR, then enter the UTR and attach the payment screenshot. The AI desk reads your shot instantly; the secretariat confirms against the bank statement."
+        ? "Three steps: 1 · Submit this form — the confirmation screen shows YOUR exact amount (the fee plus a personal paise ID that is yours alone). 2 · Scan the QR with ANY UPI app — GPay, PhonePe or Paytm — your exact amount is already on it; confirm and pay. 3 · On the same screen, enter the 12-digit UTR and attach the payment screenshot — both are required. The secretariat matches your payment against the bank statement; the confirmation email follows."
         : "Online checkout is being wired up. Your fee is locked in — settle it from the confirmation screen or the payment link emailed to you.";
     }
   }
@@ -1745,7 +1745,11 @@ if (SHOW_ITINERARY) {
       if (val("phone").replace(/\D/g, "").length < 8) return "Please enter a valid phone number.";
       if (!val("institution")) return "Institution / organisation is required.";
     }
-    if (n === 1 && !$("#pref1").value) return "Please choose at least one committee preference.";
+    if (n === 1) {
+      if (!$("#pref1").value) return "Please choose at least one committee preference.";
+      if (!val("portfolio")) return "Please enter your preferred country / portfolio — browse the allocation matrix if you're unsure.";
+    }
+    if (n === 3 && !val("allergies")) return "Please list any allergies / dietary restrictions — write 'none' if there are none.";
     return null;
   }
 
@@ -1793,6 +1797,7 @@ if (SHOW_ITINERARY) {
       committeePref2: $("#pref2").value,
       committeePref3: $("#pref3").value,
       portfolio: val("portfolio"),
+      allergies: val("allergies"),
       notes: val("notes"),
     };
 
@@ -1820,6 +1825,7 @@ if (SHOW_ITINERARY) {
       committee_pref2: payload.committeePref2 || null,
       committee_pref3: payload.committeePref3 || null,
       portfolio: payload.portfolio || null,
+      allergies: payload.allergies || null,
       notes: payload.notes || null,
     };
 
@@ -1843,6 +1849,7 @@ if (SHOW_ITINERARY) {
             p_pref2: payload.committeePref2 || null,
             p_pref3: payload.committeePref3 || null,
             p_portfolio: payload.portfolio || null,
+            p_allergies: payload.allergies || null,
             p_notes: payload.notes || null,
           }),
         });
@@ -2134,33 +2141,10 @@ if (SHOW_ITINERARY) {
       });
     }
 
-    /* the note re-reads for the QR-first flow */
+    /* the note re-reads for the QR-only flow */
     const note = $("#pay-qr-note");
     if (note) {
-      note.innerHTML = `Scan the QR with <strong>any UPI app</strong> — your exact amount is already on it, confirm and pay. The <strong>Pay via app</strong> button is a shortcut some phones refuse; if yours does, <strong>copy the UPI ID + exact amount</strong> and pay manually — identical to the last paise. Then submit the UTR + screenshot below; the AI desk reads your shot instantly and the secretariat confirms against the bank statement.`;
-    }
-
-    /* "Pay via app" — kept as a shortcut, not the headline: several apps
-       now refuse browser-opened upi:// intents outright (their risk
-       engines read them as phishing), which is the exact wall the
-       delegate hits if they skip the QR. When the intent does open,
-       the watermark amount still rides prefiled. */
-    const appBtn = $("#pay-app-btn");
-    if (appBtn) {
-      if (vpa) {
-        appBtn.hidden = false;
-        const appLbl = appBtn.querySelector("span");
-        if (appLbl) appLbl.textContent = "Open in UPI app — if blocked, scan the QR";
-        appBtn.addEventListener("click", () => {
-          if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-            window.location.href = uri;
-          } else {
-            showToast("<strong>Open this on your phone</strong>The app button launches your UPI app on a handset — from a laptop, scan the QR (or copy the UPI ID) and pay the exact amount shown.", true);
-          }
-        });
-      } else {
-        appBtn.hidden = true;
-      }
+      note.innerHTML = `Scan the QR with <strong>any UPI app</strong> — your exact amount is already on it, confirm and pay. Prefer typing? <strong>Copy the UPI ID + exact amount</strong> and pay manually — identical to the last paise. Then submit the UTR + screenshot below — <strong>both are required</strong>; the secretariat confirms against the bank statement.`;
     }
 
     $("#utr-submit").addEventListener("click", () => submitUTR(refCode));
@@ -2467,7 +2451,6 @@ function whenIST(t) {
     const paise = Math.round(v * 100) % 100 !== 0;
     return `₹ ${v.toLocaleString("en-IN", { minimumFractionDigits: paise ? 2 : 0, maximumFractionDigits: 2 })}`;
   };
-  const shortPath = (p) => (p ? String(p).split("/").pop() : "");
 
   function renderOverview(o) {
     const s = o.stats || {};
@@ -2487,8 +2470,7 @@ function whenIST(t) {
       ["Registered · fee pending", s.pending_no_utr || 0, ""],
       ["Verified", s.paid || 0, "ok"],
       ["Rejected", s.failed || 0, s.failed ? "bad" : ""],
-      ["Unmatched credits", s.unmatched || 0, s.unmatched ? "hot" : ""],
-      ["Mails queued", s.mail_waiting || 0, s.mail_waiting ? "hot" : ""],
+      ["Emails waiting", s.mail_waiting || 0, s.mail_waiting ? "hot" : ""],
     ].map(([l, v, c]) => `<div class="pa-stat${c ? ` pa-stat--${c}` : ""}"><span class="pa-stat-v">${esc(v)}</span><span class="pa-stat-l">${esc(l)}</span></div>`).join("");
 
     /* the sales meter — invoiced vs confirmed, live from the rows */
@@ -2515,44 +2497,18 @@ function whenIST(t) {
           <div class="pa-row-main">
             <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
             <p class="pa-row-sub">${esc(r.email)} · ${esc(r.phone || "")}${r.institution ? " · " + esc(r.institution) : ""}</p>
-            <p class="pa-row-meta">invoice <strong>${fmtINR(r.expected_amount)}</strong>${r.amount != null ? ` · declared ${fmtINR(r.amount)}` : ""} · UTR <span class="pa-mono">${esc(r.upi_utr || "")}</span> · submitted ${whenIST(r.utr_submitted_at)}${r.status_note ? ` · <em>${esc(r.status_note)}</em>` : ""}${r.shot_path ? ` · shot <span class="pa-mono" title="${esc(r.shot_path)}">${esc(shortPath(r.shot_path))}</span> (view in Dashboard → Storage → payment-shots)` : ""}${aiBadge(r)}</p>
+            <p class="pa-row-meta">invoice <strong>${fmtINR(r.expected_amount)}</strong>${r.amount != null ? ` · declared ${fmtINR(r.amount)}` : ""} · UTR <span class="pa-mono">${esc(r.upi_utr || "")}</span> · submitted ${whenIST(r.utr_submitted_at)}${r.status_note ? ` · <em>${esc(r.status_note)}</em>` : ""}${aiBadge(r)}</p>
+            <p class="pa-row-meta">${r.committee_pref1 ? `wants <strong>${esc(String(r.committee_pref1).toUpperCase())}</strong>${r.portfolio ? ` · ${esc(r.portfolio)}` : ""}` : ""}${r.allergies && !/^none$/i.test(r.allergies) ? ` · <span class="pa-hot">ALLERGY: ${esc(r.allergies)}</span>` : ""}</p>
           </div>
           <div class="pa-row-actions">
+            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
             <button class="pa-btn pa-btn--ok" data-act="paid" data-id="${esc(r.id)}">Verify</button>
             <button class="pa-btn pa-btn--bad" data-act="failed" data-id="${esc(r.id)}">Reject</button>
           </div>
         </div>`).join("");
     }
 
-    /* credit feed */
-    const allPend = pending.map((r) => ({ id: r.id, label: `${r.ref_code} — ${r.full_name}` }))
-      .concat((o.no_utr || []).map((r) => ({ id: r.id, label: `${r.ref_code} — ${r.full_name}` })));
-    const opts = allPend.map((p) => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join("");
-    const crel = $("#pay-admin-credits");
-    const credits = o.credits || [];
-    if (!credits.length) {
-      crel.innerHTML = `<p class="pa-empty">The feed is quiet — credits land here from the forwarder, or paste one in below.</p>`;
-    } else {
-      crel.innerHTML = credits.map((c) => `
-        <div class="pa-row pa-row--credit${c.consumed_by ? " is-consumed" : ""}${c.ignored ? " is-ignored" : ""}" data-id="${esc(c.id)}">
-          <div class="pa-row-main">
-            <p class="pa-row-meta">${whenIST(c.recv_at)} · ${esc((c.src || "sms").toUpperCase())}${c.sender ? " · " + esc(c.sender) : ""}</p>
-            <p class="pa-row-body">${esc(c.body || "")}</p>
-            <p class="pa-row-meta">amount <strong>${fmtINR(c.amount_inr)}</strong>${c.utr ? ` · UTR <span class="pa-mono">${esc(c.utr)}</span>` : " · <em>no UTR in text</em>"}${c.consumed_by ? ` · <span class="pa-ok">consumed</span>` : c.ignored ? ` · ignored` : ` · <span class="pa-hot">unmatched</span>`}</p>
-          </div>
-          ${c.consumed_by || c.ignored ? `
-          <div class="pa-row-actions">
-            ${c.consumed_by ? `<button class="pa-btn" data-act="restore" data-id="${esc(c.id)}">Unbind</button>` : `<button class="pa-btn" data-act="restore" data-id="${esc(c.id)}">Restore</button>`}
-          </div>` : `
-          <div class="pa-row-actions">
-            <select class="pa-select" aria-label="Bind this credit to a registration">${opts ? `<option value="">Bind to…</option>${opts}` : `<option value="">No pending rows</option>`}</select>
-            <button class="pa-btn pa-btn--ok" data-act="bind" data-id="${esc(c.id)}">Bind</button>
-            <button class="pa-btn" data-act="ignore" data-id="${esc(c.id)}">Ignore</button>
-          </div>`}
-        </div>`).join("");
-    }
-
-    /* mail queue */
+    /* mail queue — the confirmation emails outbox */
     const mail = $("#pay-admin-mail");
     const mails = o.mail || [];
     mail.innerHTML = mails.length
@@ -2560,13 +2516,13 @@ function whenIST(t) {
         <div class="pa-row" data-id="${esc(m.registration_id || "")}">
           <div class="pa-row-main">
             <p class="pa-row-title"><strong>${esc(m.full_name || m.to_email)}</strong>${m.ref_code ? `<span class="pa-code">${esc(m.ref_code)}</span>` : ""}</p>
-            <p class="pa-row-meta">queued ${whenIST(m.created_at)} → ${esc(m.to_email)}</p>
+            <p class="pa-row-meta">${m.sent_at ? `<span class="pa-ok">sent ${whenIST(m.sent_at)}</span>` : `<span class="pa-hot">waiting to send</span>`} · ${whenIST(m.created_at)} → ${esc(m.to_email)}</p>
           </div>
           <div class="pa-row-actions">
             ${m.registration_id ? `<button class="pa-btn" data-act="requeue" data-id="${esc(m.registration_id)}">Requeue</button>` : ""}
           </div>
         </div>`).join("")
-      : `<p class="pa-empty">Nothing queued — mails fire the moment a payment verifies.</p>`;
+      : `<p class="pa-empty">Nothing here yet — confirmation emails fire the moment a payment verifies.</p>`;
 
     /* recently verified */
     const paid = $("#pay-admin-paid");
@@ -2637,27 +2593,22 @@ function whenIST(t) {
       if (act === "paid" || act === "failed" || act === "pending") {
         const note = act === "failed" ? (window.prompt("Rejection reason (stored on the row):") || "rejected by secretariat") : null;
         await rpc("pay_admin_decide", { p_key: key, p_registration: id, p_action: act, p_note: note });
-        showToast(act === "paid" ? "<strong>Verified</strong>The confirmation mail is queued." : "<strong>Done</strong>The row is updated.");
-      } else if (act === "ignore") {
-        await rpc("pay_admin_ignore", { p_key: key, p_credit: id, p_ignore: true });
-      } else if (act === "restore") {
-        await rpc("pay_admin_ignore", { p_key: key, p_credit: id, p_ignore: false });
-      } else if (act === "bind") {
-        const sel = b.closest(".pa-row-actions").querySelector("select");
-        if (!sel || !sel.value) return showToast("Pick the delegate this credit belongs to first.", true);
-        await rpc("pay_admin_bind", { p_key: key, p_credit: id, p_registration: sel.value });
-        showToast("<strong>Bound</strong>The credit now verifies that registration — mail queued.");
+        showToast(act === "paid" ? "<strong>Verified</strong>The confirmation email is queued." : "<strong>Done</strong>The row is updated.");
+      } else if (act === "shot") {
+        b.disabled = true;
+        try {
+          const out = await rpc("pay_admin_shot_url", { p_key: key, p_registration: id });
+          const url = typeof out === "string" ? out : (out && out.signed_url);
+          if (!url) throw new Error("Storage signing is not configured — fill service_key and project_url in app_secrets.");
+          window.open(url, "_blank", "noopener");
+        } finally {
+          b.disabled = false;
+        }
       } else if (act === "requeue") {
         await rpc("pay_admin_requeue", { p_key: key, p_registration: id });
-        showToast("<strong>Requeued</strong>The mail webhook fires again for this delegate.");
-      } else if (act === "ingest") {
-        const t = $("#pay-admin-sms");
-        if (!t || !t.value.trim()) return;
-        await rpc("ingest_credit", { p_key: key, p_body: t.value.trim(), p_src: "manual" });
-        t.value = "";
-        showToast("<strong>Ingested</strong>Parsed and matched — see the feed below.");
+        showToast("<strong>Requeued</strong>The confirmation email fires again for this delegate.");
       }
-      await load();
+      if (act !== "shot") await load();
     } catch (err) {
       showToast(`<strong>Failed</strong>${esc(err.message || "Retry in a moment.")}`, true);
     }

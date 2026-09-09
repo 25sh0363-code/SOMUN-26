@@ -959,13 +959,9 @@
                   <button type="button" class="pay-qr-copy" id="pay-qr-copy" hidden>
                     <i data-icon="copy" data-cls="pay-qr-copy-ic"></i>Copy UPI ID
                   </button>
-                  <button type="button" class="pay-app-btn" id="pay-app-btn" hidden>
-                    <i data-icon="arrow-right" data-cls="pay-app-btn-ic"></i>
-                    <span>Pay via app — GPay · PhonePe · Paytm</span>
-                  </button>
                   <p class="pay-qr-amount">Your exact amount <strong id="pay-qr-amount">₹ —</strong></p>
                   <p class="pay-qr-exact" id="pay-qr-exact" hidden>Pay the <strong>EXACT</strong> amount — the paise are your personal payment ID, and a different amount cannot be matched to you.</p>
-                  <p class="pay-qr-note">Pay from <strong>any UPI app</strong> — the app button opens it with your amount prefilled. If your app refuses the prefilled payment, <strong>copy the UPI ID above and pay manually</strong> — the exact amount is all that matters. Then submit the UTR + screenshot below; the AI desk reads your shot instantly and the secretariat confirms against the bank statement.</p>
+                  <p class="pay-qr-note">Scan the QR with <strong>any UPI app</strong> — your exact amount is already on it, confirm and pay. Prefer typing? <strong>Copy the UPI ID + exact amount</strong> and pay manually — identical to the last paise. Then submit the UTR + screenshot below — both are required; the AI desk reads your shot instantly and the secretariat confirms against the bank statement.</p>
                 </div>
                 <div class="pay-qr-form">
                   <div class="field">
@@ -1102,8 +1098,9 @@
                   </div>
 
                   <div class="field">
-                    <label class="field-label" for="portfolio">Preferred Country / Leader Portfolio</label>
-                    <input class="input" id="portfolio" name="portfolio" placeholder="e.g. France in UNHRC · PM in Lok Sabha" />
+                    <label class="field-label" for="portfolio">Preferred Country / Leader Portfolio <span class="req">*</span></label>
+                    <input class="input" id="portfolio" name="portfolio" required placeholder="e.g. France in UNHRC · PM in Lok Sabha" />
+                    <p class="field-note">Committee and portfolio preferences are both required — browse the allocation matrix above before you choose.</p>
                   </div>
                   <div class="stage-foot">
                     <button type="button" class="stage-back" data-back><i data-icon="chevron-left" data-cls="stage-back-icon"></i> Back</button>
@@ -1121,7 +1118,7 @@
                     <i data-icon="landmark" data-cls="pay-icon" data-sw="1.2"></i>
                     <p class="pay-amount" id="pay-amount">₹ XXXX</p>
                     <p class="pay-badge" id="pay-badge">To be disclosed</p>
-                    <p class="pay-copy" id="pay-copy">The payment portal will open as soon as registrations do. Delegates and Group Delegation share the same fee — nothing is charged until then, and your details stay saved.</p>
+                    <p class="pay-copy" id="pay-copy">The payment portal will open as soon as registrations do. When the fee is announced this panel shows YOUR exact amount — scan the QR with any UPI app, pay it to the last paise, then submit the UTR + payment screenshot. Delegates and Group Delegation share the same fee.</p>
                   </div>
                   <div class="stage-foot">
                     <button type="button" class="stage-back" data-back><i data-icon="chevron-left" data-cls="stage-back-icon"></i> Back</button>
@@ -1136,8 +1133,13 @@
                     <span class="reg-legend-label">Extra Notes</span>
                   </legend>
                   <div class="field">
-                    <label class="field-label" for="notes">Anything the secretariat should know?</label>
-                    <textarea class="input textarea" id="notes" name="notes" rows="5" placeholder="Dietary requirements, access needs, prior achievements, delegation groupings…"></textarea>
+                    <label class="field-label" for="allergies">Allergies &amp; Dietary Restrictions <span class="req">*</span></label>
+                    <input class="input" id="allergies" name="allergies" required placeholder="e.g. peanut allergy · Jain food · none" />
+                    <p class="field-note">Every meal across the three days is covered by your pass — the kitchen is planned against this list, so be specific.</p>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="notes">Anything else the secretariat should know?</label>
+                    <textarea class="input textarea" id="notes" name="notes" rows="5" placeholder="Access needs, prior achievements, delegation groupings…"></textarea>
                   </div>
                   <div class="stage-foot">
                     <button type="button" class="stage-back" data-back><i data-icon="chevron-left" data-cls="stage-back-icon"></i> Back</button>
@@ -1216,25 +1218,13 @@
             <div class="pay-admin-body" id="pay-admin-body" hidden>
               <div class="pay-admin-stats" id="pay-admin-stats"></div>
               <div class="pay-admin-sales" id="pay-admin-sales"></div>
+              <section class="pay-admin-card">
+                <h3 class="pay-admin-h"><i data-icon="badge-check" data-cls="pay-admin-h-ic"></i>Payments awaiting verification</h3>
+                <div class="pay-admin-list" id="pay-admin-pending"></div>
+              </section>
               <div class="pay-admin-cols">
                 <section class="pay-admin-card">
-                  <h3 class="pay-admin-h"><i data-icon="badge-check" data-cls="pay-admin-h-ic"></i>Payments awaiting verification</h3>
-                  <div class="pay-admin-list" id="pay-admin-pending"></div>
-                </section>
-                <section class="pay-admin-card">
-                  <h3 class="pay-admin-h"><i data-icon="landmark" data-cls="pay-admin-h-ic"></i>Bank credits · reconcile</h3>
-                  <p class="pay-admin-sub">Paste the statement's credit lines — each unique amount consumes its registration the moment it lands.</p>
-                  <details class="pay-admin-paste">
-                    <summary>Paste bank statement / SMS lines</summary>
-                    <textarea class="input textarea" id="pay-admin-sms" rows="3" placeholder="Paste the credit lines — the parser extracts each amount + UTR and auto-matches the unique invoice amounts."></textarea>
-                    <button type="button" class="btn btn--outline btn--sm" id="pay-admin-sms-btn">Ingest</button>
-                  </details>
-                  <div class="pay-admin-list" id="pay-admin-credits"></div>
-                </section>
-              </div>
-              <div class="pay-admin-cols">
-                <section class="pay-admin-card">
-                  <h3 class="pay-admin-h"><i data-icon="mail" data-cls="pay-admin-h-ic"></i>Confirmation mail queue</h3>
+                  <h3 class="pay-admin-h"><i data-icon="mail" data-cls="pay-admin-h-ic"></i>Confirmation emails</h3>
                   <div class="pay-admin-list" id="pay-admin-mail"></div>
                 </section>
                 <section class="pay-admin-card">
