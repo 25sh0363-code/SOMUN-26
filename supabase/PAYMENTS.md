@@ -34,18 +34,13 @@ one delegate, ₹2799.07 for the next. The paise are the payment's identity.
      the console signs each screenshot's 1-hour viewing token with it
    - `gemini_api_key` → a free key from aistudio.google.com (**Get API
      key**) — switches the AI screenshot desk on; leave the placeholder
-     to keep it off
+     to keep it off (the UI no longer surfaces AI reads — the RPC
+     `check_shot_ai` stays installed but nothing calls it)
 2. **Fee** — already live in `js/config.js` (`REGISTRATION_FEE: 2799`).
    Change `fee_base_early` in `app_secrets` when a new round is priced.
-3. **AI assistant (optional, pure SQL now)** — paste `ai-shot-check.sql`
-   into the SQL Editor (same idempotent, comment-free style as the other
-   patches), then fill `gemini_api_key` in `app_secrets` with a free key
-   from aistudio.google.com. That is the whole install — the old
-   `check-payment-shot` edge function is **retired** (this replaces it;
-   nothing to deploy, no CLI, no Deno). Each registration gets max 3 AI
-   reads, counted server-side; re-uploading a screenshot resets the
-   count. No key → the site simply skips the AI read, everything else
-   works.
+3. **AI assistant (optional, dormant)** — `ai-shot-check.sql` installs the
+   pure-SQL Gemini desk, but the site no longer shows AI reads anywhere;
+   keep `gemini_api_key` empty and skip this step entirely.
 4. **Screenshot viewing** — two signing routes, storage-sign first: when the
    `http` extension is on (schema resolved from `pg_proc` at run time), storage
    itself signs the link with the `service_key` — a URL storage built is always
@@ -64,8 +59,7 @@ Register (committee preference + country/portfolio preference are
 their **personal exact amount** (₹2799.63-style) → **scan the QR** with any
 UPI app — the amount is already on it — or copy the UPI ID + amount →
 submit the UTR + payment screenshot (both required, front and back end) →
-the AI (if wired) reads the shot and flags match/mismatch inline → status
-stays **verifying** until you confirm.
+status stays **verifying** until you confirm.
 
 ## The secretariat flow (`#/verify`, console key)
 
@@ -82,14 +76,12 @@ The console is two pages behind one key — switch with the tabs at the top:
   box narrows live across every column, and **Export CSV** downloads
   exactly what you see (Excel-ready, UTF-8 BOM) for allocation day.
 
-- **Sales meter** at the top: Invoiced · Confirmed · Awaiting · AI-matched.
+- **Sales meter** at the top: Invoiced · Confirmed · Awaiting.
 - **Payments awaiting verification**: each row shows the invoice amount,
   declared UTR, the delegate's committee + portfolio preference and any
   allergy flag. **View payment** opens the delegate's submitted screenshot
   in a popup inside the page (signed 1-hour URL — the bucket stays private;
-  an "open raw" link remains as fallback). **AI check** asks the Gemini desk
-  to read that screenshot now and toasts the verdict (and the row's AI badge
-  fills in — the same read delegates trigger by submitting). Click
+  an "open raw" link remains as fallback). Click
   **Verify** when the UTR + screenshot + your bank app all agree — that
   flips paid and queues the confirmation email.
 - **Search**: every book (pending · verified · rejected) has its own search
@@ -123,12 +115,9 @@ The console is two pages behind one key — switch with the tabs at the top:
 
 ## Trust ladder (unchanged contract)
 
-Screenshot = claim · AI read = consistency check (advisory, never flips
-paid) · your click after checking UTR + screenshot + bank app = proof.
-A fabricated UTR still trips the unique-UTR index; a wrong amount is
-visible at a glance against the invoice. The AI itself says it best: it
-is not a forensic tool — it only reads what is plainly on the shot, so
-an edited screenshot can still fool it. The bank credit cannot be fooled.
+Screenshot = claim · your click after checking UTR + screenshot + bank app
+= proof. A fabricated UTR still trips the unique-UTR index; a wrong amount
+is visible at a glance against the invoice. The bank credit cannot be fooled.
 
 ## Limits worth knowing
 
@@ -136,7 +125,7 @@ an edited screenshot can still fool it. The bank credit cannot be fooled.
   row frees its suffix. Early-bird capacity is effectively 99 concurrently
   pending payments — reconcile batches to keep slots free.
 - UPI apps let the payer *edit* the prefilled amount. That is fine: editing
-  breaks the watermark and the AI/matcher flags it. The copy tells delegates
+  breaks the watermark and the matcher flags it. The copy tells delegates
   to pay the exact amount.
 - `mail_queue` is the outbox (rows appear in the console). For fully
   automated delivery from your own Gmail, see `supabase/MAIL-SETUP.md`

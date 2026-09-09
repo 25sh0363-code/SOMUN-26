@@ -7,10 +7,9 @@
    the base fee + a UNIQUE paise suffix (early bird ₹2799 → ₹2799.63 for
    one delegate, ₹2799.07 for the next) — the paise are the payment's
    identity. The delegate pays that exact amount (app deep link / QR),
-   submits the UTR + success screenshot, an AI desk reads the shot
-   (advisory only), and the secretariat reconciles the bank statement
-   in #/verify — see supabase/PAYMENTS.md. The dormant Cashfree path
-   below stays for the day KYC ever arrives.
+   submits the UTR + success screenshot, and the secretariat reconciles
+   the bank statement in #/verify — see supabase/PAYMENTS.md. The
+   dormant Cashfree path below stays for the day KYC ever arrives.
 
    SUPABASE — LIVE (keys wired in):
    1. Run supabase/schema.sql ONCE in the Supabase SQL Editor — it

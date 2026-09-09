@@ -940,9 +940,9 @@
             <!-- UPI payment (no-gateway watermark flow): every registration is
                  invoiced the fee + a UNIQUE paise suffix — the paise are the
                  payment's identity. The delegate pays that exact amount (deep
-                 link / QR), submits the UTR + success screenshot; the AI desk
-                 reads the shot advisory-style and the secretariat reconciles
-                 against the bank statement in #/verify (supabase/payment.sql). -->
+                 link / QR), submits the UTR + success screenshot; the
+                 secretariat reconciles against the bank statement in
+                 #/verify (supabase/payment.sql). -->
             <div class="pay-qr-box" id="pay-qr-box" hidden>
               <div class="pay-qr-head">
                 <p class="pay-qr-kicker"><span class="pay-qr-diamond"></span>Settle the fee</p>
@@ -961,7 +961,7 @@
                   </button>
                   <p class="pay-qr-amount">Your exact amount <strong id="pay-qr-amount">₹ —</strong></p>
                   <p class="pay-qr-exact" id="pay-qr-exact" hidden>Pay the <strong>EXACT</strong> amount — the paise are your personal payment ID, and a different amount cannot be matched to you.</p>
-                  <p class="pay-qr-note">Scan the QR with <strong>any UPI app</strong> — your exact amount is already on it, confirm and pay. Prefer typing? <strong>Copy the UPI ID + exact amount</strong> and pay manually — identical to the last paise. Then submit the UTR + screenshot below — both are required; the AI desk reads your shot instantly and the secretariat confirms against the bank statement.</p>
+                  <p class="pay-qr-note">Scan the QR with <strong>any UPI app</strong> — your exact amount is already on it, confirm and pay. Prefer typing? <strong>Copy the UPI ID + exact amount</strong> and pay manually — identical to the last paise. Then submit the UTR + screenshot below — both are required; the secretariat confirms against the bank statement.</p>
                 </div>
                 <div class="pay-qr-form">
                   <div class="field">

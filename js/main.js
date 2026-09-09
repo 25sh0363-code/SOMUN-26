@@ -2006,10 +2006,9 @@ if (SHOW_ITINERARY) {
      The delegate is invoiced the base fee + a UNIQUE paise suffix — the
      paise are the payment's identity. They pay that exact amount (app
      deep link or QR), submit the UTR + success screenshot. Nothing is
-     verified in the browser: the AI desk reads the shot advisory-style,
-     and the secretariat reconciles the bank statement in #/verify —
-     a credit matches its row by UTR first, then by its unique amount,
-     and only then does the row flip paid. ——— */
+     verified in the browser: the secretariat reconciles the bank
+     statement in #/verify — a credit matches its row by UTR first,
+     then by its unique amount, and only then does the row flip paid. ——— */
   /* the UPI URI both the QR and the app button carry — bare spec
      (pa+am+cu): the watermark amount is the payment's identity and
      everything else is decoration for the risk engines to shoot at */
@@ -2255,9 +2254,8 @@ if (SHOW_ITINERARY) {
         btn.disabled = true;
         showToast("<strong>Payment verified</strong>Your payment was already confirmed — see you at the table.");
       } else {
-        setUtrStatus(`<strong>Submitted — your payment is on the verification desk.</strong> The AI desk reads your screenshot right away; the secretariat confirms it against the bank statement and the confirmation mail follows. Keep your reference code <strong>${esc(refCode)}</strong>.`, "wait");
+        setUtrStatus(`<strong>Submitted — your payment is on the verification desk.</strong> The secretariat confirms it against the bank statement and the confirmation mail follows. Keep your reference code <strong>${esc(refCode)}</strong>.`, "wait");
         showToast("<strong>UTR received</strong>You can close this page — the secretariat confirms against the bank statement.");
-        if (shotPath) runShotCheck(refCode);   /* async polish — never blocks the flow */
       }
     } catch (err) {
       const msg = String(err.message || "");
@@ -2275,40 +2273,6 @@ if (SHOW_ITINERARY) {
 
   /* re-entering the register view remounts the wizard at stage I */
   window.__regReset = () => show(0);
-
-  /* ——— AI shot-check (Gemini 2.5 Flash, check_shot_ai SQL RPC) ———
-     Reads the uploaded screenshot back, cross-checks what it shows
-     against the declared UTR / amount / payee VPA, and answers with a
-     consistency verdict. This is a convenience read — it NEVER flips
-     the registration to paid; that stays with the bank feed or the
-     secretariat. Not configured (no gemini_api_key) → silent skip. */
-  async function runShotCheck(refCode) {
-    const el = $("#utr-status");
-    if (!el) return;
-    let line = el.querySelector(".ai-line");
-    if (!line) {
-      line = document.createElement("div");
-      el.appendChild(line);
-    }
-    line.className = "ai-line";
-    line.textContent = "AI is reading your screenshot…";
-    try {
-      const out = await sb("rpc/check_shot_ai", { method: "POST", body: JSON.stringify({ p_ref_code: refCode }) });
-      if (!out || out.status === "paid" || !out.verdict) { line.remove(); return; }
-      const v = out.verdict || {};
-      const read = `${v.app ? v.app + " · " : ""}₹${v.amount ?? "?"}${v.payee_vpa ? " → " + v.payee_vpa : ""}${v.utr ? " · UTR " + v.utr : ""}`;
-      if (v.consistency === "match") {
-        line.innerHTML = `<strong>AI read your screenshot — all consistent ✓</strong> ${esc(read)}. ${esc(v.notes || "")} Final verification still happens the moment your bank credit lands.`;
-        line.classList.add("is-ok");
-      } else if (v.consistency === "mismatch") {
-        line.innerHTML = `<strong>AI spotted a problem in your screenshot.</strong> ${esc((v.anomalies || []).join(" · ") || read)} ${esc(v.notes || "")} If the payment is wrong, pay the exact fee to the conference UPI ID and re-submit; if the screenshot is wrong, upload the correct one.`;
-        line.classList.add("is-bad");
-      } else {
-        line.textContent = `AI couldn't fully read your screenshot — the secretariat will check it by hand. ${v.notes || ""}`;
-        line.classList.add("is-meh");
-      }
-    } catch { line.remove(); }   /* AI polish must never break the flow */
-  }
 
   /* ——— allocation matrix modal ——— */
   const overlay = $("#matrix-overlay");
@@ -2698,30 +2662,17 @@ function whenIST(t) {
     showToast(`<strong>CSV downloaded</strong>${rows.length} row${rows.length === 1 ? "" : "s"} exported.`);
   });
 
-  const aiBadge = (r) => {
-    const v = r.shot_check && r.shot_check.verdict;
-    if (!v) return "";
-    if (v.consistency === "match") {
-      return `<span class="pa-ai pa-ai--ok" title="${esc(v.notes || "AI read: consistent")}">AI ✓</span>`;
-    }
-    if (v.consistency === "mismatch") {
-      return `<span class="pa-ai pa-ai--bad" title="${esc((v.anomalies || []).join(" · ") || v.notes || "AI read: mismatch")}">AI ⚠</span>`;
-    }
-    return `<span class="pa-ai pa-ai--meh" title="${esc(v.notes || "AI could not read the shot")}">AI ?</span>`;
-  };
-
   const rowTpl = {
     pending: (r) => `
         <div class="pa-row" data-id="${esc(r.id)}">
           <div class="pa-row-main">
             <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
             <p class="pa-row-sub">${esc(r.email)} · ${esc(r.phone || "")}${r.institution ? " · " + esc(r.institution) : ""}</p>
-            <p class="pa-row-meta">invoice <strong>${fmtINR(r.expected_amount)}</strong>${r.amount != null ? ` · declared ${fmtINR(r.amount)}` : ""} · UTR <span class="pa-mono">${esc(r.upi_utr || "")}</span> · submitted ${whenIST(r.utr_submitted_at)}${r.status_note ? ` · <em>${esc(r.status_note)}</em>` : ""}${aiBadge(r)}</p>
+            <p class="pa-row-meta">invoice <strong>${fmtINR(r.expected_amount)}</strong>${r.amount != null ? ` · declared ${fmtINR(r.amount)}` : ""} · UTR <span class="pa-mono">${esc(r.upi_utr || "")}</span> · submitted ${whenIST(r.utr_submitted_at)}${r.status_note ? ` · <em>${esc(r.status_note)}</em>` : ""}</p>
             <p class="pa-row-meta">${r.committee_pref1 ? `wants <strong>${esc(String(r.committee_pref1).toUpperCase())}</strong>${r.portfolio ? ` · ${esc(r.portfolio)}` : ""}` : ""}${r.allergies && !/^none$/i.test(r.allergies) ? ` · <span class="pa-hot">ALLERGY: ${esc(r.allergies)}</span>` : ""}</p>
           </div>
           <div class="pa-row-actions">
-            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>
-            <button class="pa-btn" data-act="aichk" data-id="${esc(r.id)}" data-ref="${esc(r.ref_code)}" title="Have the AI desk read this screenshot now">AI check</button>` : ""}
+            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
             <button class="pa-btn pa-btn--ok" data-act="paid" data-id="${esc(r.id)}">Verify</button>
             <button class="pa-btn pa-btn--bad" data-act="failed" data-id="${esc(r.id)}">Reject</button>
           </div>
@@ -2782,7 +2733,6 @@ function whenIST(t) {
         ["Invoiced", fmtINR(t.invoiced), `${t.live_count ?? 0} live registrations`, ""],
         ["Confirmed", fmtINR(t.confirmed), `${t.paid_count ?? 0} verified`, "ok"],
         ["Awaiting", fmtINR(awaiting), "not yet reconciled", awaiting > 0 ? "hot" : ""],
-        ["AI-matched", String(t.ai_matched ?? 0), "pending rows read consistent", ""],
       ].map(([l, v, sub, c]) => `<div class="pa-stat${c ? ` pa-stat--${c}` : ""}"><span class="pa-stat-v">${esc(v)}</span><span class="pa-stat-l">${esc(l)}<em>${esc(sub)}</em></span></div>`).join("");
     }
 
@@ -2944,19 +2894,6 @@ function whenIST(t) {
           const url = typeof out === "string" ? out : (out && out.signed_url);
           if (!url) throw new Error("Storage signing is not configured — fill service_key and project_url in app_secrets.");
           viewShot(url, b.dataset.name);
-        } finally {
-          b.disabled = false;
-        }
-      } else if (act === "aichk") {
-        b.disabled = true;
-        try {
-          const out = await rpc("check_shot_ai", { p_ref_code: b.dataset.ref });
-          const v = out && out.verdict;
-          if (out && out.status === "paid") showToast("<strong>Already verified</strong>No AI read needed — the bank feed or your click settled this row.");
-          else if (v && v.consistency === "match") showToast(`<strong>AI read: consistent ✓</strong>${esc(v.notes || "")}`);
-          else if (v && v.consistency === "mismatch") showToast(`<strong>AI read: mismatch ⚠</strong>${esc((v.anomalies || []).join(" · ") || v.notes || "")}`, true);
-          else if (v) showToast(`<strong>AI read: unclear</strong>${esc(v.notes || "")} Check the screenshot by hand.`);
-          else showToast("<strong>No verdict</strong>The AI desk answered without a read — try again in a moment.");
         } finally {
           b.disabled = false;
         }
