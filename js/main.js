@@ -1972,6 +1972,61 @@ if (SHOW_ITINERARY) {
      and the secretariat reconciles the bank statement in #/verify —
      a credit matches its row by UTR first, then by its unique amount,
      and only then does the row flip paid. ——— */
+  /* the UPI URI both the QR and the app button carry — bare spec
+     (pa+am+cu): the watermark amount is the payment's identity and
+     everything else is decoration for the risk engines to shoot at */
+  function upiPayUri(vpa, amount) {
+    return `upi://pay?pa=${encodeURIComponent(vpa)}&am=${amount.toFixed(2)}&cu=INR`;
+  }
+
+  /* clipboard that survives insecure origins (LAN-IP testing has no
+     navigator.clipboard) — execCommand textarea fallback */
+  async function copyText(t) {
+    try {
+      await navigator.clipboard.writeText(t);
+      return true;
+    } catch { /* insecure origin or denied — fall through */ }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = t;
+      ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /* one tiny QR dependency, fetched only when a pay panel actually arms;
+     jsdelivr primary, unpkg fallback, false when both fail (the panel
+     then degrades to the static image / copy-the-UPI-ID flow) */
+  let qrLibPromise = null;
+  function loadQrLib() {
+    if (window.qrcode) return Promise.resolve(true);
+    if (qrLibPromise) return qrLibPromise;
+    const urls = [
+      "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js",
+      "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js",
+    ];
+    qrLibPromise = new Promise((resolve) => {
+      let i = 0;
+      const next = () => {
+        if (i >= urls.length) return resolve(false);
+        const s = document.createElement("script");
+        s.src = urls[i++];
+        s.onload = () => resolve(!!window.qrcode);
+        s.onerror = () => { s.remove(); next(); };
+        document.head.appendChild(s);
+      };
+      next();
+    });
+    return qrLibPromise;
+  }
+
   function armPayQR(refCode, invoice) {
     if (payFlow() !== "qr") return; // fee undisclosed → nothing to pay yet
     const box = $("#pay-qr-box");
@@ -1993,15 +2048,25 @@ if (SHOW_ITINERARY) {
       exactEl.hidden = false;
     }
 
-    /* QR plate: the image, or a graceful engraved placeholder until the
-       treasurer drops images/payment-qr.png (a UPI id shown as text is
-       always enough to pay) */
+    /* QR plate — generated per delegate, never a static treasurer QR:
+       the watermark amount rides INSIDE the QR (am=), so what gets
+       scanned is the exact personal invoice. And the scan runs inside
+       the UPI app's own scanner — the trusted merchant flow every shop
+       QR in India rides on — which is precisely the road around the
+       risk engines that kill browser-opened upi:// intents. The static
+       IMAGE (if ever configured) survives as the fallback for when the
+       QR library can't load. */
     const img = $("#pay-qr-img");
     const empty = $("#pay-qr-empty");
     const vpa = ((payInvoice && payInvoice.vpa) || (CONFIG.UPI_QR && CONFIG.UPI_QR.UPI_ID) || "").trim();
-    const payeeName = (payInvoice && payInvoice.payee_name) || (CONFIG.UPI_QR && CONFIG.UPI_QR.PAYEE_NAME) || "SOMUN '26";
     const imgSrc = ((CONFIG.UPI_QR && CONFIG.UPI_QR.IMAGE) || "").trim();
-    if (imgSrc) {
+    const uri = vpa ? upiPayUri(vpa, amount) : "";
+
+    const showStatic = () => {
+      if (!imgSrc) {
+        empty.hidden = false;
+        return;
+      }
       img.addEventListener("load", () => { img.hidden = false; empty.hidden = true; }, { once: true });
       img.addEventListener("error", () => {
         img.hidden = true;
@@ -2012,8 +2077,20 @@ if (SHOW_ITINERARY) {
         }
       }, { once: true });
       img.src = imgSrc;
+    };
+
+    if (uri) {
+      loadQrLib().then((ok) => {
+        if (!ok) return showStatic();
+        const qr = window.qrcode(0, "M"); /* typeNumber 0 = auto-size, M = 15% recovery */
+        qr.addData(uri);
+        qr.make();
+        img.src = qr.createDataURL(6, 4); /* chunky GIF — .pay-qr-img renders it pixelated-sharp */
+        img.hidden = false;
+        empty.hidden = true;
+      });
     } else {
-      empty.hidden = false;
+      showStatic();
     }
 
     if (vpa) {
@@ -2023,34 +2100,60 @@ if (SHOW_ITINERARY) {
       const cp = $("#pay-qr-copy");
       cp.hidden = false;
       cp.addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(vpa);
+        const ok = await copyText(vpa);
+        if (ok) {
           cp.classList.add("is-copied");
           setTimeout(() => cp.classList.remove("is-copied"), 2200);
           showToast("<strong>UPI ID copied</strong>Paste it into any UPI app and pay the exact fee.");
-        } catch {
+        } else {
           showToast("Couldn't reach the clipboard — note the UPI ID down manually.", true);
         }
       });
     }
 
-    /* "Pay via app" — the UPI deep link carries the exact watermark amount
-       (apps may let the payer edit it; that breaks the watermark and the
-       verification flags it — the copy above warns them) */
+    /* copy the exact amount too — manual entry is the guaranteed path,
+       and one mistyped paise is an unmatched payment */
+    const amtEl = $("#pay-qr-amount");
+    if (amtEl && vpa) {
+      const amtBtn = document.createElement("button");
+      amtBtn.type = "button";
+      amtBtn.className = "pay-qr-copy pay-qr-copy--amount";
+      amtBtn.textContent = "Copy exact amount";
+      amtBtn.hidden = false;
+      amtBtn.style.marginTop = "6px";
+      amtEl.insertAdjacentElement("afterend", amtBtn);
+      amtBtn.addEventListener("click", async () => {
+        const ok = await copyText(amount.toFixed(2));
+        if (ok) {
+          amtBtn.classList.add("is-copied");
+          setTimeout(() => amtBtn.classList.remove("is-copied"), 2200);
+          showToast("<strong>Amount copied</strong>Paste it as the amount — the paise must land exactly as shown.");
+        } else {
+          showToast("Couldn't reach the clipboard — type the amount exactly as shown, paise included.", true);
+        }
+      });
+    }
+
+    /* the note re-reads for the QR-first flow */
+    const note = $("#pay-qr-note");
+    if (note) {
+      note.innerHTML = `Scan the QR with <strong>any UPI app</strong> — your exact amount is already on it, confirm and pay. The <strong>Pay via app</strong> button is a shortcut some phones refuse; if yours does, <strong>copy the UPI ID + exact amount</strong> and pay manually — identical to the last paise. Then submit the UTR + screenshot below; the AI desk reads your shot instantly and the secretariat confirms against the bank statement.`;
+    }
+
+    /* "Pay via app" — kept as a shortcut, not the headline: several apps
+       now refuse browser-opened upi:// intents outright (their risk
+       engines read them as phishing), which is the exact wall the
+       delegate hits if they skip the QR. When the intent does open,
+       the watermark amount still rides prefiled. */
     const appBtn = $("#pay-app-btn");
     if (appBtn) {
       if (vpa) {
         appBtn.hidden = false;
+        const appLbl = appBtn.querySelector("span");
+        if (appLbl) appLbl.textContent = "Open in UPI app — if blocked, scan the QR";
         appBtn.addEventListener("click", () => {
-          /* Bare-spec link: pa+am+cu only. Declared pn/tn params make some
-             apps run their risk engine harder on intent payments; the app
-             shows the VPA's registered name anyway, and the watermark
-             amount — not the link — is what matches the payment. If an app
-             still refuses, the delegate copies the UPI ID and pays manually
-             (same amount, same watermark, verification unaffected). */
-          const link = `upi://pay?pa=${encodeURIComponent(vpa)}&am=${amount.toFixed(2)}&cu=INR`;
           if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-            window.location.href = link;
+            window.location.href = uri;
           } else {
             showToast("<strong>Open this on your phone</strong>The app button launches your UPI app on a handset — from a laptop, scan the QR (or copy the UPI ID) and pay the exact amount shown.", true);
           }
