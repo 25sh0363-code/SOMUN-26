@@ -3,12 +3,14 @@
    ————————————————————————————————————————————————————————
    The registration form and the resource downloads talk to Supabase.
 
-   PAYMENTS — the school's PAN/KYC is unavailable, so there is NO
-   gateway. The fee is paid to the conference UPI QR and verified
-   AUTOMATICALLY (see supabase/PAYMENT-SETUP.md): the delegate submits
-   the UPI transaction id (UTR), the database cross-matches it against
-   the bank's credit-SMS feed → paid → the confirmation mail queues.
-   The dormant Cashfree path below stays for the day KYC ever arrives.
+   PAYMENTS — no gateway (no PAN/KYC). Every registration is invoiced
+   the base fee + a UNIQUE paise suffix (early bird ₹2799 → ₹2799.63 for
+   one delegate, ₹2799.07 for the next) — the paise are the payment's
+   identity. The delegate pays that exact amount (app deep link / QR),
+   submits the UTR + success screenshot, an AI desk reads the shot
+   (advisory only), and the secretariat reconciles the bank statement
+   in #/verify — see supabase/PAYMENTS.md. The dormant Cashfree path
+   below stays for the day KYC ever arrives.
 
    SUPABASE — LIVE (keys wired in):
    1. Run supabase/schema.sql ONCE in the Supabase SQL Editor — it
@@ -78,25 +80,28 @@ export const CONFIG = {
        create-payment / verify-payment edge functions. Never shipped to
        the browser — the frontend never reads this field.
      CASHFREE_MODE     → "sandbox" while testing, "production" on go-live.
-     REGISTRATION_FEE  → fee in rupees per delegate/IP pass. 0 = not
-       announced yet (stage III shows "to be disclosed", pay box hidden). */
+     REGISTRATION_FEE  → BASE fee in rupees per delegate/IP pass. The
+       delegate's actual invoice = base + their unique paise suffix,
+       stamped server-side at registration (supabase/payment.sql).
+       0 = not announced yet (stage III shows "to be disclosed",
+       pay box hidden). */
   CASHFREE_APP_ID: "",
   CASHFREE_SECRET_KEY: "",
   CASHFREE_MODE: "sandbox",
-  REGISTRATION_FEE: 0,
+  REGISTRATION_FEE: 2799,   /* early-bird base — round one TBD */
 
-  /* ——— UPI QR payments (the live path — no gateway, no KYC) ———
-     IMAGE     → the conference payment QR. Drop the screenshot at
-                 images/payment-qr.png (or paste any hosted URL here).
-     UPI_ID    → the VPA printed under the QR (e.g. "somun26@ybl").
-                 Shown as copyable text beside the QR. Keep "" until
-                 the treasurer shares it.
-     PAYEE_NAME → name displayed with the QR.
+  /* ——— UPI watermark payments (the live path — no gateway, no KYC) ———
+     IMAGE      → the conference payment QR. Drop the screenshot at
+                  images/payment-qr.png (or paste any hosted URL here).
+     UPI_ID     → FALLBACK VPA. The primary source is `payee_vpa` in the
+                  app_secrets table (payment.sql section 1) — the server
+                  returns it with every invoice. Set both or either;
+                  without a VPA the app button stays hidden.
+     PAYEE_NAME → name shown with the QR / deep link.
 
      Verification keys do NOT live in this file — they are set inside
-     Supabase (app_secrets table, see supabase/PAYMENT-SETUP.md):
+     Supabase (app_secrets table, see supabase/PAYMENTS.md):
        admin_key  → unlocks the secretariat console at #/verify
-       ingest_key → goes into the SMS-forwarder app
      While REGISTRATION_FEE is 0 every payment surface stays dormant
      (stage III keeps the "to be disclosed" panel). */
   UPI_QR: {
@@ -104,12 +109,10 @@ export const CONFIG = {
     UPI_ID: "",
     PAYEE_NAME: "SOMUN '26",
 
-    /* REQUIRE_PAYMENT_SHOT → true when nobody at the bank can feed credits
-       (no forwarder, no statements reaching the secretariat). Delegates
-       must then attach the UPI success screenshot — private bucket — and
-       the secretariat verifies each payment by eye in #/verify. Keep
-       false while any automated feed (forwarder or pasted credits) runs. */
-    REQUIRE_PAYMENT_SHOT: false,
+    /* REQUIRE_PAYMENT_SHOT → delegates MUST attach the UPI success
+       screenshot (private payment-shots bucket). The watermark scheme
+       runs on screenshots — keep true. */
+    REQUIRE_PAYMENT_SHOT: true,
   },
 };
 
@@ -148,7 +151,8 @@ export function payFlow() {
   return "none";
 }
 
-const inrFmt = new Intl.NumberFormat("en-IN");
+const inrFmt = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 export function formatINR(n) {
-  return `₹ ${inrFmt.format(Math.round(Number(n)))}`;
+  const v = Math.round(Number(n) * 100) / 100;   /* keep the paise — they are the watermark */
+  return `₹ ${inrFmt.format(v)}`;
 }

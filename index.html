@@ -937,11 +937,12 @@
               </button>
               <p class="pay-now-sub">Secure checkout by Cashfree · UPI, cards &amp; netbanking</p>
             </div>
-            <!-- UPI QR payment (the no-gateway flow): delegate scans the QR,
-                 pays the exact fee, then submits the UPI transaction id (UTR).
-                 The database auto-matches it against the bank's credit-SMS feed
-                 and flips the registration to paid — the confirmation mail is
-                 queued on the match (supabase/payment-setup.sql). -->
+            <!-- UPI payment (no-gateway watermark flow): every registration is
+                 invoiced the fee + a UNIQUE paise suffix — the paise are the
+                 payment's identity. The delegate pays that exact amount (deep
+                 link / QR), submits the UTR + success screenshot; the AI desk
+                 reads the shot advisory-style and the secretariat reconciles
+                 against the bank statement in #/verify (supabase/payment.sql). -->
             <div class="pay-qr-box" id="pay-qr-box" hidden>
               <div class="pay-qr-head">
                 <p class="pay-qr-kicker"><span class="pay-qr-diamond"></span>Settle the fee</p>
@@ -958,8 +959,13 @@
                   <button type="button" class="pay-qr-copy" id="pay-qr-copy" hidden>
                     <i data-icon="copy" data-cls="pay-qr-copy-ic"></i>Copy UPI ID
                   </button>
-                  <p class="pay-qr-amount">Exact amount <strong id="pay-qr-amount">₹ —</strong></p>
-                  <p class="pay-qr-note">Pay from <strong>any UPI app</strong>. The amount must match to the rupee — the auto-verifier pairs your transaction ID with the bank's credit feed the moment it lands.</p>
+                  <button type="button" class="pay-app-btn" id="pay-app-btn" hidden>
+                    <i data-icon="arrow-right" data-cls="pay-app-btn-ic"></i>
+                    <span>Pay via app — GPay · PhonePe · Paytm</span>
+                  </button>
+                  <p class="pay-qr-amount">Your exact amount <strong id="pay-qr-amount">₹ —</strong></p>
+                  <p class="pay-qr-exact" id="pay-qr-exact" hidden>Pay the <strong>EXACT</strong> amount — the paise are your personal payment ID, and a different amount cannot be matched to you.</p>
+                  <p class="pay-qr-note">Pay from <strong>any UPI app</strong> — the app button opens it with your amount prefilled. Then submit the UTR + screenshot below; the AI desk reads your shot instantly and the secretariat confirms against the bank statement.</p>
                 </div>
                 <div class="pay-qr-form">
                   <div class="field">
@@ -968,7 +974,7 @@
                     <p class="field-note">GPay · PhonePe · Paytm → open the payment → <strong>transaction details</strong> → UPI transaction ID. The bank's credit SMS carries it too.</p>
                   </div>
                   <div class="field">
-                    <label class="field-label" for="utr-shot">Payment screenshot <span class="opt">(optional — helps the secretariat)</span></label>
+                    <label class="field-label" for="utr-shot">Payment screenshot <span class="req">*</span> <span class="opt">(the proof the secretariat checks)</span></label>
                     <input class="input input--file" id="utr-shot" type="file" accept="image/png,image/jpeg,image/webp" />
                   </div>
                   <button type="button" class="btn btn--crimson" id="utr-submit">
@@ -1176,11 +1182,12 @@
     </section>
 
     <!-- ———————— VIEW: VERIFY (secretariat console · unlisted) ————————
-         Payment verification desk: pending UTRs, the live bank credit
-         feed, manual verify/reject/bind and the mail queue. Gated by the
-         console key inside Supabase (app_secrets.admin_key) — no nav link,
-         shared by URL only. All data flows through SECURITY DEFINER RPCs
-         (supabase/payment-setup.sql); the anon key can read nothing. -->
+         Payment verification desk: the sales meter, pending UTRs, the
+         bank credit feed (paste statement lines to reconcile), manual
+         verify/reject/bind and the mail queue. Gated by the console key
+         inside Supabase (app_secrets.admin_key) — no nav link, shared by
+         URL only. All data flows through SECURITY DEFINER RPCs
+         (supabase/payment.sql); the anon key can read nothing. -->
     <section class="view" data-view="verify">
       <main>
         <div class="page-wrap">
@@ -1208,17 +1215,18 @@
 
             <div class="pay-admin-body" id="pay-admin-body" hidden>
               <div class="pay-admin-stats" id="pay-admin-stats"></div>
+              <div class="pay-admin-sales" id="pay-admin-sales"></div>
               <div class="pay-admin-cols">
                 <section class="pay-admin-card">
                   <h3 class="pay-admin-h"><i data-icon="badge-check" data-cls="pay-admin-h-ic"></i>Payments awaiting verification</h3>
                   <div class="pay-admin-list" id="pay-admin-pending"></div>
                 </section>
                 <section class="pay-admin-card">
-                  <h3 class="pay-admin-h"><i data-icon="landmark" data-cls="pay-admin-h-ic"></i>Bank credit feed</h3>
-                  <p class="pay-admin-sub">Auto-forwarded credit SMS — a matched row is consumed the moment it lands.</p>
+                  <h3 class="pay-admin-h"><i data-icon="landmark" data-cls="pay-admin-h-ic"></i>Bank credits · reconcile</h3>
+                  <p class="pay-admin-sub">Paste the statement's credit lines — each unique amount consumes its registration the moment it lands.</p>
                   <details class="pay-admin-paste">
-                    <summary>Paste a credit SMS manually</summary>
-                    <textarea class="input textarea" id="pay-admin-sms" rows="3" placeholder="Paste the full bank SMS — the parser extracts the amount and UTR."></textarea>
+                    <summary>Paste bank statement / SMS lines</summary>
+                    <textarea class="input textarea" id="pay-admin-sms" rows="3" placeholder="Paste the credit lines — the parser extracts each amount + UTR and auto-matches the unique invoice amounts."></textarea>
                     <button type="button" class="btn btn--outline btn--sm" id="pay-admin-sms-btn">Ingest</button>
                   </details>
                   <div class="pay-admin-list" id="pay-admin-credits"></div>

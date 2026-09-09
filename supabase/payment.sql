@@ -1,0 +1,665 @@
+-- ══════════════════════════════════════════════════════════════════════
+   SOMUN '26 — PAYMENT LAYER (unique-amount watermark scheme)
+   ══════════════════════════════════════════════════════════════════════
+   How the scheme works:
+   · Every registration is invoiced the base fee + a UNIQUE paise suffix
+     (early bird ₹2799 → ₹2799.63 for one delegate, ₹2799.07 for the
+     next). The paise ARE the payment's identity.
+   · The delegate pays that exact amount (deep link / QR), submits the
+     UTR + a screenshot of the UPI success screen.
+   · An AI assistant (optional) reads the screenshot and cross-checks it
+     against the invoiced amount / VPA / UTR — ADVISORY ONLY, it can
+     never flip a row to paid.
+   · The secretariat reconciles LATER: paste the bank statement lines
+     into the console — every credit line auto-matches its registration
+     by UTR first, then by its unique amount. One credit can only ever
+     satisfy one registration: one payment cannot buy two seats, and a
+     missing amount in the statement names exactly who didn't pay.
+   · A live "sales meter" (invoiced vs confirmed) sits atop the console.
+
+   INSTALL: paste this whole file into Supabase → SQL Editor → Run.
+   It is IDEMPOTENT — run it once or fifty times; it upgrades in place.
+
+   THEN fill the two marked lines in section 1 (payee VPA + console key).
+   ══════════════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────
+   0 · REGISTRATIONS — canonical payment columns (upgrade in place)
+   ───────────────────────────────────────────────────────────── */
+
+create table if not exists registrations (
+  id               bigint generated always as identity primary key,
+  created_at       timestamptz not null default now(),
+  ref_code         text,
+  full_name        text not null,
+  email            text not null,
+  phone            text,
+  institution      text,
+  grade_or_title   text,
+  experience       text default 'novice',
+  committee_pref1  text,
+  committee_pref2  text,
+  committee_pref3  text,
+  portfolio        text,
+  notes            text
+);
+
+alter table registrations add column if not exists tier             text not null default 'early';
+alter table registrations add column if not exists fee_base         int;
+alter table registrations add column if not exists expected_paise   int;
+alter table registrations add column if not exists expected_amount  numeric(10,2);
+alter table registrations add column if not exists upi_utr          text;
+alter table registrations add column if not exists utr_submitted_at timestamptz;
+alter table registrations add column if not exists declared_amount  numeric(10,2);
+alter table registrations add column if not exists shot_path        text;
+alter table registrations add column if not exists shot_check       jsonb;
+alter table registrations add column if not exists payment_status   text not null default 'registered';
+alter table registrations add column if not exists status_note      text;
+alter table registrations add column if not exists paid_at          timestamptz;
+alter table registrations add column if not exists paid_via         text;
+
+-- legacy rows (if any) get the current base fee stamped in
+update registrations set fee_base = 2799 where fee_base is null;
+
+alter table registrations drop constraint if exists registrations_payment_status_check;
+alter table registrations add constraint registrations_payment_status_check
+  check (payment_status in ('registered', 'verifying', 'paid', 'failed'));
+
+-- identity indexes
+create unique index if not exists registrations_ref_code_key
+  on registrations (ref_code) where ref_code is not null;
+create unique index if not exists registrations_utr_key
+  on registrations (upper(upi_utr)) where coalesce(upi_utr, '') <> '';
+-- the watermark lock: one live (unpaid) row per tier per paise suffix.
+-- 'paid' rows free their suffix for reuse; UTR matching stays the
+-- primary signal, so reuse across time is safe.
+create unique index if not exists registrations_paise_live_key
+  on registrations (tier, expected_paise)
+  where expected_paise is not null
+    and payment_status in ('registered', 'verifying');
+
+-- ─────────────────────────────────────────────────────────────
+   1 · APP SECRETS — the two lines YOU must fill
+   ───────────────────────────────────────────────────────────── */
+
+create table if not exists app_secrets (
+  key   text primary key,
+  value text not null default ''
+);
+
+insert into app_secrets (key, value) values
+  ('admin_key',      ''),
+  ('payee_vpa',      ''),
+  ('payee_name',     'SOMUN ''26'),
+  ('fee_base_early', '2799')
+on conflict (key) do nothing;
+
+-- ▼▼▼ EDIT THESE TWO LINES BEFORE RUNNING (or run them alone after) ▼▼▼
+update app_secrets set value = 'PASTE-YOUR-UPI-ID-HERE' where key = 'payee_vpa';       -- e.g. 'somun26@ybl'
+update app_secrets set value = 'PASTE-A-LONG-RANDOM-KEY-HERE' where key = 'admin_key'; -- console key (≥12 chars)
+-- ▲▲▲ the #/verify console stays sealed until admin_key is set ▲▲▲
+
+-- ─────────────────────────────────────────────────────────────
+   2 · ROW SECURITY
+   ───────────────────────────────────────────────────────────── */
+
+alter table registrations enable row level security;
+drop policy if exists regs_anon_insert on registrations;
+create policy regs_anon_insert on registrations
+  for insert to anon
+  with check (
+    payment_status = 'registered'
+    and upi_utr is null and paid_at is null and paid_via is null
+    and expected_paise is null and expected_amount is null
+    and shot_path is null and utr_submitted_at is null
+  );
+-- no SELECT/UPDATE policies for anon: the public can push a row in
+-- (legacy path) but can never read or mutate anyone's registration.
+-- Every read/write beyond this runs through the SECURITY DEFINER RPCs
+-- below or the service-role dashboard.
+
+create table if not exists credits (
+  id          bigint generated always as identity primary key,
+  recv_at     timestamptz not null default now(),
+  src         text not null default 'manual',
+  sender      text,
+  body        text not null,
+  amount_inr  numeric(10,2),
+  utr         text,
+  consumed_by text,
+  ignored     boolean not null default false
+);
+alter table credits enable row level security;
+-- no policies at all: reachable only via the guarded RPCs
+
+create table if not exists mail_queue (
+  id              bigint generated always as identity primary key,
+  registration_id text,
+  to_email        text not null,
+  template        text not null default 'payment_verified',
+  created_at      timestamptz not null default now(),
+  sent_at         timestamptz,
+  attempts        int not null default 0
+);
+alter table mail_queue enable row level security;
+-- no policies: guarded RPCs only. Delivery wiring (Database Webhook →
+-- mailer) is optional and documented in supabase/PAYMENTS.md — until
+-- then the console's mail panel is the outbox the secretariat works.
+
+-- private bucket for payment screenshots (anon may push, never read)
+insert into storage.buckets (id, name, public)
+values ('payment-shots', 'payment-shots', false)
+on conflict (id) do nothing;
+drop policy if exists shots_anon_put on storage.objects;
+create policy shots_anon_put on storage.objects
+  for insert to anon
+  with check (bucket_id = 'payment-shots');
+
+-- ─────────────────────────────────────────────────────────────
+   3 · HELPERS
+   ───────────────────────────────────────────────────────────── */
+
+create or replace function somun_fee_base(p_tier text)
+returns int language sql stable security definer set search_path = public as $$
+  select coalesce(
+    nullif((select value from app_secrets where key = 'fee_base_' || p_tier), '')::int,
+    0)
+$$;
+
+-- a statement/SMS line only counts if it smells like a CREDIT
+create or replace function somun_line_is_credit(p_line text)
+returns boolean language sql immutable as $$
+  select lower(p_line) ~ '(credited|received|deposited|added to|cr[/: ]|/cr/)'
+$$;
+
+-- flip a row to paid exactly once; queue the confirmation mail
+create or replace function somun_flip_paid(p_reg_id registrations.id%TYPE, p_via text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  update registrations
+     set payment_status = 'paid', paid_at = now(), paid_via = p_via
+   where id = p_reg_id and payment_status <> 'paid';
+  if found then
+    insert into mail_queue (registration_id, to_email)
+    select p_reg_id::text, r.email from registrations r
+     where r.id = p_reg_id
+       and not exists (select 1 from mail_queue m
+                        where m.registration_id = p_reg_id::text and m.sent_at is null);
+  end if;
+end $$;
+
+-- guard shared by every console RPC
+create or replace function somun_guard(p_key text)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_key text;
+begin
+  v_key := coalesce(nullif((select value from app_secrets where key = 'admin_key'), ''), '');
+  if v_key = '' then
+    raise exception 'The console key is not set yet — fill the admin_key line in supabase/payment.sql (section 1).';
+  end if;
+  if p_key is null or p_key <> v_key then
+    raise exception 'Invalid console key.';
+  end if;
+end $$;
+
+-- ─────────────────────────────────────────────────────────────
+   4 · REGISTRATION DOOR — validates, stamps the unique invoice
+   ───────────────────────────────────────────────────────────── */
+
+create or replace function register_delegate(
+  p_ref_code      text default null,
+  p_full_name     text default null,
+  p_email         text default null,
+  p_phone         text default null,
+  p_institution   text default null,
+  p_grade_or_title text default null,
+  p_experience    text default 'novice',
+  p_pref1         text default null,
+  p_pref2         text default null,
+  p_pref3         text default null,
+  p_portfolio     text default null,
+  p_notes         text default null
+) returns json
+language plpgsql security definer set search_path = public as $$
+declare
+  v_ref text; v_base int; v_paise int := null; v_try int;
+  v_vpa text; v_name text; v_id registrations.id%TYPE;
+  v_alphabet constant text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+begin
+  p_full_name   := nullif(trim(coalesce(p_full_name, '')), '');
+  p_email       := lower(nullif(trim(coalesce(p_email, '')), ''));
+  p_phone       := nullif(trim(coalesce(p_phone, '')), '');
+  p_institution := nullif(trim(coalesce(p_institution, '')), '');
+  p_pref1       := nullif(trim(coalesce(p_pref1, '')), '');
+
+  if p_full_name is null or length(p_full_name) < 3 then
+    raise exception 'Please share your full name.';
+  end if;
+  if p_email is null or p_email !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' then
+    raise exception 'That email doesn''t look right — please check it.';
+  end if;
+  if p_phone is null or length(regexp_replace(p_phone, '\D', '', 'g')) < 8 then
+    raise exception 'Please enter a valid phone number.';
+  end if;
+  if p_institution is null then
+    raise exception 'Institution / organisation is required.';
+  end if;
+  if p_pref1 is null then
+    raise exception 'Please choose at least one committee preference.';
+  end if;
+
+  -- deconflict the client's reference code (or mint a fresh one)
+  v_ref := upper(nullif(trim(coalesce(p_ref_code, '')), ''));
+  if v_ref is null
+     or v_ref !~ '^SM26-[A-Z0-9]{5}$'
+     or exists (select 1 from registrations r where r.ref_code = v_ref) then
+    v_try := 0;
+    loop
+      v_try := v_try + 1;
+      v_ref := 'SM26-' || (select string_agg(
+                 substr(v_alphabet, 1 + floor(random() * length(v_alphabet))::int, 1), '')
+                 from generate_series(1, 5));
+      exit when not exists (select 1 from registrations r where r.ref_code = v_ref)
+             or v_try >= 7;
+    end loop;
+  end if;
+
+  v_base := somun_fee_base('early');
+  v_vpa  := nullif((select value from app_secrets where key = 'payee_vpa'), '');
+  v_name := coalesce(nullif((select value from app_secrets where key = 'payee_name'), ''), 'SOMUN ''26');
+
+  if v_base > 0 then
+    -- allocate the unique paise watermark: 1..99, random pick, scoped to
+    -- live (unpaid) rows of this tier. Retry on the rare race — the
+    -- partial unique index is the referee.
+    for v_try in 1..7 loop
+      begin
+        select i into v_paise
+          from generate_series(1, 99) i
+         where not exists (
+           select 1 from registrations r
+            where r.tier = 'early' and r.expected_paise = i
+              and r.payment_status in ('registered', 'verifying'))
+         order by random() limit 1;
+        if v_paise is null then
+          raise exception 'The early-bird payment desk is at capacity (99 live invoices) — please retry shortly or write to the secretariat.';
+        end if;
+
+        insert into registrations
+          (ref_code, full_name, email, phone, institution, grade_or_title,
+           experience, committee_pref1, committee_pref2, committee_pref3,
+           portfolio, notes, tier, fee_base, expected_paise, expected_amount,
+           payment_status)
+        values
+          (v_ref, p_full_name, p_email, p_phone, p_institution, p_grade_or_title,
+           coalesce(p_experience, 'novice'), p_pref1, p_pref2, p_pref3,
+           p_portfolio, p_notes, 'early', v_base, v_paise,
+           v_base + v_paise / 100.0, 'registered')
+        returning id into v_id;
+        exit;
+      exception when unique_violation then
+        v_paise := null;   -- someone grabbed the suffix mid-flight — re-pick
+      end;
+    end loop;
+    if v_paise is null then
+      raise exception 'Could not allocate a payment slot — please retry in a moment.';
+    end if;
+  else
+    -- fee not announced yet: register cleanly, no invoice
+    insert into registrations
+      (ref_code, full_name, email, phone, institution, grade_or_title,
+       experience, committee_pref1, committee_pref2, committee_pref3,
+       portfolio, notes, tier, fee_base, payment_status)
+    values
+      (v_ref, p_full_name, p_email, p_phone, p_institution, p_grade_or_title,
+       coalesce(p_experience, 'novice'), p_pref1, p_pref2, p_pref3,
+       p_portfolio, p_notes, 'early', null, 'registered')
+    returning id into v_id;
+  end if;
+
+  return json_build_object(
+    'ref_code', v_ref,
+    'id',       v_id::text,
+    'invoice', case when v_base > 0 and v_paise is not null then
+      json_build_object(
+        'tier', 'early',
+        'base', v_base,
+        'paise', v_paise,
+        'amount', v_base + v_paise / 100.0,
+        'vpa', v_vpa,
+        'payee_name', v_name)
+    else null end);
+end $$;
+
+-- ─────────────────────────────────────────────────────────────
+   5 · UTR DESK — the delegate declares their transaction
+   ───────────────────────────────────────────────────────────── */
+
+create or replace function submit_payment_utr(
+  p_ref_code  text,
+  p_utr       text,
+  p_amount    numeric default null,
+  p_shot_path text default null
+) returns json
+language plpgsql security definer set search_path = public as $$
+declare
+  v registrations%ROWTYPE;
+  v_utr text; v_note text;
+begin
+  select * into v from registrations
+   where ref_code = upper(nullif(trim(coalesce(p_ref_code, '')), ''));
+  if not found then
+    raise exception 'No registration found for that reference code — it looks like SM26-XXXXX and is on your confirmation screen.';
+  end if;
+
+  if v.payment_status = 'paid' then
+    return json_build_object('status', 'paid', 'expected_amount', v.expected_amount);
+  end if;
+
+  v_utr := upper(regexp_replace(coalesce(p_utr, ''), '\s', '', 'g'));
+  if v_utr !~ '^[A-Z0-9]{10,16}$' then
+    raise exception 'That doesn''t look like a UPI transaction ID — it is usually the 12-digit UTR shown under transaction details in your UPI app.';
+  end if;
+  if exists (select 1 from registrations r
+              where upper(r.upi_utr) = v_utr and r.id is distinct from v.id) then
+    raise exception 'This transaction ID is already used by another registration — every UPI payment has its own ID. Please enter the UTR from YOUR payment receipt.';
+  end if;
+
+  if p_amount is not null and v.expected_amount is not null
+     and abs(p_amount - v.expected_amount) > 0.004 then
+    v_note := 'declared ₹' || p_amount::text || ' vs invoice ₹' || v.expected_amount::text;
+  end if;
+
+  begin
+    update registrations
+       set upi_utr = v_utr,
+           utr_submitted_at = now(),
+           declared_amount  = p_amount,
+           shot_path        = coalesce(p_shot_path, shot_path),
+           payment_status   = 'verifying',
+           status_note      = v_note,
+           paid_at = null, paid_via = null
+     where id = v.id;
+  exception when unique_violation then
+    raise exception 'This transaction ID is already used by another registration — every UPI payment has its own ID. Please enter the UTR from YOUR payment receipt.';
+  end;
+
+  return json_build_object('status', 'verifying',
+                           'expected_amount', v.expected_amount,
+                           'shot_path', coalesce(p_shot_path, v.shot_path));
+end $$;
+
+-- ─────────────────────────────────────────────────────────────
+   6 · DELEGATE STATUS LOOKUP (ref code + email pair)
+   ───────────────────────────────────────────────────────────── */
+
+create or replace function payment_status(p_ref_code text, p_email text)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare v registrations%ROWTYPE;
+begin
+  select * into v from registrations
+   where ref_code = upper(nullif(trim(coalesce(p_ref_code, '')), ''))
+     and email = lower(nullif(trim(coalesce(p_email, '')), ''));
+  if not found then
+    raise exception 'Nothing registered under that reference code + email pair — double-check both (the code is on your confirmation screen).';
+  end if;
+  return json_build_object(
+    'status',          v.payment_status,
+    'utr_set',         v.upi_utr is not null,
+    'expected_amount', v.expected_amount,
+    'paid_at',         v.paid_at,
+    'status_note',     v.status_note);
+end $$;
+
+-- ─────────────────────────────────────────────────────────────
+   7 · STATEMENT INGEST — paste bank lines, auto-match by watermark
+       Priority: UTR match first, then the UNIQUE amount (which must be
+       held by EXACTLY ONE live row to count). A credit can only ever
+       satisfy one registration.
+   ───────────────────────────────────────────────────────────── */
+
+create or replace function ingest_credit(
+  p_key  text,
+  p_body text,
+  p_src  text default 'manual'
+) returns json
+language plpgsql security definer set search_path = public as $$
+declare
+  v_lines text[]; v_line text; v_clean text;
+  v_amt numeric; v_utr text; v_credit credits.id%TYPE;
+  v_reg registrations.id%TYPE; v_n int;
+  v_ingested int := 0; v_matched int := 0;
+begin
+  perform somun_guard(p_key);
+  if nullif(trim(coalesce(p_body, '')), '') is null then
+    raise exception 'Nothing to ingest — paste the statement lines first.';
+  end if;
+
+  v_lines := string_to_array(replace(p_body, chr(13), ''), chr(10));
+  foreach v_line in array v_lines loop
+    v_line := btrim(v_line);
+    continue when length(v_line) < 4;
+    continue when not somun_line_is_credit(v_line);
+
+    v_clean := regexp_replace(v_line, ',', '', 'g');
+    v_amt   := null; v_utr := null; v_reg := null;
+
+    -- amount: prefer a currency-marked figure, fall back to any paise-
+    -- exact figure (an invoice amount always carries .XX paise)
+    v_amt := nullif(substring(v_clean from '(?:₹|rs\.?\s?|inr\s?)([0-9]+(?:\.[0-9]{1,2})?)'), '')::numeric;
+    if v_amt is null then
+      v_amt := nullif(substring(v_clean from '\m([0-9]{2,7}\.[0-9]{2})\M'), '')::numeric;
+    end if;
+    -- UTR: a standalone 12-digit number (UPI's classic UTR shape)
+    v_utr := upper(substring(v_clean from '\m([0-9]{12})\M'));
+
+    if v_amt is null and v_utr is null then
+      continue;   -- nothing identifiable on this line
+    end if;
+
+    insert into credits (body, src, amount_inr, utr)
+    values (v_line, p_src, v_amt, v_utr)
+    returning id into v_credit;
+    v_ingested := v_ingested + 1;
+
+    -- match 1 · by UTR (decisive)
+    if v_utr is not null then
+      select id into v_reg from registrations
+       where upper(upi_utr) = v_utr and payment_status = 'verifying'
+       limit 1;
+    end if;
+    -- match 2 · by the unique amount — only when EXACTLY ONE live row
+    -- holds it (the watermark normally guarantees this)
+    if v_reg is null and v_amt is not null then
+      select count(*), min(id) into v_n, v_reg
+        from registrations
+       where expected_amount = v_amt and expected_paise is not null
+         and payment_status in ('registered', 'verifying');
+      if v_n is distinct from 1 then
+        v_reg := null;
+      end if;
+    end if;
+
+    if v_reg is not null then
+      perform somun_flip_paid(v_reg, 'feed·amount');
+      update credits set consumed_by = v_reg::text where id = v_credit;
+      v_matched := v_matched + 1;
+    end if;
+  end loop;
+
+  return json_build_object('ingested', v_ingested, 'matched', v_matched);
+end $$;
+
+-- ─────────────────────────────────────────────────────────────
+   8 · CONSOLE — overview (stats + sales meter + lists)
+   ───────────────────────────────────────────────────────────── */
+
+create or replace function pay_admin_overview(p_key text)
+returns json
+language plpgsql security definer set search_path = public as $$
+begin
+  perform somun_guard(p_key);
+
+  return json_build_object(
+    'stats', json_build_object(
+      'pending_utr',    (select count(*) from registrations where payment_status = 'verifying'),
+      'pending_no_utr', (select count(*) from registrations where payment_status = 'registered'),
+      'paid',           (select count(*) from registrations where payment_status = 'paid'),
+      'failed',         (select count(*) from registrations where payment_status = 'failed'),
+      'unmatched',      (select count(*) from credits where consumed_by is null and not ignored),
+      'mail_waiting',   (select count(*) from mail_queue where sent_at is null)),
+    'totals', json_build_object(
+      'invoiced',   (select coalesce(sum(expected_amount), 0) from registrations
+                      where payment_status in ('registered', 'verifying', 'paid')),
+      'confirmed',  (select coalesce(sum(expected_amount), 0) from registrations
+                      where payment_status = 'paid'),
+      'live_count', (select count(*) from registrations
+                      where payment_status in ('registered', 'verifying', 'paid')),
+      'paid_count', (select count(*) from registrations where payment_status = 'paid'),
+      'ai_matched', (select count(*) from registrations
+                      where payment_status = 'verifying'
+                        and shot_check->'verdict'->>'consistency' = 'match')),
+    'pending', coalesce((
+      select json_agg(x) from (
+        select id::text, ref_code, full_name, email, phone, institution,
+               declared_amount as amount, expected_amount, upi_utr,
+               utr_submitted_at, status_note, shot_path, shot_check
+          from registrations
+         where payment_status = 'verifying'
+         order by utr_submitted_at desc nulls last
+         limit 100) x), json_build_array()),
+    'no_utr', coalesce((
+      select json_agg(x) from (
+        select id::text, ref_code, full_name, institution,
+               expected_amount, created_at
+          from registrations
+         where payment_status = 'registered'
+         order by created_at desc
+         limit 100) x), json_build_array()),
+    'credits', coalesce((
+      select json_agg(x) from (
+        select id::text, recv_at, src, sender, body, amount_inr, utr,
+               consumed_by::text, ignored
+          from credits
+         order by recv_at desc
+         limit 50) x), json_build_array()),
+    'mail', coalesce((
+      select json_agg(x) from (
+        select m.id::text, m.registration_id, m.to_email,
+               m.created_at, m.sent_at, r.full_name
+          from mail_queue m
+          left join registrations r on r.id::text = m.registration_id
+         order by m.sent_at nulls first, m.created_at desc
+         limit 30) x), json_build_array()),
+    'paid_recent', coalesce((
+      select json_agg(x) from (
+        select id::text, ref_code, full_name, expected_amount as amount,
+               upi_utr, paid_at, paid_via
+          from registrations
+         where payment_status = 'paid'
+         order by paid_at desc
+         limit 20) x), json_build_array()));
+end $$;
+
+-- ─────────────────────────────────────────────────────────────
+   9 · CONSOLE — actions (verify / reject / revert / bind / requeue)
+   ───────────────────────────────────────────────────────────── */
+
+create or replace function pay_admin_decide(
+  p_key text, p_registration text, p_action text, p_note text default null
+) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_id registrations.id%TYPE;
+begin
+  perform somun_guard(p_key);
+  select id into v_id from registrations where id::text = p_registration;
+  if not found then raise exception 'Registration not found.'; end if;
+
+  if p_action = 'paid' then
+    perform somun_flip_paid(v_id, 'manual');
+    if coalesce(p_note, '') <> '' then
+      update registrations set status_note = p_note where id = v_id;
+    end if;
+  elsif p_action = 'failed' then
+    update registrations
+       set payment_status = 'failed',
+           status_note = coalesce(nullif(p_note, ''), status_note)
+     where id = v_id;
+  elsif p_action = 'pending' then
+    update registrations
+       set payment_status = case when upi_utr is not null then 'verifying' else 'registered' end,
+           paid_at = null, paid_via = null
+     where id = v_id;
+    delete from mail_queue where registration_id = v_id::text and sent_at is null;
+  else
+    raise exception 'Unknown action.';
+  end if;
+end $$;
+
+create or replace function pay_admin_bind(
+  p_key text, p_credit text, p_registration text
+) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_id registrations.id%TYPE; v_credit credits.id%TYPE;
+begin
+  perform somun_guard(p_key);
+  select id into v_id from registrations where id::text = p_registration;
+  if not found then raise exception 'Registration not found.'; end if;
+  select id into v_credit from credits where id::text = p_credit;
+  if not found then raise exception 'Credit not found.'; end if;
+
+  perform somun_flip_paid(v_id, 'feed·bind');
+  update credits set consumed_by = v_id::text where id = v_credit;
+end $$;
+
+create or replace function pay_admin_ignore(
+  p_key text, p_credit text, p_ignore boolean default true
+) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform somun_guard(p_key);
+  update credits set ignored = p_ignore where id::text = p_credit;
+end $$;
+
+create or replace function pay_admin_requeue(p_key text, p_registration text)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare v_id registrations.id%TYPE; v_email text;
+begin
+  perform somun_guard(p_key);
+  select id, email into v_id, v_email from registrations where id::text = p_registration;
+  if not found then raise exception 'Registration not found.'; end if;
+
+  update mail_queue set sent_at = null, attempts = 0
+   where registration_id = v_id::text and sent_at is not null
+     and created_at = (select max(created_at) from mail_queue
+                        where registration_id = v_id::text);
+  if not exists (select 1 from mail_queue where registration_id = v_id::text and sent_at is null) then
+    insert into mail_queue (registration_id, to_email) values (v_id::text, v_email);
+  end if;
+end $$;
+
+-- ─────────────────────────────────────────────────────────────
+   10 · GRANTS — the public doors, nothing more
+   ───────────────────────────────────────────────────────────── */
+
+grant execute on function
+  register_delegate(text, text, text, text, text, text, text, text, text, text, text, text)
+  to anon, authenticated;
+grant execute on function
+  submit_payment_utr(text, text, numeric, text) to anon, authenticated;
+grant execute on function
+  payment_status(text, text) to anon, authenticated;
+grant execute on function
+  ingest_credit(text, text, text) to anon, authenticated;
+grant execute on function
+  pay_admin_overview(text) to anon, authenticated;
+grant execute on function
+  pay_admin_decide(text, text, text, text) to anon, authenticated;
+grant execute on function
+  pay_admin_bind(text, text, text) to anon, authenticated;
+grant execute on function
+  pay_admin_ignore(text, text, boolean) to anon, authenticated;
+grant execute on function
+  pay_admin_requeue(text, text) to anon, authenticated;

@@ -455,15 +455,15 @@ export const COMMITTEES = [
 export const FEES = [
   {
     label: "Delegate",
-    early: "₹ XXXX",
-    standard: "₹ XXXX",
-    note: "To be disclosed — payment opens as soon as registrations do",
+    early: "₹ 2,799",
+    standard: "TBD",
+    note: "Early bird opens Sep 16 — your invoice carries a unique paise ID",
   },
   {
     label: "Group Delegation",
-    early: "₹ XXXX",
-    standard: "₹ XXXX",
-    note: "Same fee as delegates — to be disclosed",
+    early: "₹ 2,799",
+    standard: "TBD",
+    note: "Same fee as delegates — early bird opens Sep 16",
   },
 ];
 

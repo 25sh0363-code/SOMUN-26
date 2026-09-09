@@ -5721,3 +5721,38 @@ em.accent {
 
 /* small button variant used by the status card + console */
 .btn--sm { padding: 0.55rem 1.1rem; font-size: 0.78rem; }
+
+/* ————— watermark pay flow — the exact-amount desk ————— */
+.pay-app-btn {
+  display: flex; align-items: center; justify-content: center; gap: 0.55rem;
+  width: 100%; margin-top: 0.9rem; padding: 0.78rem 1rem;
+  background: var(--crimson); color: #fff;
+  border: 1px solid rgba(200, 16, 46, 0.9); border-radius: 2px;
+  font-family: var(--font-display); font-size: 0.95rem; letter-spacing: 0.02em;
+  cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.pay-app-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(200, 16, 46, 0.35); }
+.pay-app-btn:active { transform: translateY(0); }
+.pay-app-btn-ic { width: 15px; height: 15px; }
+
+.pay-qr-exact {
+  margin-top: 0.75rem; padding: 0.7rem 0.85rem;
+  border-left: 2px solid rgba(200, 16, 46, 0.85);
+  background: rgba(200, 16, 46, 0.08);
+  font-size: 0.8rem; line-height: 1.6; color: var(--beige-dim);
+}
+.pay-qr-exact strong { color: var(--beige); }
+
+.pay-admin-sales {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  background: var(--line); border: 1px solid var(--line);
+  border-left: 2px solid rgba(200, 16, 46, 0.7);
+}
+.pay-admin-sales .pa-stat-v { font-size: 1.35rem; }
+.pay-admin-sales .pa-stat-l em {
+  display: block; font-style: normal; margin-top: 0.2rem;
+  font-family: "Sarasa Mono SC", ui-monospace, monospace;
+  font-size: 0.62rem; letter-spacing: 0.06em; text-transform: none;
+  color: var(--beige-dim); opacity: 0.85;
+}
+@media (max-width: 900px) { .pay-admin-sales { grid-template-columns: repeat(2, 1fr); } }

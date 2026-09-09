@@ -982,7 +982,7 @@ function renderPayStage() {
       copy.textContent = flow === "cashfree"
         ? "You can settle the fee online right after submitting — UPI, cards and netbanking, checkout powered by Cashfree."
         : flow === "qr"
-        ? "Right after you submit, the confirmation screen shows the SOMUN UPI QR. Pay the exact fee from any UPI app, then enter the 12-digit transaction ID (UTR) — verification against the bank feed is automatic, and your confirmation mail follows the match."
+        ? "Right after you submit, the confirmation screen shows YOUR exact amount — the fee plus a personal paise ID that is yours alone. Pay it with the app button or the QR, then enter the UTR and attach the payment screenshot. The AI desk reads your shot instantly; the secretariat confirms against the bank statement."
         : "Online checkout is being wired up. Your fee is locked in — settle it from the confirmation screen or the payment link emailed to you.";
     }
   }
@@ -1724,6 +1724,10 @@ if (SHOW_ITINERARY) {
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   let cur = 0;
 
+  /* the personal invoice (base fee + unique paise watermark) returned by
+     the registration RPC — consumed by armPayQR and submitUTR */
+  let payInvoice = null;
+
   function makeRefCode() {
     const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     let code = "";
@@ -1821,9 +1825,10 @@ if (SHOW_ITINERARY) {
 
     try {
       let code = refCode;
+      let invoice = null;
       try {
-        /* the RPC door (payment-setup.sql): server-side validation,
-           ref-code deconfliction, no dependence on insert policies */
+        /* the RPC door (supabase/payment.sql): server-side validation,
+           the unique-paise invoice, no dependence on insert policies */
         const out = await sb("rpc/register_delegate", {
           method: "POST",
           body: JSON.stringify({
@@ -1842,6 +1847,7 @@ if (SHOW_ITINERARY) {
           }),
         });
         code = (out && out.ref_code) || refCode;
+        invoice = (out && out.invoice) || null;
       } catch (rpcErr) {
         /* RPC not installed yet → legacy direct insert (schema.sql path) */
         if (!/could not find the function|pgrst202|schema cache/i.test(String(rpcErr.message || ""))) throw rpcErr;
@@ -1855,13 +1861,13 @@ if (SHOW_ITINERARY) {
       $("#refcode").textContent = code;
       $("#reg-form-wrap").hidden = true;
       $("#reg-success").hidden = false;
-      armPayNow(code);
+      armPayNow(code, invoice);
       showToast(`<strong>Registration received</strong>Your reference code is ${code}.`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       const msg = String(err.message || "");
       const hint = /row-level security|permission denied/i.test(msg)
-        ? " The registration desk isn't installed on the database yet — run supabase/schema.sql + supabase/payment-setup.sql in the SQL Editor."
+        ? " The registration desk isn't installed on the database yet — run supabase/payment.sql in the SQL Editor."
         : "";
       showToast(`<strong>Could not submit</strong>${msg || "Unexpected error. Please retry."}${hint}`, true);
     } finally {
@@ -1922,7 +1928,7 @@ if (SHOW_ITINERARY) {
     return verified.json();
   }
 
-  function armPayNow(refCode) {
+  function armPayNow(refCode, invoice) {
     const box = $("#pay-now-box");
     const btn = $("#pay-now-btn");
     if (box && btn && cashfreeEnabled()) {
@@ -1955,32 +1961,45 @@ if (SHOW_ITINERARY) {
       });
       return;
     }
-    armPayQR(refCode);
+    armPayQR(refCode, invoice);
   }
 
-  /* ——— UPI QR payment (the no-gateway path) ———
-     The delegate scans the conference QR, pays the EXACT fee and submits
-     the UPI transaction id (UTR) with an optional screenshot. Nothing is
-     verified here in the browser: supabase/payment-setup.sql (SECURITY
-     DEFINER RPCs) cross-matches the UTR/amount against the bank's credit-
-     SMS feed — forwarded automatically from the treasurer's phone — and
-     flips the row to paid, which queues the confirmation mail. Both time
-     orders work: the credit may land before or after the UTR does. ——— */
-  function armPayQR(refCode) {
+  /* ——— UPI payment (the no-gateway watermark path) ———
+     The delegate is invoiced the base fee + a UNIQUE paise suffix — the
+     paise are the payment's identity. They pay that exact amount (app
+     deep link or QR), submit the UTR + success screenshot. Nothing is
+     verified in the browser: the AI desk reads the shot advisory-style,
+     and the secretariat reconciles the bank statement in #/verify —
+     a credit matches its row by UTR first, then by its unique amount,
+     and only then does the row flip paid. ——— */
+  function armPayQR(refCode, invoice) {
     if (payFlow() !== "qr") return; // fee undisclosed → nothing to pay yet
     const box = $("#pay-qr-box");
     if (!box || box.dataset.armed) return;
     box.dataset.armed = "1";
     box.hidden = false;
 
-    $("#pay-qr-amount").textContent = formatINR(CONFIG.REGISTRATION_FEE);
+    /* the personal watermark invoice — falls back to the flat base fee
+       on the legacy no-RPC path */
+    payInvoice = invoice && invoice.amount != null ? invoice : null;
+    const amount = payInvoice ? Number(payInvoice.amount) : Number(CONFIG.REGISTRATION_FEE);
+    $("#pay-qr-amount").textContent = formatINR(amount);
+
+    const exactEl = $("#pay-qr-exact");
+    if (exactEl) {
+      exactEl.innerHTML = payInvoice && payInvoice.paise != null
+        ? `Pay the <strong>EXACT</strong> amount — the paise (<strong>.${esc(String(payInvoice.paise).padStart(2, "0"))}</strong>) are your personal payment ID. A different amount cannot be matched to you.`
+        : `Pay the <strong>EXACT</strong> fee — it must match to the rupee for verification.`;
+      exactEl.hidden = false;
+    }
 
     /* QR plate: the image, or a graceful engraved placeholder until the
        treasurer drops images/payment-qr.png (a UPI id shown as text is
        always enough to pay) */
     const img = $("#pay-qr-img");
     const empty = $("#pay-qr-empty");
-    const vpa = ((CONFIG.UPI_QR && CONFIG.UPI_QR.UPI_ID) || "").trim();
+    const vpa = ((payInvoice && payInvoice.vpa) || (CONFIG.UPI_QR && CONFIG.UPI_QR.UPI_ID) || "").trim();
+    const payeeName = (payInvoice && payInvoice.payee_name) || (CONFIG.UPI_QR && CONFIG.UPI_QR.PAYEE_NAME) || "SOMUN '26";
     const imgSrc = ((CONFIG.UPI_QR && CONFIG.UPI_QR.IMAGE) || "").trim();
     if (imgSrc) {
       img.addEventListener("load", () => { img.hidden = false; empty.hidden = true; }, { once: true });
@@ -2013,6 +2032,26 @@ if (SHOW_ITINERARY) {
           showToast("Couldn't reach the clipboard — note the UPI ID down manually.", true);
         }
       });
+    }
+
+    /* "Pay via app" — the UPI deep link carries the exact watermark amount
+       (apps may let the payer edit it; that breaks the watermark and the
+       verification flags it — the copy above warns them) */
+    const appBtn = $("#pay-app-btn");
+    if (appBtn) {
+      if (vpa) {
+        appBtn.hidden = false;
+        appBtn.addEventListener("click", () => {
+          const link = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payeeName)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent("SOMUN " + refCode)}`;
+          if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            window.location.href = link;
+          } else {
+            showToast("<strong>Open this on your phone</strong>The app button launches your UPI app on a handset — from a laptop, scan the QR (or copy the UPI ID) and pay the exact amount shown.", true);
+          }
+        });
+      } else {
+        appBtn.hidden = true;
+      }
     }
 
     $("#utr-submit").addEventListener("click", () => submitUTR(refCode));
@@ -2063,7 +2102,7 @@ if (SHOW_ITINERARY) {
     btn.classList.add("submitting");
     btn.disabled = true;
     label.textContent = "Checking the ledger…";
-    setUtrStatus("Cross-matching your UTR against the bank feed…");
+    setUtrStatus("Filing your UTR and screenshot to the verification desk…");
     try {
       let shotPath = null;
       try {
@@ -2082,7 +2121,7 @@ if (SHOW_ITINERARY) {
         body: JSON.stringify({
           p_ref_code: refCode,
           p_utr: utr,
-          p_amount: Number(CONFIG.REGISTRATION_FEE),
+          p_amount: payInvoice ? Number(payInvoice.amount) : Number(CONFIG.REGISTRATION_FEE),
           p_shot_path: shotPath,
         }),
       });
@@ -2090,10 +2129,10 @@ if (SHOW_ITINERARY) {
         setUtrStatus("<strong>Verified — payment matched.</strong> Your fee is settled and the confirmation mail is on its way to your inbox.", "paid");
         $("#utr-input").disabled = true;
         btn.disabled = true;
-        showToast("<strong>Payment verified</strong>The bank feed matched your UTR — see you at the table.");
+        showToast("<strong>Payment verified</strong>Your payment was already confirmed — see you at the table.");
       } else {
-        setUtrStatus(`<strong>Submitted — your UTR is on the verification desk.</strong> It is matched the moment your credit shows up on the bank feed, or verified by the secretariat directly — the confirmation mail goes out right after. Keep your reference code <strong>${esc(refCode)}</strong>.`, "wait");
-        showToast("<strong>UTR received</strong>Verification runs against the live bank feed — no need to wait on this page.");
+        setUtrStatus(`<strong>Submitted — your payment is on the verification desk.</strong> The AI desk reads your screenshot right away; the secretariat confirms it against the bank statement and the confirmation mail follows. Keep your reference code <strong>${esc(refCode)}</strong>.`, "wait");
+        showToast("<strong>UTR received</strong>You can close this page — the secretariat confirms against the bank statement.");
         if (shotPath) runShotCheck(refCode);   /* async polish — never blocks the flow */
       }
     } catch (err) {
@@ -2271,14 +2310,15 @@ if (SHOW_ITINERARY) {
         } else if (out.status === "failed") {
           show("<strong>Not verified.</strong> The secretariat could not match this payment — check the UTR you submitted or write in.", "err");
         } else {
+          const amt = out.expected_amount != null ? ` ₹${Number(out.expected_amount).toFixed(2)}` : "";
           show(out.utr_set
-            ? "<strong>Verifying.</strong> Your UTR is in — the bank feed is watched and the mail fires the moment it matches."
-            : "<strong>Registered — fee pending.</strong> Settle the fee to lock your seat; the payment screens live on your confirmation page.", "wait");
+            ? "<strong>Verifying.</strong> Your UTR and screenshot are in — the secretariat confirms against the bank statement and the confirmation mail fires the moment it does."
+            : `<strong>Registered — fee pending.</strong> Settle the exact amount${amt} — your personal watermark amount — from your confirmation screen to lock your seat.`, "wait");
         }
       } catch (err) {
         const msg = String(err.message || "");
         show(/could not find the function|pgrst202|schema cache/i.test(msg)
-          ? "The status desk isn't installed yet — run supabase/payment-setup.sql."
+          ? "The status desk isn't installed yet — run supabase/payment.sql."
           : esc(msg || "Lookup failed — retry in a moment."), "err");
       }
     });
@@ -2312,7 +2352,12 @@ function whenIST(t) {
   let pollTimer = 0;
 
   const rpc = (fn, args) => sb(`rpc/${fn}`, { method: "POST", body: JSON.stringify(args) });
-  const fmtINR = (n) => (n == null || n === "" ? "—" : `₹ ${Number(n).toLocaleString("en-IN")}`);
+  const fmtINR = (n) => {
+    if (n == null || n === "") return "—";
+    const v = Number(n);
+    const paise = Math.round(v * 100) % 100 !== 0;
+    return `₹ ${v.toLocaleString("en-IN", { minimumFractionDigits: paise ? 2 : 0, maximumFractionDigits: 2 })}`;
+  };
   const shortPath = (p) => (p ? String(p).split("/").pop() : "");
 
   function renderOverview(o) {
@@ -2337,6 +2382,19 @@ function whenIST(t) {
       ["Mails queued", s.mail_waiting || 0, s.mail_waiting ? "hot" : ""],
     ].map(([l, v, c]) => `<div class="pa-stat${c ? ` pa-stat--${c}` : ""}"><span class="pa-stat-v">${esc(v)}</span><span class="pa-stat-l">${esc(l)}</span></div>`).join("");
 
+    /* the sales meter — invoiced vs confirmed, live from the rows */
+    const t = o.totals || {};
+    const sales = $("#pay-admin-sales");
+    if (sales) {
+      const awaiting = Math.max(0, (Number(t.invoiced) || 0) - (Number(t.confirmed) || 0));
+      sales.innerHTML = [
+        ["Invoiced", fmtINR(t.invoiced), `${t.live_count ?? 0} live registrations`, ""],
+        ["Confirmed", fmtINR(t.confirmed), `${t.paid_count ?? 0} verified`, "ok"],
+        ["Awaiting", fmtINR(awaiting), "not yet reconciled", awaiting > 0 ? "hot" : ""],
+        ["AI-matched", String(t.ai_matched ?? 0), "pending rows read consistent", ""],
+      ].map(([l, v, sub, c]) => `<div class="pa-stat${c ? ` pa-stat--${c}` : ""}"><span class="pa-stat-v">${esc(v)}</span><span class="pa-stat-l">${esc(l)}<em>${esc(sub)}</em></span></div>`).join("");
+    }
+
     /* pending UTRs */
     const pend = $("#pay-admin-pending");
     const pending = o.pending || [];
@@ -2348,7 +2406,7 @@ function whenIST(t) {
           <div class="pa-row-main">
             <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
             <p class="pa-row-sub">${esc(r.email)} · ${esc(r.phone || "")}${r.institution ? " · " + esc(r.institution) : ""}</p>
-            <p class="pa-row-meta">declared <strong>${fmtINR(r.amount)}</strong> · UTR <span class="pa-mono">${esc(r.upi_utr || "")}</span> · submitted ${whenIST(r.utr_submitted_at)}${r.status_note ? ` · <em>${esc(r.status_note)}</em>` : ""}${r.shot_path ? ` · shot <span class="pa-mono" title="${esc(r.shot_path)}">${esc(shortPath(r.shot_path))}</span> (view in Dashboard → Storage → payment-shots)` : ""}${aiBadge(r)}</p>
+            <p class="pa-row-meta">invoice <strong>${fmtINR(r.expected_amount)}</strong>${r.amount != null ? ` · declared ${fmtINR(r.amount)}` : ""} · UTR <span class="pa-mono">${esc(r.upi_utr || "")}</span> · submitted ${whenIST(r.utr_submitted_at)}${r.status_note ? ` · <em>${esc(r.status_note)}</em>` : ""}${r.shot_path ? ` · shot <span class="pa-mono" title="${esc(r.shot_path)}">${esc(shortPath(r.shot_path))}</span> (view in Dashboard → Storage → payment-shots)` : ""}${aiBadge(r)}</p>
           </div>
           <div class="pa-row-actions">
             <button class="pa-btn pa-btn--ok" data-act="paid" data-id="${esc(r.id)}">Verify</button>
@@ -2453,7 +2511,7 @@ function whenIST(t) {
     } catch (err) {
       const msg = String(err.message || "");
       setErr(/could not find the function|pgrst202|schema cache/i.test(msg)
-        ? "The console isn't installed on the database yet — run supabase/payment-setup.sql in the SQL Editor first."
+        ? "The console isn't installed on the database yet — run supabase/payment.sql in the SQL Editor first."
         : msg || "Wrong key.");
     }
   }
