@@ -2245,12 +2245,12 @@ if (SHOW_ITINERARY) {
   /* re-entering the register view remounts the wizard at stage I */
   window.__regReset = () => show(0);
 
-  /* ——— AI shot-check (Gemini 2.5 Flash, edge function) ———
+  /* ——— AI shot-check (Gemini 2.5 Flash, check_shot_ai SQL RPC) ———
      Reads the uploaded screenshot back, cross-checks what it shows
      against the declared UTR / amount / payee VPA, and answers with a
      consistency verdict. This is a convenience read — it NEVER flips
      the registration to paid; that stays with the bank feed or the
-     secretariat. Not configured (no GEMINI_API_KEY) → silent skip. */
+     secretariat. Not configured (no gemini_api_key) → silent skip. */
   async function runShotCheck(refCode) {
     const el = $("#utr-status");
     if (!el) return;
@@ -2262,18 +2262,8 @@ if (SHOW_ITINERARY) {
     line.className = "ai-line";
     line.textContent = "AI is reading your screenshot…";
     try {
-      const res = await fetch(`${CONFIG.SUPABASE_URL.replace(/\/$/, "")}/functions/v1/check-payment-shot`, {
-        method: "POST",
-        headers: {
-          apikey: CONFIG.SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ref_code: refCode }),
-      });
-      if (!res.ok) { line.remove(); return; }          /* 503 not configured, 404, cap — silent */
-      const out = await res.json();
-      if (out.error || out.status === "paid" || !out.verdict) { line.remove(); return; }
+      const out = await sb("rpc/check_shot_ai", { method: "POST", body: JSON.stringify({ p_ref_code: refCode }) });
+      if (!out || out.status === "paid" || !out.verdict) { line.remove(); return; }
       const v = out.verdict || {};
       const read = `${v.app ? v.app + " · " : ""}₹${v.amount ?? "?"}${v.payee_vpa ? " → " + v.payee_vpa : ""}${v.utr ? " · UTR " + v.utr : ""}`;
       if (v.consistency === "match") {
@@ -2502,7 +2492,8 @@ function whenIST(t) {
             <p class="pa-row-meta">${r.committee_pref1 ? `wants <strong>${esc(String(r.committee_pref1).toUpperCase())}</strong>${r.portfolio ? ` · ${esc(r.portfolio)}` : ""}` : ""}${r.allergies && !/^none$/i.test(r.allergies) ? ` · <span class="pa-hot">ALLERGY: ${esc(r.allergies)}</span>` : ""}</p>
           </div>
           <div class="pa-row-actions">
-            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
+            ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>
+            <button class="pa-btn" data-act="aichk" data-id="${esc(r.id)}" data-ref="${esc(r.ref_code)}" title="Have the AI desk read this screenshot now">AI check</button>` : ""}
             <button class="pa-btn pa-btn--ok" data-act="paid" data-id="${esc(r.id)}">Verify</button>
             <button class="pa-btn pa-btn--bad" data-act="failed" data-id="${esc(r.id)}">Reject</button>
           </div>
@@ -2621,6 +2612,19 @@ function whenIST(t) {
           const url = typeof out === "string" ? out : (out && out.signed_url);
           if (!url) throw new Error("Storage signing is not configured — fill service_key and project_url in app_secrets.");
           viewShot(url, b.dataset.name);
+        } finally {
+          b.disabled = false;
+        }
+      } else if (act === "aichk") {
+        b.disabled = true;
+        try {
+          const out = await rpc("check_shot_ai", { p_ref_code: b.dataset.ref });
+          const v = out && out.verdict;
+          if (out && out.status === "paid") showToast("<strong>Already verified</strong>No AI read needed — the bank feed or your click settled this row.");
+          else if (v && v.consistency === "match") showToast(`<strong>AI read: consistent ✓</strong>${esc(v.notes || "")}`);
+          else if (v && v.consistency === "mismatch") showToast(`<strong>AI read: mismatch ⚠</strong>${esc((v.anomalies || []).join(" · ") || v.notes || "")}`, true);
+          else if (v) showToast(`<strong>AI read: unclear</strong>${esc(v.notes || "")} Check the screenshot by hand.`);
+          else showToast("<strong>No verdict</strong>The AI desk answered without a read — try again in a moment.");
         } finally {
           b.disabled = false;
         }

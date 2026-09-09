@@ -25,7 +25,7 @@ var FROM_NAME = "SOMUN '26";
 var EVENT = {
   dates: 'October 30 — November 1, 2026',
   venue: 'Silver Oaks International School, Bowrampet Campus',
-  email: 'somundelaffairs@gmail.com'
+  email: 'somunpr@gmail.com'
 };
 
 function doPost(e) {

@@ -78,7 +78,7 @@ begin
           execute format(
             'select s.status, convert_from(s.content, ''utf8'')::jsonb
                from %I.http(%L, %L, %L, %L, array[%I.http_header(''Authorization'', %L)]) s',
-            v_ext, 'POST', v_sign, 'application/json', '{"expiresIn": 3600}', v_ext, 'Bearer ' || v_skey
+            v_ext, 'POST', v_sign, '{"expiresIn": 3600}', 'application/json', v_ext, 'Bearer ' || v_skey
           ) into v_status, v_body;
         exception when others then
           v_r2 := sqlerrm;

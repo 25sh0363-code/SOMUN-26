@@ -32,14 +32,20 @@ one delegate, ₹2799.07 for the next. The paise are the payment's identity.
      the private bucket
    - `jwt_secret` → the `JWT Secret` on the same `Settings → API` page —
      the console signs each screenshot's 1-hour viewing token with it
+   - `gemini_api_key` → a free key from aistudio.google.com (**Get API
+     key**) — switches the AI screenshot desk on; leave the placeholder
+     to keep it off
 2. **Fee** — already live in `js/config.js` (`REGISTRATION_FEE: 2799`).
    Change `fee_base_early` in `app_secrets` when a new round is priced.
-3. **AI assistant (optional)** — get a key at aistudio.google.com, then
-   ```
-   supabase functions deploy check-payment-shot
-   supabase secrets set GEMINI_API_KEY=...
-   ```
-   No key → the site simply skips the AI read, everything else works.
+3. **AI assistant (optional, pure SQL now)** — paste `ai-shot-check.sql`
+   into the SQL Editor (same idempotent, comment-free style as the other
+   patches), then fill `gemini_api_key` in `app_secrets` with a free key
+   from aistudio.google.com. That is the whole install — the old
+   `check-payment-shot` edge function is **retired** (this replaces it;
+   nothing to deploy, no CLI, no Deno). Each registration gets max 3 AI
+   reads, counted server-side; re-uploading a screenshot resets the
+   count. No key → the site simply skips the AI read, everything else
+   works.
 4. **Screenshot viewing** — two signing routes, storage-sign first: when the
    `http` extension is on (schema resolved from `pg_proc` at run time), storage
    itself signs the link with the `service_key` — a URL storage built is always
@@ -68,9 +74,11 @@ stays **verifying** until you confirm.
   declared UTR, the delegate's committee + portfolio preference and any
   allergy flag. **View payment** opens the delegate's submitted screenshot
   in a popup inside the page (signed 1-hour URL — the bucket stays private;
-  an "open raw" link remains as fallback). Click **Verify** when the
-  UTR + screenshot + your bank app all agree — that flips paid and queues
-  the confirmation email.
+  an "open raw" link remains as fallback). **AI check** asks the Gemini desk
+  to read that screenshot now and toasts the verdict (and the row's AI badge
+  fills in — the same read delegates trigger by submitting). Click
+  **Verify** when the UTR + screenshot + your bank app all agree — that
+  flips paid and queues the confirmation email.
 - **Confirmation emails**: the outbox — waiting to send / sent times, with
   a Requeue button per delegate.
 - **Recently verified / Rejected payments**: the two books. Rejected rows
@@ -89,7 +97,9 @@ stays **verifying** until you confirm.
 Screenshot = claim · AI read = consistency check (advisory, never flips
 paid) · your click after checking UTR + screenshot + bank app = proof.
 A fabricated UTR still trips the unique-UTR index; a wrong amount is
-visible at a glance against the invoice.
+visible at a glance against the invoice. The AI itself says it best: it
+is not a forensic tool — it only reads what is plainly on the shot, so
+an edited screenshot can still fool it. The bank credit cannot be fooled.
 
 ## Limits worth knowing
 
