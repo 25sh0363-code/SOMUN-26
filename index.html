@@ -1216,30 +1216,57 @@
             </div>
 
             <div class="pay-admin-body" id="pay-admin-body" hidden>
-              <div class="pay-admin-stats" id="pay-admin-stats"></div>
-              <div class="pay-admin-sales" id="pay-admin-sales"></div>
-              <section class="pay-admin-card">
-                <h3 class="pay-admin-h"><i data-icon="badge-check" data-cls="pay-admin-h-ic"></i>Payments awaiting verification</h3>
-                <div class="pa-search"><input class="input" id="pay-search-pending" data-book="pending" type="text" placeholder="Search pending by name, ref code, email or UTR" autocomplete="off" /></div>
-                <div class="pay-admin-list" id="pay-admin-pending"></div>
-              </section>
-              <div class="pay-admin-cols">
+              <nav class="pa-tabs" role="tablist" aria-label="Console pages">
+                <button type="button" class="pa-tab is-on" data-patab="desk" role="tab" aria-selected="true">Payment desk</button>
+                <button type="button" class="pa-tab" data-patab="regs" role="tab" aria-selected="false">All registrants</button>
+              </nav>
+
+              <div class="pa-page" id="pa-page-desk">
+                <div class="pay-admin-stats" id="pay-admin-stats"></div>
+                <div class="pay-admin-sales" id="pay-admin-sales"></div>
                 <section class="pay-admin-card">
-                  <h3 class="pay-admin-h"><i data-icon="mail" data-cls="pay-admin-h-ic"></i>Confirmation emails</h3>
-                  <div class="pay-admin-list" id="pay-admin-mail"></div>
+                  <h3 class="pay-admin-h"><i data-icon="badge-check" data-cls="pay-admin-h-ic"></i>Payments awaiting verification</h3>
+                  <div class="pa-search"><input class="input" id="pay-search-pending" data-book="pending" type="text" placeholder="Search pending by name, ref code, email or UTR" autocomplete="off" /></div>
+                  <div class="pay-admin-list" id="pay-admin-pending"></div>
                 </section>
+                <div class="pay-admin-cols">
+                  <section class="pay-admin-card">
+                    <h3 class="pay-admin-h"><i data-icon="mail" data-cls="pay-admin-h-ic"></i>Confirmation emails</h3>
+                    <div class="pay-admin-list" id="pay-admin-mail"></div>
+                  </section>
+                  <section class="pay-admin-card">
+                    <h3 class="pay-admin-h"><i data-icon="gavel" data-cls="pay-admin-h-ic"></i>Verified payments</h3>
+                    <div class="pa-search"><input class="input" id="pay-search-paid" data-book="paid" type="text" placeholder="Search verified by name, ref code, email or UTR" autocomplete="off" /></div>
+                    <div class="pay-admin-list" id="pay-admin-paid"></div>
+                  </section>
+                </div>
                 <section class="pay-admin-card">
-                  <h3 class="pay-admin-h"><i data-icon="gavel" data-cls="pay-admin-h-ic"></i>Verified payments</h3>
-                  <div class="pa-search"><input class="input" id="pay-search-paid" data-book="paid" type="text" placeholder="Search verified by name, ref code, email or UTR" autocomplete="off" /></div>
-                  <div class="pay-admin-list" id="pay-admin-paid"></div>
+                  <h3 class="pay-admin-h"><i data-icon="x" data-cls="pay-admin-h-ic"></i>Rejected payments</h3>
+                  <div class="pa-search"><input class="input" id="pay-search-rejected" data-book="rejected" type="text" placeholder="Search rejected by name, ref code, email or UTR" autocomplete="off" /></div>
+                  <div class="pay-admin-list" id="pay-admin-rejected"></div>
                 </section>
               </div>
-              <section class="pay-admin-card">
-                <h3 class="pay-admin-h"><i data-icon="x" data-cls="pay-admin-h-ic"></i>Rejected payments</h3>
-                <div class="pa-search"><input class="input" id="pay-search-rejected" data-book="rejected" type="text" placeholder="Search rejected by name, ref code, email or UTR" autocomplete="off" /></div>
-                <div class="pay-admin-list" id="pay-admin-rejected"></div>
-              </section>
-            </div>
+
+              <div class="pa-page" id="pa-page-regs" hidden>
+                <section class="pay-admin-card">
+                  <h3 class="pay-admin-h"><i data-icon="users" data-cls="pay-admin-h-ic"></i>All registrants — the master register</h3>
+                  <div class="regs-tools">
+                    <input class="input" id="regs-search" type="text" placeholder="Filter by name, ref code, email, committee, country or institution" autocomplete="off" />
+                    <button type="button" class="pa-btn" id="regs-refresh" title="Pull the roster fresh from the ledger">Refresh</button>
+                    <button type="button" class="pa-btn" id="regs-csv" title="Download what you see as a spreadsheet">Export CSV</button>
+                  </div>
+                  <p class="regs-count" id="regs-count" hidden></p>
+                  <p class="regs-err" id="regs-err" hidden></p>
+                  <div class="regs-scroll">
+                    <table class="regs-table">
+                      <thead><tr>
+                        <th>#</th><th>Registered</th><th>Ref code</th><th>Delegate</th><th>Contact</th><th>Institution</th><th>Exp.</th><th>Pref I</th><th>Pref II</th><th>Pref III</th><th>Country / portfolio</th><th>Fee</th><th>UTR</th><th>Status</th>
+                      </tr></thead>
+                      <tbody id="regs-tbody"><tr><td colspan="14" class="regs-empty">Opening this page pulls the whole roster…</td></tr></tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
 
             <!-- payment screenshot lightbox — the signed link renders
                  inside this page as a popup; the raw link stays one

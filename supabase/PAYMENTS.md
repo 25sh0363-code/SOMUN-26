@@ -69,6 +69,19 @@ stays **verifying** until you confirm.
 
 ## The secretariat flow (`#/verify`, console key)
 
+The console is two pages behind one key — switch with the tabs at the top:
+
+- **Payment desk** — everything below: the meter, the UTR books, the
+  outbox, the bank feed.
+- **All registrants** — the master register (`pay_admin_registrants`,
+  section 8c of payment.sql): every registrant in one table regardless of
+  payment state — registered date, ref code, name + grade, email + phone,
+  institution, experience, committee prefs I–III, country / portfolio,
+  fee, UTR and a status chip (fee pending · verifying · verified ·
+  rejected, with the rejection reason under rejected rows). The filter
+  box narrows live across every column, and **Export CSV** downloads
+  exactly what you see (Excel-ready, UTF-8 BOM) for allocation day.
+
 - **Sales meter** at the top: Invoiced · Confirmed · Awaiting · AI-matched.
 - **Payments awaiting verification**: each row shows the invoice amount,
   declared UTR, the delegate's committee + portfolio preference and any

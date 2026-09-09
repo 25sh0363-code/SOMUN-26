@@ -2575,6 +2575,129 @@ function whenIST(t) {
   const bookSearch = { pending: null, paid: null, rejected: null };
   let lastOverview = null;
 
+  /* — the second page: the master register, every registrant one table — */
+  const regsPage = $("#pa-page-regs");
+  const regsTbody = $("#regs-tbody");
+  const regsCount = $("#regs-count");
+  const regsErr = $("#regs-err");
+  const regsSearch = $("#regs-search");
+  let regsCache = null;
+  let regsLoading = false;
+  let regsStale = true;
+
+  const cmtAcronym = (slug) => {
+    if (!slug) return "—";
+    const c = REG_OPTIONS.find((x) => x.slug === slug);
+    return c ? c.acronym : String(slug).toUpperCase();
+  };
+  const EXP_LABEL = { novice: "Novice", intermediate: "Interm.", veteran: "Veteran" };
+  const STATUS_CHIP = {
+    registered: ["fee pending", "wait"],
+    verifying: ["verifying", "hot"],
+    paid: ["verified", "ok"],
+    failed: ["rejected", "bad"],
+  };
+
+  const regsFiltered = () => {
+    const q = (regsSearch.value || "").trim().toLowerCase();
+    if (!q) return regsCache || [];
+    return (regsCache || []).filter((r) => [
+      r.full_name, r.ref_code, r.email, r.phone, r.institution,
+      r.portfolio, r.committee_pref1, r.committee_pref2, r.committee_pref3,
+      r.upi_utr,
+    ].some((v) => v && String(v).toLowerCase().includes(q)));
+  };
+
+  const regsRow = (r, i) => {
+    const [label, mood] = STATUS_CHIP[r.payment_status] || [r.payment_status || "—", ""];
+    return `<tr>
+      <td class="regs-num">${i + 1}</td>
+      <td class="regs-nowrap">${whenIST(r.created_at)}</td>
+      <td><span class="pa-code">${esc(r.ref_code || "—")}</span></td>
+      <td class="regs-name"><strong>${esc(r.full_name)}</strong>${r.grade_or_title ? `<em>${esc(r.grade_or_title)}</em>` : ""}</td>
+      <td class="regs-contact"><a href="mailto:${esc(r.email)}">${esc(r.email)}</a>${r.phone ? `<span>${esc(r.phone)}</span>` : ""}</td>
+      <td>${esc(r.institution || "—")}</td>
+      <td>${esc(EXP_LABEL[r.experience] || r.experience || "—")}</td>
+      <td class="regs-cmt">${esc(cmtAcronym(r.committee_pref1))}</td>
+      <td class="regs-cmt">${esc(cmtAcronym(r.committee_pref2))}</td>
+      <td class="regs-cmt">${esc(cmtAcronym(r.committee_pref3))}</td>
+      <td class="regs-portfolio" title="${esc(r.portfolio || "")}">${esc(r.portfolio || "—")}</td>
+      <td class="regs-nowrap">${r.expected_amount != null ? fmtINR(r.expected_amount) : "—"}</td>
+      <td class="pa-mono regs-nowrap">${esc(r.upi_utr || "—")}</td>
+      <td class="regs-nowrap"><span class="regs-chip regs-chip--${mood}">${esc(label)}</span>${r.payment_status === "paid" && r.paid_at ? `<em class="regs-why">${whenIST(r.paid_at)}</em>` : ""}${r.payment_status === "failed" && r.status_note ? `<em class="regs-why" title="${esc(r.status_note)}">${esc(r.status_note)}</em>` : ""}</td>
+    </tr>`;
+  };
+
+  function renderRegistrants() {
+    if (!regsCache) return;
+    const rows = regsFiltered();
+    regsTbody.innerHTML = rows.length
+      ? rows.map(regsRow).join("")
+      : `<tr><td colspan="14" class="regs-empty">${(regsSearch.value || "").trim() ? "No registrant matches that filter." : "No registrants yet — the roster fills as applications land."}</td></tr>`;
+    regsCount.hidden = false;
+    regsCount.innerHTML = `<b>${rows.length}</b> shown · <b>${regsCache.length}</b> total${(regsSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
+  }
+
+  async function loadRegistrants() {
+    if (!key || regsLoading) return;
+    regsLoading = true;
+    regsErr.hidden = true;
+    try {
+      const rows = await rpc("pay_admin_registrants", { p_key: key });
+      regsCache = rows || [];
+      regsStale = false;
+      renderRegistrants();
+    } catch (err) {
+      const msg = String(err.message || "");
+      regsErr.hidden = false;
+      regsErr.innerHTML = /could not find the function|pgrst202|schema cache/i.test(msg)
+        ? "The master register isn't installed on the database yet — re-run supabase/payment.sql in the SQL Editor."
+        : esc(msg || "Could not pull the roster — try Refresh in a moment.");
+    } finally {
+      regsLoading = false;
+    }
+  }
+
+  function setTab(which) {
+    $$(".pa-tab").forEach((x) => {
+      const on = x.dataset.patab === which;
+      x.classList.toggle("is-on", on);
+      x.setAttribute("aria-selected", on);
+    });
+    $("#pa-page-desk").hidden = which !== "desk";
+    regsPage.hidden = which !== "regs";
+    if (which === "regs" && (regsStale || !regsCache)) loadRegistrants();
+  }
+  $$(".pa-tab").forEach((t) => t.addEventListener("click", () => setTab(t.dataset.patab)));
+
+  if (regsSearch) regsSearch.addEventListener("input", renderRegistrants);
+  const regsRefresh = $("#regs-refresh");
+  if (regsRefresh) regsRefresh.addEventListener("click", loadRegistrants);
+  const regsCsv = $("#regs-csv");
+  if (regsCsv) regsCsv.addEventListener("click", () => {
+    const rows = regsFiltered();
+    if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no rows.", true);
+    const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const line = (arr) => arr.map(cell).join(",");
+    const head = ["#", "Registered", "Ref code", "Name", "Grade/Title", "Email", "Phone", "Institution", "Experience", "Committee pref I", "Committee pref II", "Committee pref III", "Country / portfolio", "Status", "Fee", "UTR", "UTR submitted", "Verified at", "Note"];
+    const body = rows.map((r, i) => line([
+      i + 1, whenIST(r.created_at), r.ref_code, r.full_name, r.grade_or_title,
+      r.email, r.phone, r.institution, EXP_LABEL[r.experience] || r.experience,
+      cmtAcronym(r.committee_pref1), cmtAcronym(r.committee_pref2), cmtAcronym(r.committee_pref3),
+      r.portfolio, (STATUS_CHIP[r.payment_status] || [r.payment_status])[0],
+      r.expected_amount != null ? Number(r.expected_amount).toFixed(2) : "",
+      r.upi_utr, r.utr_submitted_at ? whenIST(r.utr_submitted_at) : "",
+      r.paid_at ? whenIST(r.paid_at) : "", r.status_note,
+    ]));
+    const blob = new Blob(["\uFEFF" + line(head) + "\r\n" + body.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `somun26-registrants-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    showToast(`<strong>CSV downloaded</strong>${rows.length} row${rows.length === 1 ? "" : "s"} exported.`);
+  });
+
   const aiBadge = (r) => {
     const v = r.shot_check && r.shot_check.verdict;
     if (!v) return "";
@@ -2737,6 +2860,7 @@ function whenIST(t) {
       pollTimer = setInterval(() => {
         if (document.hidden || !view.classList.contains("active") || !key) return;
         load().catch(() => { /* transient — next poll retries */ });
+        if (!regsPage.hidden) loadRegistrants();
       }, 20000);
     }
   }
@@ -2846,6 +2970,8 @@ function whenIST(t) {
         const bk = list ? list.id.replace("pay-admin-", "") : null;
         if (bk && bookSearch[bk]) await refreshBookSearch(bk);
         await load();
+        regsStale = true;
+        if (!regsPage.hidden) loadRegistrants();
       }
     } catch (err) {
       showToast(`<strong>Failed</strong>${esc(err.message || "Retry in a moment.")}`, true);

@@ -731,6 +731,30 @@ begin
 end $$;
 
 -- ─────────────────────────────────────────────────────────────
+   8c · CONSOLE — master register: every registrant, every status,
+        the whole roster in one table (committee + country prefs,
+        fee, UTR, verified or not) — the console's second page
+   ───────────────────────────────────────────────────────────── */
+
+create or replace function pay_admin_registrants(p_key text)
+returns json
+language plpgsql stable security definer set search_path = public as $$
+begin
+  perform somun_guard(p_key);
+
+  return coalesce((
+    select json_agg(x) from (
+      select id::text, created_at, ref_code, full_name, email, phone,
+             institution, grade_or_title, experience,
+             committee_pref1, committee_pref2, committee_pref3, portfolio,
+             payment_status, expected_amount, upi_utr, utr_submitted_at,
+             paid_at, status_note
+        from registrations
+       order by created_at desc
+       limit 5000) x), json_build_array());
+end $$;
+
+-- ─────────────────────────────────────────────────────────────
    9 · CONSOLE — actions (verify / reject / revert / bind / requeue)
    ───────────────────────────────────────────────────────────── */
 
@@ -1221,6 +1245,8 @@ grant execute on function
   pay_admin_overview(text) to anon, authenticated;
 grant execute on function
   pay_admin_search(text, text, text) to anon, authenticated;
+grant execute on function
+  pay_admin_registrants(text) to anon, authenticated;
 grant execute on function
   pay_admin_decide(text, text, text, text) to anon, authenticated;
 grant execute on function

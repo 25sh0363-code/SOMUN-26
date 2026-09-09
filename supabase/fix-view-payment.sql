@@ -217,6 +217,24 @@ begin
          limit 20) x), json_build_array()));
 end $$;
 
+create or replace function pay_admin_registrants(p_key text)
+returns json
+language plpgsql stable security definer set search_path = public as $$
+begin
+  perform somun_guard(p_key);
+
+  return coalesce((
+    select json_agg(x) from (
+      select id::text, created_at, ref_code, full_name, email, phone,
+             institution, grade_or_title, experience,
+             committee_pref1, committee_pref2, committee_pref3, portfolio,
+             payment_status, expected_amount, upi_utr, utr_submitted_at,
+             paid_at, status_note
+        from registrations
+       order by created_at desc
+       limit 5000) x), json_build_array());
+end $$;
+
 create or replace function pay_admin_decide(
   p_key text, p_registration text, p_action text, p_note text default null
 ) returns void
@@ -278,3 +296,4 @@ end $$;
 alter table mail_queue add column if not exists last_error text;
 
 grant execute on function pay_admin_shot_url(text, text) to anon, authenticated;
+grant execute on function pay_admin_registrants(text) to anon, authenticated;
