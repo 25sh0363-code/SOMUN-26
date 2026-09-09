@@ -1,45 +1,62 @@
 -- ══════════════════════════════════════════════════════════════════
-  fix-view-payment.sql — console patch, Sep 10
+  fix-view-payment.sql — console patch v3, Sep 10
 
-  Three things in one idempotent paste:
+  View payment now signs the storage token ITSELF — a storage signed
+  URL is just an HS256 JWT, and pgcrypto's hmac() computes it in pure
+  SQL. No http extension, no schema guessing, no network hop.
 
-  1. View payment died with schema "http" does not exist —
-     Supabase installs the http extension into its `extensions`
-     schema, and the old function hardcoded `http.`. Now the real
-     schema is resolved from pg_extension at run time (and the
-     extension installs itself into `extensions` while still off).
+  SETUP (2 minutes, one-time):
+    Supabase → Settings → API → "JWT Secret" → Reveal → copy.
+    Then Table Editor → app_secrets → the jwt_secret row → paste.
+    (This patch plants that row; it never overwrites a real value.)
 
-  2. The console gains its Rejected payments book — the overview
-     RPC ships `rejected_recent` (name, email, invoice, UTR,
-     rejection reason) beside the verified list.
-
-  3. Restoring a rejected row now clears its stale rejection
-     reason, while reverting a verified row keeps its notes.
+  HOW IT WORKS
+    route 1 · jwt_secret filled → the RPC signs the token itself
+              (base64url header.payload.signature, hmac-sha256)
+    route 2 · jwt_secret still empty → falls back to the http
+              extension calling storage's sign endpoint, with the
+              extension's real schema resolved from pg_proc
+    nothing filled → a plain-English error says exactly which cell
 
   Run: whole file, once, in Supabase → SQL Editor. Safe to re-run.
-  Nothing else is touched — delegates, payments and the admin key
-  stay exactly as they are. Then refresh the console page.
+  Touches app_secrets seeding + three console RPCs (shot URL, overview,
+  decide). Then refresh the console page and click View payment.
 -- ══════════════════════════════════════════════════════════════════
+
+-- the secret store: plant the jwt_secret row if it is not there yet
+insert into app_secrets (key, value)
+values ('jwt_secret', 'PASTE-YOUR-JWT-SECRET-HERE')
+on conflict (key) do nothing;
+update app_secrets set value = 'PASTE-YOUR-JWT-SECRET-HERE'
+  where key = 'jwt_secret' and (value = '' or value like 'PASTE-%');
+
+create extension if not exists pgcrypto;
 
 do $$ begin
   if not exists (select 1 from pg_extension where extname = 'http') then
     create schema if not exists extensions;
     execute 'create extension http with schema extensions';
   end if;
+exception when others then
+  null; -- route 2 only — route 1 needs no extension
 end $$;
 
 create or replace function pay_admin_shot_url(p_key text, p_registration text)
 returns text
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare
-  v_path    text;
-  v_skey    text;
-  v_base    text;
-  v_ext     text;
-  v_sign    text;
-  v_status  int;
-  v_body    jsonb;
-  v_url     text;
+  v_path   text;
+  v_skey   text;
+  v_base   text;
+  v_jsec   text;
+  v_hdr    text;
+  v_pl     text;
+  v_sig    text;
+  v_ext    text;
+  v_sign   text;
+  v_status int;
+  v_body   jsonb;
+  v_url    text;
 begin
   perform somun_guard(p_key);
   select shot_path into v_path from registrations where id::text = p_registration;
@@ -54,10 +71,33 @@ begin
     raise exception 'Screenshot viewing is not configured yet — fill service_key and project_url in app_secrets (Dashboard → Settings → API).';
   end if;
 
-  -- where does this project actually keep the http extension?
-  v_ext := (select extnamespace::regnamespace::text from pg_extension where extname = 'http');
+  -- ── route 1 · sign the storage token right here, no extension ──
+  --    token = base64url(header).base64url(payload).base64url(
+  --            hmac-sha256(header.payload, jwt_secret))
+  v_jsec := nullif((select value from app_secrets where key = 'jwt_secret'), '');
+  if v_jsec is not null and v_jsec not like 'PASTE-%' then
+    v_hdr := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'; -- {"alg":"HS256","typ":"JWT"}
+    v_pl  := translate(replace(encode(convert_to(json_build_object(
+                 'url', '/object/sign/payment-shots/' || v_path,
+                 'exp', extract(epoch from now())::bigint + 3600)::text,
+                 'utf8'), 'base64'), chr(10), ''), '+/', '-_');
+    v_pl  := rtrim(v_pl, '=');
+    v_sig := translate(replace(encode(hmac(v_hdr || '.' || v_pl, v_jsec, 'sha256'),
+                 'base64'), chr(10), ''), '+/', '-_');
+    v_sig := rtrim(v_sig, '=');
+    return trim(trailing '/' from v_base)
+         || '/storage/v1/object/sign/payment-shots/' || v_path
+         || '?token=' || v_hdr || '.' || v_pl || '.' || v_sig;
+  end if;
+
+  -- ── route 2 · the http extension asks storage to sign (fallback) ──
+  v_ext := (select n.nspname from pg_proc p
+              join pg_namespace n on n.oid = p.pronamespace
+             where p.proname = 'http_post'
+             order by n.nspname <> 'extensions', n.nspname
+             limit 1);
   if v_ext is null then
-    raise exception 'The http extension is not active — Supabase Dashboard → Database → Extensions → enable "http", then click View payment again.';
+    raise exception 'No signing route ready — paste your JWT secret into app_secrets (jwt_secret row; Dashboard → Settings → API → JWT Secret → reveal), or enable the http extension and re-run fix-view-payment.sql.';
   end if;
 
   v_sign := trim(trailing '/' from v_base) || '/storage/v1/object/sign/payment-shots/' || v_path;
@@ -78,7 +118,7 @@ begin
         v_ext, 'POST', v_sign, 'application/json', '{"expiresIn": 3600}', v_ext, 'Bearer ' || v_skey
       ) into v_status, v_body;
     exception when others then
-      raise exception 'Storage signing failed (%). Re-run supabase/fix-view-payment.sql; if the http extension is off, enable it under Database → Extensions.', sqlerrm;
+      raise exception 'No signing route ready (%) — paste your JWT secret into app_secrets (jwt_secret row; Dashboard → Settings → API → JWT Secret).', sqlerrm;
     end;
   end;
 

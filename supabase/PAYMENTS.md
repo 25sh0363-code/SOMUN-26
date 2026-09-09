@@ -28,8 +28,10 @@ one delegate, ₹2799.07 for the next. The paise are the payment's identity.
      (do this **before** sharing the site: the placeholder is guessable)
    - `project_url` → your project URL (`Settings → API`, e.g. `https://abcdefgh.supabase.co`)
    - `service_key` → the `service_role` key (`Settings → API`) — lets the
-     console open delegates' screenshots as 1-hour signed URLs without ever
-     exposing the key or the private bucket
+     console open delegates' screenshots without ever exposing the key or
+     the private bucket
+   - `jwt_secret` → the `JWT Secret` on the same `Settings → API` page —
+     the console signs each screenshot's 1-hour viewing token with it
 2. **Fee** — already live in `js/config.js` (`REGISTRATION_FEE: 2799`).
    Change `fee_base_early` in `app_secrets` when a new round is priced.
 3. **AI assistant (optional)** — get a key at aistudio.google.com, then
@@ -38,13 +40,12 @@ one delegate, ₹2799.07 for the next. The paise are the payment's identity.
    supabase secrets set GEMINI_API_KEY=...
    ```
    No key → the site simply skips the AI read, everything else works.
-4. **Screenshot viewing** — needs the `http` extension. `payment.sql` enables
-   it itself (into Supabase's `extensions` schema) and the signing RPC resolves
-   the extension's real schema from `pg_extension` at run time, so it works no
-   matter where the project keeps it. If the extension is somehow blocked,
-   `View payment` in the console raises a clear error and everything else
-   still works. One-off fix for the older install: re-run
-   `supabase/fix-view-payment.sql`.
+4. **Screenshot viewing** — the signing RPC signs each storage token itself
+   in pure SQL (pgcrypto `hmac`, keyed by `jwt_secret`) — no extension, no
+   network hop. Without `jwt_secret` it falls back to the `http` extension
+   asking storage to sign (schema resolved from `pg_proc` at run time), and
+   if neither route is ready the console says exactly which cell to fill.
+   One-off upgrade for an older install: re-run `supabase/fix-view-payment.sql`.
 5. **QR (built in)** — the pay panel generates a fresh QR per delegate with
    the exact watermark amount encoded inside; no image file needed.
 

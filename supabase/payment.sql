@@ -95,13 +95,14 @@ insert into app_secrets (key, value) values
   ('payee_name',     'SOMUN ''26'),
   ('fee_base_early', '2799'),
   ('service_key',    'PASTE-YOUR-SERVICE-ROLE-KEY-HERE'), -- Dashboard → Settings → API → service_role — REPLACE
-  ('project_url',    'PASTE-YOUR-PROJECT-URL-HERE')       -- e.g. 'https://abcdefgh.supabase.co' — REPLACE
+  ('project_url',    'PASTE-YOUR-PROJECT-URL-HERE'),      -- e.g. 'https://abcdefgh.supabase.co' — REPLACE
+  ('jwt_secret',     'PASTE-YOUR-JWT-SECRET-HERE')        -- Dashboard → Settings → API → JWT Secret — REPLACE
 on conflict (key) do nothing;
 
 -- ▼▼▼ FILL THESE VALUES: Table Editor → app_secrets, edit the cells ▼▼▼
 --    admin_key + payee_vpa (as before), and now service_key + project_url
---    so the console can open delegates' payment screenshots (signed URLs,
---    valid 1 hour — the private bucket stays sealed to everyone else).
+--    + jwt_secret so the console can open delegates' payment screenshots
+--    (signed URLs, valid 1 hour — the private bucket stays sealed).
 -- ▲▲▲ re-running this file NEVER overwrites a real value — the updates
 --     only fire while a cell is still empty or still says PASTE-… ▲▲▲
 update app_secrets set value = 'PASTE-YOUR-UPI-ID-HERE'
@@ -112,6 +113,8 @@ update app_secrets set value = 'PASTE-YOUR-SERVICE-ROLE-KEY-HERE'
   where key = 'service_key' and (value = '' or value like 'PASTE-%');
 update app_secrets set value = 'PASTE-YOUR-PROJECT-URL-HERE'
   where key = 'project_url' and (value = '' or value like 'PASTE-%');
+update app_secrets set value = 'PASTE-YOUR-JWT-SECRET-HERE'
+  where key = 'jwt_secret' and (value = '' or value like 'PASTE-%');
 
 -- ─────────────────────────────────────────────────────────────
    2 · ROW SECURITY
@@ -687,32 +690,41 @@ end $$;
 -- ─────────────────────────────────────────────────────────────
    9b · CONSOLE — open a delegate's payment screenshot
        The bucket is private (anon can push, never read) — the console
-       gets a 1-hour signed URL minted server-side with the service key.
-       Uses the `http` extension. Supabase keeps extensions in its own
-       `extensions` schema (stock installs may pick `http`) — the real
-       schema is resolved from pg_extension at run time, never assumed.
-       Needs service_key + project_url filled in app_secrets.
+       gets a 1-hour signed URL. Primary route needs NO extension at all:
+       a storage token is just an HS256 JWT, so pgcrypto signs it right
+       here with app_secrets.jwt_secret (Settings → API → JWT Secret).
+       No jwt_secret yet? Fallback: the `http` extension asks storage to
+       sign, with http_post's real schema resolved from pg_proc — found
+       wherever the extension happens to live, never guessed.
    ───────────────────────────────────────────────────────────── */
+
+create extension if not exists pgcrypto;
 
 do $$ begin
   if not exists (select 1 from pg_extension where extname = 'http') then
     create schema if not exists extensions;
     execute 'create extension http with schema extensions';
   end if;
+exception when others then
+  null; -- route 2 only — route 1 needs no extension
 end $$;
 
 create or replace function pay_admin_shot_url(p_key text, p_registration text)
 returns text
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare
-  v_path    text;
-  v_skey    text;
-  v_base    text;
-  v_ext     text;
-  v_sign    text;
-  v_status  int;
-  v_body    jsonb;
-  v_url     text;
+  v_path   text;
+  v_skey   text;
+  v_base   text;
+  v_jsec   text;
+  v_hdr    text;
+  v_pl     text;
+  v_sig    text;
+  v_ext    text;
+  v_sign   text;
+  v_status int;
+  v_body   jsonb;
+  v_url    text;
 begin
   perform somun_guard(p_key);
   select shot_path into v_path from registrations where id::text = p_registration;
@@ -727,10 +739,33 @@ begin
     raise exception 'Screenshot viewing is not configured yet — fill service_key and project_url in app_secrets (Dashboard → Settings → API).';
   end if;
 
-  -- where does this project actually keep the http extension?
-  v_ext := (select extnamespace::regnamespace::text from pg_extension where extname = 'http');
+  -- ── route 1 · sign the storage token right here, no extension ──
+  --    token = base64url(header).base64url(payload).base64url(
+  --            hmac-sha256(header.payload, jwt_secret))
+  v_jsec := nullif((select value from app_secrets where key = 'jwt_secret'), '');
+  if v_jsec is not null and v_jsec not like 'PASTE-%' then
+    v_hdr := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'; -- {"alg":"HS256","typ":"JWT"}
+    v_pl  := translate(replace(encode(convert_to(json_build_object(
+                 'url', '/object/sign/payment-shots/' || v_path,
+                 'exp', extract(epoch from now())::bigint + 3600)::text,
+                 'utf8'), 'base64'), chr(10), ''), '+/', '-_');
+    v_pl  := rtrim(v_pl, '=');
+    v_sig := translate(replace(encode(hmac(v_hdr || '.' || v_pl, v_jsec, 'sha256'),
+                 'base64'), chr(10), ''), '+/', '-_');
+    v_sig := rtrim(v_sig, '=');
+    return trim(trailing '/' from v_base)
+         || '/storage/v1/object/sign/payment-shots/' || v_path
+         || '?token=' || v_hdr || '.' || v_pl || '.' || v_sig;
+  end if;
+
+  -- ── route 2 · the http extension asks storage to sign (fallback) ──
+  v_ext := (select n.nspname from pg_proc p
+              join pg_namespace n on n.oid = p.pronamespace
+             where p.proname = 'http_post'
+             order by n.nspname <> 'extensions', n.nspname
+             limit 1);
   if v_ext is null then
-    raise exception 'The http extension is not active — Supabase Dashboard → Database → Extensions → enable "http", then click View payment again.';
+    raise exception 'No signing route ready — paste your JWT secret into app_secrets (jwt_secret row; Dashboard → Settings → API → JWT Secret → reveal), or enable the http extension and re-run fix-view-payment.sql.';
   end if;
 
   v_sign := trim(trailing '/' from v_base) || '/storage/v1/object/sign/payment-shots/' || v_path;
@@ -751,7 +786,7 @@ begin
         v_ext, 'POST', v_sign, 'application/json', '{"expiresIn": 3600}', v_ext, 'Bearer ' || v_skey
       ) into v_status, v_body;
     exception when others then
-      raise exception 'Storage signing failed (%). Re-run supabase/fix-view-payment.sql; if the http extension is off, enable it under Database → Extensions.', sqlerrm;
+      raise exception 'No signing route ready (%) — paste your JWT secret into app_secrets (jwt_secret row; Dashboard → Settings → API → JWT Secret).', sqlerrm;
     end;
   end;
 
