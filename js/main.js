@@ -2042,7 +2042,12 @@ if (SHOW_ITINERARY) {
       if (vpa) {
         appBtn.hidden = false;
         appBtn.addEventListener("click", () => {
-          const link = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payeeName)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent("SOMUN " + refCode)}`;
+          /* pn is just a label — apps display the VPA's registered name
+             anyway. Strip exotic chars (the apostrophe in "SOMUN '26" is a
+             known UPI-parser landmine) and drop pn entirely if nothing
+             survives: apps then show the registered name unprompted. */
+          const pnSafe = String(payeeName).replace(/[^A-Za-z0-9 .\-]/g, " ").replace(/ +/g, " ").trim();
+          const link = `upi://pay?pa=${encodeURIComponent(vpa)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent("SOMUN " + refCode)}${pnSafe ? `&pn=${encodeURIComponent(pnSafe)}` : ""}`;
           if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             window.location.href = link;
           } else {
