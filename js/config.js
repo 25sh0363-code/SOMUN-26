@@ -43,7 +43,7 @@ export const CONFIG = {
      "Coming Soon" stamp — the same overlay treatment as the register wizard
      box. The full deck is untouched — flipping the flag restores everything
      as-is. */
-  COMMITTEES_REVEALED: false,
+  COMMITTEES_REVEALED: true,
 
   /* Venue reveal gate — flip to true on venue-drop day.
      While false: every mention of the grounds (home strip, dossier, the
@@ -52,7 +52,7 @@ export const CONFIG = {
      even fetched, coordinates, address and the deep-link sit under a
      "Coming Soon" seal. Flipping the flag lifts the blur and arms the map,
      nothing else to change. */
-  VENUE_REVEALED: false,
+  VENUE_REVEALED: true,
 
   /* Meet the Secretariat — About page, chapter V.
      While SECRETARIAT_REVEALED is false: the section renders in place but

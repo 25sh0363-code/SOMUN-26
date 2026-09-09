@@ -460,7 +460,7 @@ export const FEES = [
     note: "To be disclosed — payment opens as soon as registrations do",
   },
   {
-    label: "International Press",
+    label: "Group Delegation",
     early: "₹ XXXX",
     standard: "₹ XXXX",
     note: "Same fee as delegates — to be disclosed",

@@ -11,6 +11,14 @@ import { CONFIG, supabaseConfigured, cashfreeEnabled, feeAnnounced, qrPayEnabled
 import { icon, hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
 
+/* The registrations page presents Group Delegation in International
+   Press's slot — same position in the preference selects and the
+   allocation matrix, different participation mode. The committees page
+   keeps its own full chamber list straight from data.js. */
+const REG_OPTIONS = COMMITTEES.map((c) => c.slug === "ip"
+  ? { slug: "gd", acronym: "GD", name: "Group Delegation" }
+  : c);
+
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -793,7 +801,7 @@ if (supabaseConfigured()) {
 $$("[data-committee-select]").forEach((sel) => {
   sel.innerHTML =
     `<option value="">Select a committee</option>` +
-    COMMITTEES.map((c) => `<option value="${c.slug}">${c.acronym} — ${c.name}</option>`).join("");
+    REG_OPTIONS.map((c) => `<option value="${c.slug}">${c.acronym} — ${c.name}</option>`).join("");
 });
 
 /* ————————————————— Router ————————————————— */
@@ -968,7 +976,7 @@ function renderPayStage() {
   const copy = $("#pay-copy");
   if (amt && feeAnnounced()) {
     amt.textContent = formatINR(CONFIG.REGISTRATION_FEE);
-    if (badge) badge.textContent = "Per delegate · International Press alike";
+    if (badge) badge.textContent = "Per delegate · Group Delegation alike";
     if (copy) {
       const flow = payFlow();
       copy.textContent = flow === "cashfree"
@@ -2160,7 +2168,7 @@ if (SHOW_ITINERARY) {
   };
 
   function renderMatrix() {
-    body.innerHTML = COMMITTEES.map((c) => {
+    body.innerHTML = REG_OPTIONS.map((c) => {
       const list = listFor(c.slug);
       const right = list.length
         ? `<div class="matrix-chips">${list.map((p) => `<span class="matrix-chip">${p}</span>`).join("")}</div>`
