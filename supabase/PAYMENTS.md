@@ -18,10 +18,13 @@ one delegate, ₹2799.07 for the next. The paise are the payment's identity.
 ## Install (one-time, ~10 minutes)
 
 1. **Database** — open Supabase → SQL Editor, paste `payment.sql` whole, Run.
-   Before running, edit the two marked lines in section 1:
+   The file is idempotent: re-running upgrades in place and **never
+   overwrites a real secret** (its updates only fire while a cell is still
+   empty / still says `PASTE-…`).
+   Then fill the two rows in **Table Editor → `app_secrets`**:
    - `payee_vpa` → the conference UPI id (e.g. `somun26@ybl`)
    - `admin_key` → any long random string — the `#/verify` console key
-   The file is idempotent: re-running upgrades in place.
+     (do this **before** sharing the site: the placeholder is guessable)
 2. **Fee** — already live in `js/config.js` (`REGISTRATION_FEE: 2799`).
    Change `fee_base_early` in `app_secrets` when a new round is priced.
 3. **AI assistant (optional)** — get a key at aistudio.google.com, then

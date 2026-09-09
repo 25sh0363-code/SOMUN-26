@@ -88,20 +88,28 @@ create table if not exists app_secrets (
 );
 
 insert into app_secrets (key, value) values
-  ('admin_key',      ''),
-  ('payee_vpa',      ''),
+  ('admin_key',      'PASTE-A-LONG-RANDOM-KEY-HERE'),   -- console key (≥12 chars) — REPLACE
+  ('payee_vpa',      'PASTE-YOUR-UPI-ID-HERE'),          -- e.g. 'somun26@ybl' — REPLACE
   ('payee_name',     'SOMUN ''26'),
   ('fee_base_early', '2799')
 on conflict (key) do nothing;
 
--- ▼▼▼ EDIT THESE TWO LINES BEFORE RUNNING (or run them alone after) ▼▼▼
-update app_secrets set value = 'PASTE-YOUR-UPI-ID-HERE' where key = 'payee_vpa';       -- e.g. 'somun26@ybl'
-update app_secrets set value = 'PASTE-A-LONG-RANDOM-KEY-HERE' where key = 'admin_key'; -- console key (≥12 chars)
--- ▲▲▲ the #/verify console stays sealed until admin_key is set ▲▲▲
+-- ▼▼▼ FILL THESE TWO VALUES: Table Editor → app_secrets, edit the cells ▼▼▼
+--    (or run the two updates below once, with your real values)
+-- ▲▲▲ re-running this file NEVER overwrites a real value — the update
+--     only fires while the cell is still empty or still says PASTE-… ▲▲▲
+update app_secrets set value = 'PASTE-YOUR-UPI-ID-HERE'
+  where key = 'payee_vpa' and (value = '' or value like 'PASTE-%');
+update app_secrets set value = 'PASTE-A-LONG-RANDOM-KEY-HERE'
+  where key = 'admin_key' and (value = '' or value like 'PASTE-%');
 
 -- ─────────────────────────────────────────────────────────────
    2 · ROW SECURITY
    ───────────────────────────────────────────────────────────── */
+
+alter table app_secrets  enable row level security;
+-- no policies: the VPA/admin key stay invisible to anon+authenticated.
+-- RPCs read this table as the definer (owner), which bypasses RLS.
 
 alter table registrations enable row level security;
 drop policy if exists regs_anon_insert on registrations;
