@@ -71,6 +71,7 @@ the unique-UTR index and surfaces at statement reconcile.
 - UPI apps let the payer *edit* the prefilled amount. That is fine: editing
   breaks the watermark and the AI/matcher flags it. The copy tells delegates
   to pay the exact amount.
-- `mail_queue` is the outbox (rows appear in the console). Wire a Database
-  Webhook on `mail_queue` insert to any mailer when you want automated
-  delivery — until then the panel is your send list.
+- `mail_queue` is the outbox (rows appear in the console). For fully
+  automated delivery from your own Gmail, see `supabase/MAIL-SETUP.md`
+  (+ `mailer-hook.sql` + `apps-script/Code.gs`) — free, no domain needed.
+  Until that is wired, the panel is your send list.
