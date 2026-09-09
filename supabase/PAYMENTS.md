@@ -69,6 +69,10 @@ stays **verifying** until you confirm.
   the confirmation email.
 - **Confirmation emails**: the outbox — waiting to send / sent times, with
   a Requeue button per delegate.
+- **Recently verified / Rejected payments**: the two books. Rejected rows
+  keep their rejection reason and a **Restore** button that puts the row
+  back into the waiting queue (reason cleared); verified rows can be
+  reverted the same way.
 
 > The old paste-a-bank-statement credits desk was retired: with a mandatory
 > screenshot + UTR per row, the secretariat verifies each payment directly

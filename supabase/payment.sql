@@ -591,6 +591,15 @@ begin
           from registrations
          where payment_status = 'paid'
          order by paid_at desc
+         limit 20) x), json_build_array()),
+    'rejected_recent', coalesce((
+      select json_agg(x) from (
+        select id::text, ref_code, full_name, email,
+               expected_amount as amount, upi_utr,
+               status_note, utr_submitted_at
+          from registrations
+         where payment_status = 'failed'
+         order by utr_submitted_at desc nulls last
          limit 20) x), json_build_array()));
 end $$;
 
@@ -621,7 +630,10 @@ begin
   elsif p_action = 'pending' then
     update registrations
        set payment_status = case when upi_utr is not null then 'verifying' else 'registered' end,
-           paid_at = null, paid_via = null
+           paid_at = null, paid_via = null,
+           -- restoring a rejected row drops its stale rejection reason;
+           -- reverting a paid row keeps any verification note
+           status_note = case when payment_status = 'failed' then null else status_note end
      where id = v_id;
     delete from mail_queue where registration_id = v_id::text and sent_at is null;
   else
@@ -716,7 +728,7 @@ begin
   end if;
 
   -- where does this project actually keep the http extension?
-  v_ext := (select extschema::regnamespace::text from pg_extension where extname = 'http');
+  v_ext := (select extnamespace::regnamespace::text from pg_extension where extname = 'http');
   if v_ext is null then
     raise exception 'The http extension is not active — Supabase Dashboard → Database → Extensions → enable "http", then click View payment again.';
   end if;

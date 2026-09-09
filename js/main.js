@@ -2454,6 +2454,7 @@ function whenIST(t) {
 
   function renderOverview(o) {
     const s = o.stats || {};
+    const t = o.totals || {};
     const aiBadge = (r) => {
       const v = r.shot_check && r.shot_check.verdict;
       if (!v) return "";
@@ -2471,10 +2472,10 @@ function whenIST(t) {
       ["Verified", s.paid || 0, "ok"],
       ["Rejected", s.failed || 0, s.failed ? "bad" : ""],
       ["Emails waiting", s.mail_waiting || 0, s.mail_waiting ? "hot" : ""],
+      ["Live registrations", t.live_count ?? 0, ""],
     ].map(([l, v, c]) => `<div class="pa-stat${c ? ` pa-stat--${c}` : ""}"><span class="pa-stat-v">${esc(v)}</span><span class="pa-stat-l">${esc(l)}</span></div>`).join("");
 
     /* the sales meter — invoiced vs confirmed, live from the rows */
-    const t = o.totals || {};
     const sales = $("#pay-admin-sales");
     if (sales) {
       const awaiting = Math.max(0, (Number(t.invoiced) || 0) - (Number(t.confirmed) || 0));
@@ -2540,6 +2541,23 @@ function whenIST(t) {
           </div>
         </div>`).join("")
       : `<p class="pa-empty">No verified payments yet.</p>`;
+
+    /* rejected — the second book, with a way back in */
+    const rej = $("#pay-admin-rejected");
+    const rejected = o.rejected_recent || [];
+    rej.innerHTML = rejected.length
+      ? rejected.map((r) => `
+        <div class="pa-row" data-id="${esc(r.id)}">
+          <div class="pa-row-main">
+            <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
+            <p class="pa-row-meta">${esc(r.email)}${r.amount != null ? ` · invoice <strong>${fmtINR(r.amount)}</strong>` : ""}${r.upi_utr ? ` · UTR <span class="pa-mono">${esc(r.upi_utr)}</span>` : ""}${r.utr_submitted_at ? ` · submitted ${whenIST(r.utr_submitted_at)}` : ""}</p>
+            ${r.status_note ? `<p class="pa-row-meta"><span class="pa-hot">reason — ${esc(r.status_note)}</span></p>` : ""}
+          </div>
+          <div class="pa-row-actions">
+            <button class="pa-btn" data-act="pending" data-id="${esc(r.id)}" title="Put this row back into the waiting queue">Restore</button>
+          </div>
+        </div>`).join("")
+      : `<p class="pa-empty">No rejected payments — the ledger is clean.</p>`;
   }
 
   async function load() {
