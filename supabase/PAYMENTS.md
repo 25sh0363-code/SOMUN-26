@@ -38,10 +38,13 @@ one delegate, ₹2799.07 for the next. The paise are the payment's identity.
    supabase secrets set GEMINI_API_KEY=...
    ```
    No key → the site simply skips the AI read, everything else works.
-4. **Screenshot viewing** — needs the `http` extension, which `payment.sql`
-   enables itself (Database → Extensions shows it as enabled). If your
-   project somehow blocks it, `View payment` in the console raises a clear
-   error and everything else still works.
+4. **Screenshot viewing** — needs the `http` extension. `payment.sql` enables
+   it itself (into Supabase's `extensions` schema) and the signing RPC resolves
+   the extension's real schema from `pg_extension` at run time, so it works no
+   matter where the project keeps it. If the extension is somehow blocked,
+   `View payment` in the console raises a clear error and everything else
+   still works. One-off fix for the older install: re-run
+   `supabase/fix-view-payment.sql`.
 5. **QR (built in)** — the pay panel generates a fresh QR per delegate with
    the exact watermark amount encoded inside; no image file needed.
 

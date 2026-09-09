@@ -676,11 +676,18 @@ end $$;
    9b · CONSOLE — open a delegate's payment screenshot
        The bucket is private (anon can push, never read) — the console
        gets a 1-hour signed URL minted server-side with the service key.
-       Requires the `http` extension (Supabase → Database → Extensions)
-       and service_key + project_url filled in app_secrets.
+       Uses the `http` extension. Supabase keeps extensions in its own
+       `extensions` schema (stock installs may pick `http`) — the real
+       schema is resolved from pg_extension at run time, never assumed.
+       Needs service_key + project_url filled in app_secrets.
    ───────────────────────────────────────────────────────────── */
 
-create extension if not exists http;
+do $$ begin
+  if not exists (select 1 from pg_extension where extname = 'http') then
+    create schema if not exists extensions;
+    execute 'create extension http with schema extensions';
+  end if;
+end $$;
 
 create or replace function pay_admin_shot_url(p_key text, p_registration text)
 returns text
@@ -689,6 +696,8 @@ declare
   v_path    text;
   v_skey    text;
   v_base    text;
+  v_ext     text;
+  v_sign    text;
   v_status  int;
   v_body    jsonb;
   v_url     text;
@@ -706,24 +715,32 @@ begin
     raise exception 'Screenshot viewing is not configured yet — fill service_key and project_url in app_secrets (Dashboard → Settings → API).';
   end if;
 
+  -- where does this project actually keep the http extension?
+  v_ext := (select extschema::regnamespace::text from pg_extension where extname = 'http');
+  if v_ext is null then
+    raise exception 'The http extension is not active — Supabase Dashboard → Database → Extensions → enable "http", then click View payment again.';
+  end if;
+
+  v_sign := trim(trailing '/' from v_base) || '/storage/v1/object/sign/payment-shots/' || v_path;
+
   begin
-    select s.status, convert_from(s.content, 'utf8')::jsonb
-      into v_status, v_body
-      from http.http_post(
-             trim(trailing '/' from v_base) || '/storage/v1/object/sign/payment-shots/' || v_path,
-             '{"expiresIn": 3600}',
-             'application/json',
-             array[http.http_header('Authorization', 'Bearer ' || v_skey)]) s;
-  exception when undefined_function or undefined_object or wrong_object_type then
-    -- older pgsql-http builds: same pieces through the generic entry point
-    select s.status, convert_from(s.content, 'utf8')::jsonb
-      into v_status, v_body
-      from http.http(
-             'POST',
-             trim(trailing '/' from v_base) || '/storage/v1/object/sign/payment-shots/' || v_path,
-             'application/json',
-             '{"expiresIn": 3600}',
-             array[http.http_header('Authorization', 'Bearer ' || v_skey)]) s;
+    execute format(
+      'select s.status, convert_from(s.content, ''utf8'')::jsonb
+         from %I.http_post(%L, %L, %L, array[%I.http_header(''Authorization'', %L)]) s',
+      v_ext, v_sign, '{"expiresIn": 3600}', 'application/json', v_ext, 'Bearer ' || v_skey
+    ) into v_status, v_body;
+  exception when undefined_function or undefined_object
+             or wrong_object_type or invalid_schema_name then
+    -- older pgsql-http builds: same request through the generic entry point
+    begin
+      execute format(
+        'select s.status, convert_from(s.content, ''utf8'')::jsonb
+           from %I.http(%L, %L, %L, %L, array[%I.http_header(''Authorization'', %L)]) s',
+        v_ext, 'POST', v_sign, 'application/json', '{"expiresIn": 3600}', v_ext, 'Bearer ' || v_skey
+      ) into v_status, v_body;
+    exception when others then
+      raise exception 'Storage signing failed (%). Re-run supabase/fix-view-payment.sql; if the http extension is off, enable it under Database → Extensions.', sqlerrm;
+    end;
   end;
 
   if v_status is null then
