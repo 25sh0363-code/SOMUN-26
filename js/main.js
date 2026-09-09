@@ -48,7 +48,14 @@ async function sb(path, opts = {}) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.message || `Supabase request failed (${res.status})`);
   }
-  return res.json();
+  if (res.status === 204) return null;
+  const text = await res.text();
+  if (!text || !text.trim()) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Supabase sent back a broken response — retry in a moment.");
+  }
 }
 
 /* ————————————————— Toast ————————————————— */
@@ -2665,16 +2672,26 @@ function whenIST(t) {
     const mail = $("#pay-admin-mail");
     const mails = o.mail || [];
     mail.innerHTML = mails.length
-      ? mails.map((m) => `
+      ? mails.map((m) => {
+          const kind = m.template === "payment_rejected" ? `<span class="pa-hot">rejection notice</span>` : `confirmation`;
+          const state = m.sent_at
+            ? `<span class="pa-ok">sent ${whenIST(m.sent_at)}</span>`
+            : m.last_error
+            ? `<span class="pa-hot" title="The mailer hook refused this one">${esc(m.last_error)}</span>`
+            : Number(m.attempts) > 0
+            ? `handed to the mailer · attempt ${esc(m.attempts)} — still here after a minute? see MAIL-SETUP step 4`
+            : `<span class="pa-hot">waiting to send</span>`;
+          return `
         <div class="pa-row" data-id="${esc(m.registration_id || "")}">
           <div class="pa-row-main">
             <p class="pa-row-title"><strong>${esc(m.full_name || m.to_email)}</strong>${m.ref_code ? `<span class="pa-code">${esc(m.ref_code)}</span>` : ""}</p>
-            <p class="pa-row-meta">${m.sent_at ? `<span class="pa-ok">sent ${whenIST(m.sent_at)}</span>` : `<span class="pa-hot">waiting to send</span>`} · ${whenIST(m.created_at)} → ${esc(m.to_email)}</p>
+            <p class="pa-row-meta">${kind} · ${state} · ${whenIST(m.created_at)} → ${esc(m.to_email)}</p>
           </div>
           <div class="pa-row-actions">
             ${m.registration_id ? `<button class="pa-btn" data-act="requeue" data-id="${esc(m.registration_id)}">Requeue</button>` : ""}
           </div>
-        </div>`).join("")
+        </div>`;
+        }).join("")
       : `<p class="pa-empty">Nothing here yet — confirmation emails fire the moment a payment verifies.</p>`;
 
     /* verified */

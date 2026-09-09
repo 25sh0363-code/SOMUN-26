@@ -191,8 +191,9 @@ begin
          limit 50) x), json_build_array()),
     'mail', coalesce((
       select json_agg(x) from (
-        select m.id::text, m.registration_id, m.to_email,
-               m.created_at, m.sent_at, r.full_name
+        select m.id::text, m.registration_id, m.to_email, m.template,
+               m.attempts, m.last_error, m.created_at, m.sent_at,
+               r.full_name, r.ref_code
           from mail_queue m
           left join registrations r on r.id::text = m.registration_id
          order by m.sent_at nulls first, m.created_at desc
@@ -236,6 +237,14 @@ begin
        set payment_status = 'failed',
            status_note = coalesce(nullif(p_note, ''), status_note)
      where id = v_id;
+    delete from mail_queue
+     where registration_id = v_id::text
+       and template = 'payment_rejected'
+       and sent_at is null;
+    insert into mail_queue (registration_id, to_email, template)
+    select v_id::text, r.email, 'payment_rejected'
+      from registrations r
+     where r.id = v_id;
   elsif p_action = 'pending' then
     update registrations
        set payment_status = case when upi_utr is not null then 'verifying' else 'registered' end,
@@ -247,5 +256,25 @@ begin
     raise exception 'Unknown action.';
   end if;
 end $$;
+
+create or replace function pay_admin_requeue(p_key text, p_registration text)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare v_id registrations.id%TYPE; v_email text;
+begin
+  perform somun_guard(p_key);
+  select id, email into v_id, v_email from registrations where id::text = p_registration;
+  if not found then raise exception 'Registration not found.'; end if;
+
+  update mail_queue set sent_at = null, attempts = 0, last_error = null
+   where registration_id = v_id::text
+     and created_at = (select max(created_at) from mail_queue
+                        where registration_id = v_id::text);
+  if not exists (select 1 from mail_queue where registration_id = v_id::text and sent_at is null) then
+    insert into mail_queue (registration_id, to_email) values (v_id::text, v_email);
+  end if;
+end $$;
+
+alter table mail_queue add column if not exists last_error text;
 
 grant execute on function pay_admin_shot_url(text, text) to anon, authenticated;

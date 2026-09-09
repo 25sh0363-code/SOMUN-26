@@ -163,12 +163,75 @@ create table if not exists mail_queue (
   template        text not null default 'payment_verified',
   created_at      timestamptz not null default now(),
   sent_at         timestamptz,
-  attempts        int not null default 0
+  attempts        int not null default 0,
+  last_error      text
 );
+alter table mail_queue add column if not exists last_error text;
 alter table mail_queue enable row level security;
 -- no policies: guarded RPCs only. Delivery wiring (Database Webhook →
 -- mailer) is optional and documented in supabase/PAYMENTS.md — until
 -- then the console's mail panel is the outbox the secretariat works.
+
+-- The mailer hook's trigger function — master copy, kept byte-identical
+-- inside supabase/mailer-hook.sql by scripts/build_patch_sql.py. The
+-- trigger itself (insert or update of sent_at) is created only there,
+-- so installing payment.sql alone leaves mails as a console outbox.
+create or replace function public.somun_mail_dispatch()
+returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  v_url    text;
+  v_secret text;
+  v_body   jsonb;
+begin
+  select nullif(value, '') into v_url    from app_secrets where key = 'mailer_url';
+  select value           into v_secret   from app_secrets where key = 'mailer_secret';
+
+  if v_url is null or v_url like 'PASTE-%' then
+    update mail_queue set last_error = 'Mailer hook is not configured yet — paste the Apps Script web-app URL into app_secrets → mailer_url (supabase/MAIL-SETUP.md), then hit Requeue. The mail stays queued, nothing is lost.'
+      where id = new.id;
+    return new;
+  end if;
+
+  if tg_op = 'UPDATE' and new.sent_at is not null then
+    return new;
+  end if;
+
+  select jsonb_build_object(
+    'secret',      v_secret,
+    'mail_id',     new.id,
+    'to',          new.to_email,
+    'template',    new.template,
+    'name',        r.full_name,
+    'ref_code',    r.ref_code,
+    'amount',      to_char(r.expected_amount, 'FM999999990.00'),
+    'tier',        r.tier,
+    'institution', r.institution,
+    'pref1',       r.committee_pref1,
+    'paid_at',     r.paid_at,
+    'reason',      r.status_note
+  )
+  into v_body
+  from registrations r
+  where r.id::text = new.registration_id;
+
+  if v_body is null then
+    v_body := jsonb_build_object(
+      'secret', v_secret, 'mail_id', new.id,
+      'to', new.to_email, 'template', new.template
+    );
+  end if;
+
+  update mail_queue set attempts = attempts + 1, last_error = null where id = new.id;
+
+  perform net.http_post(
+    url     := v_url,
+    headers := jsonb_build_object('Content-Type', 'application/json'),
+    body    := v_body
+  );
+
+  return new;
+end $$;
 
 -- private bucket for payment screenshots (anon may push, never read)
 insert into storage.buckets (id, name, public)
@@ -585,8 +648,9 @@ begin
          limit 50) x), json_build_array()),
     'mail', coalesce((
       select json_agg(x) from (
-        select m.id::text, m.registration_id, m.to_email,
-               m.created_at, m.sent_at, r.full_name
+        select m.id::text, m.registration_id, m.to_email, m.template,
+               m.attempts, m.last_error, m.created_at, m.sent_at,
+               r.full_name, r.ref_code
           from mail_queue m
           left join registrations r on r.id::text = m.registration_id
          order by m.sent_at nulls first, m.created_at desc
@@ -744,8 +808,8 @@ begin
   select id, email into v_id, v_email from registrations where id::text = p_registration;
   if not found then raise exception 'Registration not found.'; end if;
 
-  update mail_queue set sent_at = null, attempts = 0
-   where registration_id = v_id::text and sent_at is not null
+  update mail_queue set sent_at = null, attempts = 0, last_error = null
+   where registration_id = v_id::text
      and created_at = (select max(created_at) from mail_queue
                         where registration_id = v_id::text);
   if not exists (select 1 from mail_queue where registration_id = v_id::text and sent_at is null) then

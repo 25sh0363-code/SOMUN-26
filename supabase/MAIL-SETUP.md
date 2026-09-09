@@ -4,7 +4,8 @@ When a payment verifies, the delegate gets a confirmation mail **sent from
 your own Gmail**. No mail service, no domain, no cost. Chain:
 
 ```
-payment verified → mail_queue INSERT → SQL trigger (mailer-hook.sql)
+payment verified (or a rejection reason saved) → mail_queue row
+  → SQL trigger (mailer-hook.sql) fires on INSERT and on Requeue
   → POST to your Apps Script web app → MailApp sends from your Gmail
   → script marks the queue row sent → console counter stays truthful
 ```
@@ -34,6 +35,10 @@ that the script errors for that day and mails can be requeued tomorrow.
 4. Sanity ping: open that URL in a browser tab → you should see
    `SOMUN '26 mailer is alive.`
    (First auth prompt, if any: Advanced → Go to … — normal for own scripts.)
+5. **Updating the script later** (e.g. to add the rejection template):
+   paste the new Code.gs → **Deploy → Manage deployments → ✏ → Version:
+   New version → Deploy**. The `…/exec` URL stays the same. If you skip
+   this, rejection notices are skipped as "unknown template".
 
 ### 3 · Wire Supabase to it
 1. **Table Editor → `app_secrets`** → edit:
@@ -50,8 +55,12 @@ that the script errors for that day and mails can be requeued tomorrow.
 2. Console `#/verify` → click **Verify** on the row.
 3. Within ~a minute the confirmation mail lands in your inbox —
    from your Gmail, with the ref code and amount.
-4. Console: "Mails queued" drops back to 0 (if you set the script
+4. Console: "Emails waiting" drops back to 0 (if you set the script
    properties); `mail_queue` row shows `sent_at`.
+5. **Rejection mail**: click **Reject** on a row, type the reason — the
+   delegate gets the action-needed mail with that exact line and the
+   somunpr@gmail.com contact. (Requires the Code.gs with the rejection
+   template, deployed as a NEW version per step 2.5.)
 
 Direct script test without any payment (paste in a terminal, with your
 URL/secret):
@@ -64,14 +73,30 @@ curl -s -X POST "PASTE-EXEC-URL-HERE" \
        "amount":"1.63","tier":"early","institution":"Test School"}'
 ```
 
+## Why is a mail still waiting? (the outbox tells you)
+
+The console's Confirmation emails card prints the state of every mail:
+
+- **`sent <time>`** — delivered by Apps Script (needs the script
+  properties from step 1.4; without them mails go out but stay unstamped).
+- **`hook not configured …`** — `mailer_url` is still empty/placeholder in
+  `app_secrets`. Finish step 3, then hit **Requeue** on the mail.
+- **`handed to the mailer · attempt N`** — Supabase fired it at Apps
+  Script but never heard back. If it stays like that for a minute:
+  1. open the `…/exec` URL in a tab — it must say `mailer is alive`;
+  2. check the delivery result in **SQL Editor**:
+     ```sql
+     select id, status_code, left(content, 200) as reply
+       from net._http_response order by id desc limit 5;
+     ```
+     `rejected: bad secret` → mailer_secret doesn't match Code.gs;
+     `error: …` → read the message; no rows → pg_net never fired, re-run
+     mailer-hook.sql.
+- **Requeue** re-fires the latest mail for that delegate whether it was
+  sent, stuck or waiting — no Table Editor surgery needed anymore.
+
 ## Notes & gotchas
 
-- **Requeue button**: fires a new mail only when no waiting row exists for
-  that registration. If a stale waiting row blocks it, delete that row in
-  Table Editor → `mail_queue`, then click **Requeue** — the fresh INSERT
-  re-triggers the hook.
-- The trigger is silent while `mailer_url` is empty/placeholder — mails
-  keep queueing in the console exactly as before, nothing breaks.
 - Spam tip: send one test to yourself first; if Gmail files it under
   Promotions, that's normal — the delegate still receives it.
 - **Before registrations open**: set `fee_base_early` back to `2799` in

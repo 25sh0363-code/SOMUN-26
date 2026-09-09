@@ -1,12 +1,4 @@
--- ══════════════════════════════════════════════════════════════════════
---   SOMUN '26 — CONSOLE SEARCH + REJECTION MAILS  (one-paste upgrade)
---   1 · pay_admin_search — search any book (pending / paid / rejected)
---       by name, ref code, email or UTR
---   2 · pay_admin_decide — rejecting now queues a payment_rejected mail
---       carrying the reason you typed
---   3 · somun_mail_dispatch — hook payload now carries the reason
---   Paste the WHOLE file in SQL Editor → Run. Re-running is safe.
--- ══════════════════════════════════════════════════════════════════════ */
+alter table mail_queue add column if not exists last_error text;
 
 create or replace function pay_admin_search(p_key text, p_book text, p_query text)
 returns json
@@ -111,6 +103,12 @@ begin
   select value           into v_secret   from app_secrets where key = 'mailer_secret';
 
   if v_url is null or v_url like 'PASTE-%' then
+    update mail_queue set last_error = 'Mailer hook is not configured yet — paste the Apps Script web-app URL into app_secrets → mailer_url (supabase/MAIL-SETUP.md), then hit Requeue. The mail stays queued, nothing is lost.'
+      where id = new.id;
+    return new;
+  end if;
+
+  if tg_op = 'UPDATE' and new.sent_at is not null then
     return new;
   end if;
 
@@ -139,6 +137,8 @@ begin
     );
   end if;
 
+  update mail_queue set attempts = attempts + 1, last_error = null where id = new.id;
+
   perform net.http_post(
     url     := v_url,
     headers := jsonb_build_object('Content-Type', 'application/json'),
@@ -146,8 +146,6 @@ begin
   );
 
   return new;
-end;
-$$;
+end $$;
 
-grant execute on function
-  pay_admin_search(text, text, text) to anon, authenticated;
+grant execute on function pay_admin_search(text, text, text) to anon, authenticated;

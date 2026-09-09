@@ -83,8 +83,13 @@ stays **verifying** until you confirm.
   box — type a name, ref code, email or UTR and that whole book is searched
   server-side (`pay_admin_search`, supabase/search-reject-mail.sql), not
   just the recent 20. "Show recent" clears the search.
-- **Confirmation emails**: the outbox — waiting to send / sent times, with
-  a Requeue button per delegate.
+- **Confirmation emails**: the outbox — every mail shows its kind
+  (confirmation / rejection notice) and its true state: `sent <time>`,
+  `hook not configured …` (finish MAIL-SETUP step 3, then Requeue),
+  `handed to the mailer · attempt N` (Supabase fired it; if it sticks,
+  see MAIL-SETUP "Why is a mail still waiting?"), or `waiting to send`.
+  **Requeue** re-fires the latest mail for that delegate no matter what
+  state it is in.
 - **Verified / Rejected payments**: the two books. Rejected rows keep their
   rejection reason and a **Restore** button that puts the row back into the
   waiting queue (reason cleared); verified rows can be reverted the same

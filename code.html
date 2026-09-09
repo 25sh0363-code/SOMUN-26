@@ -62,7 +62,7 @@ const FILES = [
   { p: "supabase/fix-view-payment.sql" },
   { p: "supabase/ai-shot-check.sql", note: "← the AI screenshot desk (Gemini) lives here" },
   { p: "supabase/search-reject-mail.sql", note: "← console search + rejection mails live here" },
-  { p: "supabase/mailer-hook.sql", note: "← upgrade: now also carries the rejection reason" },
+  { p: "supabase/mailer-hook.sql", note: "← mail hook v3: requeue re-fires, outbox shows why mails wait" },
   { p: "supabase/apps-script/Code.gs" },
   { p: "supabase/PAYMENTS.md" },
   { p: "supabase/MAIL-SETUP.md" },
