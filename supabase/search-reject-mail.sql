@@ -15,7 +15,7 @@ begin
         select id::text, ref_code, full_name, email, phone, institution,
                committee_pref1, committee_pref2, committee_pref3, portfolio,
                allergies, declared_amount as amount, expected_amount, upi_utr,
-               utr_submitted_at, status_note, shot_path, shot_check
+               utr_submitted_at, status_note, shot_path
           from registrations
          where payment_status = 'verifying'
            and (full_name ilike v_q or ref_code ilike v_q

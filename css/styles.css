@@ -3211,6 +3211,31 @@ em.accent {
 .field--exp { max-width: 28rem; }
 .reg-prefs { display: grid; gap: 1.25rem; }
 @media (min-width: 640px) { .reg-prefs { grid-template-columns: repeat(3, 1fr); } }
+.pref-block { display: grid; gap: 0.9rem; align-content: start; }
+.ref-pills { display: inline-flex; gap: 0.5rem; }
+.ref-pill-input { position: absolute; opacity: 0; pointer-events: none; }
+.ref-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--beige-dim);
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.3s, background 0.3s, color 0.3s;
+}
+.ref-pill:hover { border-color: rgba(200, 16, 46, 0.55); color: var(--beige); }
+.ref-pill-input:checked + .ref-pill {
+  border-color: var(--crimson);
+  background: rgba(200, 16, 46, 0.14);
+  color: var(--beige);
+}
+.ref-pill-input:focus-visible + .ref-pill { outline: 2px solid var(--crimson); outline-offset: 2px; }
 /* ————— Registration wizard (4 stages) ————— */
 .stages {
   list-style: none;

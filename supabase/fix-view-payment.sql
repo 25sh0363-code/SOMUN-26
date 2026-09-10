@@ -160,16 +160,13 @@ begin
                       where payment_status = 'paid'),
       'live_count', (select count(*) from registrations
                       where payment_status in ('registered', 'verifying', 'paid')),
-      'paid_count', (select count(*) from registrations where payment_status = 'paid'),
-      'ai_matched', (select count(*) from registrations
-                      where payment_status = 'verifying'
-                        and shot_check->'verdict'->>'consistency' = 'match')),
+      'paid_count', (select count(*) from registrations where payment_status = 'paid')),
     'pending', coalesce((
       select json_agg(x) from (
         select id::text, ref_code, full_name, email, phone, institution,
                committee_pref1, committee_pref2, committee_pref3, portfolio,
                allergies, declared_amount as amount, expected_amount, upi_utr,
-               utr_submitted_at, status_note, shot_path, shot_check
+               utr_submitted_at, status_note, shot_path
           from registrations
          where payment_status = 'verifying'
          order by utr_submitted_at desc nulls last

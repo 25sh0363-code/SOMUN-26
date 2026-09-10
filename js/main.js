@@ -78,7 +78,7 @@ $('[data-copy="venue"]') && ($('[data-copy="venue"]').textContent = `${CONFERENC
 $("#itin-intro").innerHTML =
   `From the first roll call to the final gavel — the full three-day programme at <span class="venue-redact">${CONFERENCE.venue}</span> will be published right here, day by day.`;
 $("#reg-intro").textContent =
-  `Complete the four short stages below — information, experience and preferences, payment and extra notes — and the secretariat will respond with your portfolio allotment. For assistance write to ${CONFERENCE.email}.`;
+  `Complete the four short pages below — personal information, MUN experience, committee preferences, then referral and payment — and the secretariat will respond with your portfolio allotment. For assistance write to ${CONFERENCE.email}.`;
 $("#year").textContent = new Date().getFullYear();
 
 /* ————————————————— Ticker ————————————————— */
@@ -1767,20 +1767,31 @@ if (SHOW_ITINERARY) {
   }
 
   /* ——— stage engine ——— */
+  const referred = () => document.querySelector('input[name="referred"]:checked').value === "yes";
+
   function validateStage(n) {
     const val = (id) => $(`#${id}`).value.trim();
     if (n === 0) {
       if (val("fullName").length < 3) return "Please enter your full name.";
       if (!EMAIL_RE.test(val("email"))) return "Please enter a valid email address.";
       if (!$("#email-confirm").checked) return "Please confirm your email is correct — it is the only way we can reach you.";
-      if (val("phone").replace(/\D/g, "").length < 8) return "Please enter a valid phone number.";
-      if (!val("institution")) return "Institution / organisation is required.";
+      if (val("phone").replace(/\D/g, "").length < 8) return "Please enter a valid contact number.";
+      if (val("emName").length < 3) return "Please share a parent / guardian name for emergency contact.";
+      if (val("emPhone").replace(/\D/g, "").length < 8) return "Please enter a valid parent / guardian phone number.";
+      if (!val("institution")) return "Current institution is required.";
     }
-    if (n === 1) {
-      if (!$("#pref1").value) return "Please choose at least one committee preference.";
-      if (!val("portfolio")) return "Please enter your preferred country / portfolio — browse the allocation matrix if you're unsure.";
+    if (n === 2) {
+      const p1 = $("#pref1").value, p2 = $("#pref2").value, p3 = $("#pref3").value;
+      if (!p1) return "Please choose your first committee preference.";
+      if (p2 && p2 === p1) return "Your second committee preference repeats the first — pick a different chamber.";
+      if (p3 && (p3 === p1 || p3 === p2)) return "Your third committee preference repeats an earlier one — pick a different chamber.";
+      if (!val("portfolio1")) return "Please enter your preferred portfolio for your first committee — browse the allocation matrix if you're unsure.";
+      if (p2 && !val("portfolio2")) return "Please enter your preferred portfolio for your second committee too.";
+      if (p3 && !val("portfolio3")) return "Please enter your preferred portfolio for your third committee too.";
     }
-    if (n === 3 && !val("allergies")) return "Please list any allergies / dietary restrictions — write 'none' if there are none.";
+    if (n === 3 && referred() && !val("referralName")) {
+      return "Please enter the full name of the person who referred you.";
+    }
     return null;
   }
 
@@ -1805,6 +1816,14 @@ if (SHOW_ITINERARY) {
     if (back) show(cur - 1);
   });
 
+  /* referral yes/no flips the reference-name field */
+  $$('input[name="referred"]', form).forEach((r) =>
+    r.addEventListener("change", () => {
+      $("#referral-name-field").hidden = !referred();
+      if (!referred()) $("#referralName").value = "";
+    })
+  );
+
   /* Enter key anywhere advances like Continue; the real submit only
      fires from the last stage */
   form.addEventListener("submit", async (e) => {
@@ -1814,23 +1833,34 @@ if (SHOW_ITINERARY) {
       if (err) return showToast(`<strong>Almost there</strong>${err}`, true);
       return show(cur + 1);
     }
+    const vErr = validateStage(cur);
+    if (vErr) return showToast(`<strong>Almost there</strong>${vErr}`, true);
     if (submitBtn.classList.contains("submitting")) return;
 
     const val = (id) => $(`#${id}`).value.trim();
+    const munCount = $("#munCount").value.trim();
     const payload = {
       fullName: val("fullName"),
       email: val("email").toLowerCase(),
       phone: val("phone"),
       institution: val("institution"),
       gradeOrTitle: val("gradeOrTitle"),
-      experience: $("#experience").value || "novice",
+      emName: val("emName"),
+      emPhone: val("emPhone"),
+      munCount: munCount === "" ? "0" : String(Math.max(0, Math.min(99, parseInt(munCount, 10) || 0))),
+      expDetails: val("expDetails"),
+      achievements: val("achievements"),
       committeePref1: $("#pref1").value,
       committeePref2: $("#pref2").value,
       committeePref3: $("#pref3").value,
-      portfolio: val("portfolio"),
+      portfolio1: val("portfolio1"),
+      portfolio2: val("portfolio2"),
+      portfolio3: val("portfolio3"),
+      referred: referred(),
+      referralName: val("referralName"),
       allergies: val("allergies"),
-      notes: val("notes"),
     };
+    const portfolioSummary = [payload.portfolio1, payload.portfolio2, payload.portfolio3].filter(Boolean).join(" · ");
 
     if (!supabaseConfigured()) {
       return showToast(
@@ -1851,13 +1881,21 @@ if (SHOW_ITINERARY) {
       phone: payload.phone,
       institution: payload.institution,
       grade_or_title: payload.gradeOrTitle || null,
-      experience: payload.experience,
+      emergency_name: payload.emName || null,
+      emergency_phone: payload.emPhone || null,
+      experience: payload.munCount,
+      exp_details: payload.expDetails || null,
+      achievements: payload.achievements || null,
       committee_pref1: payload.committeePref1,
       committee_pref2: payload.committeePref2 || null,
       committee_pref3: payload.committeePref3 || null,
-      portfolio: payload.portfolio || null,
+      portfolio1: payload.portfolio1 || null,
+      portfolio2: payload.portfolio2 || null,
+      portfolio3: payload.portfolio3 || null,
+      portfolio: portfolioSummary || null,
+      referred: payload.referred,
+      referral_name: payload.referred ? payload.referralName || null : null,
       allergies: payload.allergies || null,
-      notes: payload.notes || null,
     };
 
     try {
@@ -1875,13 +1913,20 @@ if (SHOW_ITINERARY) {
             p_phone: payload.phone,
             p_institution: payload.institution,
             p_grade_or_title: payload.gradeOrTitle || null,
-            p_experience: payload.experience,
+            p_emergency_name: payload.emName || null,
+            p_emergency_phone: payload.emPhone || null,
+            p_experience: payload.munCount,
+            p_exp_details: payload.expDetails || null,
+            p_achievements: payload.achievements || null,
             p_pref1: payload.committeePref1,
             p_pref2: payload.committeePref2 || null,
             p_pref3: payload.committeePref3 || null,
-            p_portfolio: payload.portfolio || null,
+            p_portfolio1: payload.portfolio1 || null,
+            p_portfolio2: payload.portfolio2 || null,
+            p_portfolio3: payload.portfolio3 || null,
+            p_referred: payload.referred,
+            p_referral_name: payload.referred ? payload.referralName || null : null,
             p_allergies: payload.allergies || null,
-            p_notes: payload.notes || null,
           }),
         });
         code = (out && out.ref_code) || refCode;
@@ -2555,6 +2600,14 @@ function whenIST(t) {
     return c ? c.acronym : String(slug).toUpperCase();
   };
   const EXP_LABEL = { novice: "Novice", intermediate: "Interm.", veteran: "Veteran" };
+  const expLabel = (v) => {
+    const s = v == null ? "" : String(v);
+    if (/^\d+$/.test(s)) {
+      const n = parseInt(s, 10);
+      return n === 0 ? "First MUN" : `${n} MUN${n > 1 ? "s" : ""}`;
+    }
+    return EXP_LABEL[s] || s || "—";
+  };
   const STATUS_CHIP = {
     registered: ["fee pending", "wait"],
     verifying: ["verifying", "hot"],
@@ -2568,7 +2621,8 @@ function whenIST(t) {
     return (regsCache || []).filter((r) => [
       r.full_name, r.ref_code, r.email, r.phone, r.institution,
       r.portfolio, r.committee_pref1, r.committee_pref2, r.committee_pref3,
-      r.upi_utr,
+      r.portfolio1, r.portfolio2, r.portfolio3,
+      r.exp_details, r.achievements, r.allergies, r.referral_name, r.upi_utr,
     ].some((v) => v && String(v).toLowerCase().includes(q)));
   };
 
@@ -2581,7 +2635,7 @@ function whenIST(t) {
       <td class="regs-name"><strong>${esc(r.full_name)}</strong>${r.grade_or_title ? `<em>${esc(r.grade_or_title)}</em>` : ""}</td>
       <td class="regs-contact"><a href="mailto:${esc(r.email)}">${esc(r.email)}</a>${r.phone ? `<span>${esc(r.phone)}</span>` : ""}</td>
       <td>${esc(r.institution || "—")}</td>
-      <td>${esc(EXP_LABEL[r.experience] || r.experience || "—")}</td>
+      <td>${esc(expLabel(r.experience))}</td>
       <td class="regs-cmt">${esc(cmtAcronym(r.committee_pref1))}</td>
       <td class="regs-cmt">${esc(cmtAcronym(r.committee_pref2))}</td>
       <td class="regs-cmt">${esc(cmtAcronym(r.committee_pref3))}</td>
@@ -2643,15 +2697,18 @@ function whenIST(t) {
     if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no rows.", true);
     const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const line = (arr) => arr.map(cell).join(",");
-    const head = ["#", "Registered", "Ref code", "Name", "Grade/Title", "Email", "Phone", "Institution", "Experience", "Committee pref I", "Committee pref II", "Committee pref III", "Country / portfolio", "Status", "Fee", "UTR", "UTR submitted", "Verified at", "Note"];
+    const head = ["#", "Registered", "Ref code", "Name", "Grade/Title", "Email", "Phone", "Institution", "Experience", "Dietary", "Past MUNs & committees", "Achievements", "Committee pref I", "Committee pref II", "Committee pref III", "Portfolio I", "Portfolio II", "Portfolio III", "Country / portfolio", "Status", "Fee", "UTR", "UTR submitted", "Verified at", "Note", "Referred by"];
     const body = rows.map((r, i) => line([
       i + 1, whenIST(r.created_at), r.ref_code, r.full_name, r.grade_or_title,
-      r.email, r.phone, r.institution, EXP_LABEL[r.experience] || r.experience,
+      r.email, r.phone, r.institution, expLabel(r.experience),
+      r.allergies, r.exp_details, r.achievements,
       cmtAcronym(r.committee_pref1), cmtAcronym(r.committee_pref2), cmtAcronym(r.committee_pref3),
-      r.portfolio, (STATUS_CHIP[r.payment_status] || [r.payment_status])[0],
+      r.portfolio1, r.portfolio2, r.portfolio3, r.portfolio,
+      (STATUS_CHIP[r.payment_status] || [r.payment_status])[0],
       r.expected_amount != null ? Number(r.expected_amount).toFixed(2) : "",
       r.upi_utr, r.utr_submitted_at ? whenIST(r.utr_submitted_at) : "",
       r.paid_at ? whenIST(r.paid_at) : "", r.status_note,
+      r.referred ? (r.referral_name || "yes") : "",
     ]));
     const blob = new Blob(["\uFEFF" + line(head) + "\r\n" + body.join("\r\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
@@ -2669,7 +2726,7 @@ function whenIST(t) {
             <p class="pa-row-title"><strong>${esc(r.full_name)}</strong><span class="pa-code">${esc(r.ref_code)}</span></p>
             <p class="pa-row-sub">${esc(r.email)} · ${esc(r.phone || "")}${r.institution ? " · " + esc(r.institution) : ""}</p>
             <p class="pa-row-meta">invoice <strong>${fmtINR(r.expected_amount)}</strong>${r.amount != null ? ` · declared ${fmtINR(r.amount)}` : ""} · UTR <span class="pa-mono">${esc(r.upi_utr || "")}</span> · submitted ${whenIST(r.utr_submitted_at)}${r.status_note ? ` · <em>${esc(r.status_note)}</em>` : ""}</p>
-            <p class="pa-row-meta">${r.committee_pref1 ? `wants <strong>${esc(String(r.committee_pref1).toUpperCase())}</strong>${r.portfolio ? ` · ${esc(r.portfolio)}` : ""}` : ""}${r.allergies && !/^none$/i.test(r.allergies) ? ` · <span class="pa-hot">ALLERGY: ${esc(r.allergies)}</span>` : ""}</p>
+            <p class="pa-row-meta">${r.committee_pref1 ? `wants <strong>${esc(String(r.committee_pref1).toUpperCase())}</strong>${r.portfolio ? ` · ${esc(r.portfolio)}` : ""}` : ""}${r.allergies && !/^none$/i.test(r.allergies) ? ` · <span class="pa-hot">DIETARY: ${esc(r.allergies)}</span>` : ""}</p>
           </div>
           <div class="pa-row-actions">
             ${r.shot_path ? `<button class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}

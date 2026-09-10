@@ -32,16 +32,9 @@ one delegate, ₹2799.07 for the next. The paise are the payment's identity.
      the private bucket
    - `jwt_secret` → the `JWT Secret` on the same `Settings → API` page —
      the console signs each screenshot's 1-hour viewing token with it
-   - `gemini_api_key` → a free key from aistudio.google.com (**Get API
-     key**) — switches the AI screenshot desk on; leave the placeholder
-     to keep it off (the UI no longer surfaces AI reads — the RPC
-     `check_shot_ai` stays installed but nothing calls it)
 2. **Fee** — already live in `js/config.js` (`REGISTRATION_FEE: 2799`).
    Change `fee_base_early` in `app_secrets` when a new round is priced.
-3. **AI assistant (optional, dormant)** — `ai-shot-check.sql` installs the
-   pure-SQL Gemini desk, but the site no longer shows AI reads anywhere;
-   keep `gemini_api_key` empty and skip this step entirely.
-4. **Screenshot viewing** — two signing routes, storage-sign first: when the
+3. **Screenshot viewing** — two signing routes, storage-sign first: when the
    `http` extension is on (schema resolved from `pg_proc` at run time), storage
    itself signs the link with the `service_key` — a URL storage built is always
    valid. Fallback: the RPC signs the token in pure SQL (pgcrypto `hmac`, keyed
@@ -49,13 +42,14 @@ one delegate, ₹2799.07 for the next. The paise are the payment's identity.
    path) and proves the link with a storage GET before returning it. If neither
    route is ready the console says exactly which cell to fill. One-off upgrade
    for an older install: re-run `supabase/fix-view-payment.sql`.
-5. **QR (built in)** — the pay panel generates a fresh QR per delegate with
+4. **QR (built in)** — the pay panel generates a fresh QR per delegate with
    the exact watermark amount encoded inside; no image file needed.
 
 ## The delegate flow
 
-Register (committee preference + country/portfolio preference are
-**mandatory**, stage IV collects allergies) → confirmation screen shows
+Register (committee preference + its portfolio are **mandatory**, page 1
+collects personal + emergency contact + dietary needs, page 4 records a
+referral if any) → confirmation screen shows
 their **personal exact amount** (₹2799.63-style) → **scan the QR** with any
 UPI app — the amount is already on it — or copy the UPI ID + amount →
 submit the UTR + payment screenshot (both required, front and back end) →
@@ -79,7 +73,7 @@ The console is two pages behind one key — switch with the tabs at the top:
 - **Sales meter** at the top: Invoiced · Confirmed · Awaiting.
 - **Payments awaiting verification**: each row shows the invoice amount,
   declared UTR, the delegate's committee + portfolio preference and any
-  allergy flag. **View payment** opens the delegate's submitted screenshot
+  dietary flag. **View payment** opens the delegate's submitted screenshot
   in a popup inside the page (signed 1-hour URL — the bucket stays private;
   an "open raw" link remains as fallback). Click
   **Verify** when the UTR + screenshot + your bank app all agree — that

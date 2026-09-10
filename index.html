@@ -1003,21 +1003,21 @@
           <div class="reg-grid">
             <div class="reveal" data-delay="0.05" id="reg-box">
               <ol class="stages" id="reg-stages" aria-label="Registration stages">
-                <li class="stage-step is-current"><span class="stage-num">I</span><span class="stage-label">Information</span></li>
-                <li class="stage-step"><span class="stage-num">II</span><span class="stage-label">Experience &amp; Preferences</span></li>
-                <li class="stage-step"><span class="stage-num">III</span><span class="stage-label">Payment</span></li>
-                <li class="stage-step"><span class="stage-num">IV</span><span class="stage-label">Extra Notes</span></li>
+                <li class="stage-step is-current"><span class="stage-num">I</span><span class="stage-label">Personal Information</span></li>
+                <li class="stage-step"><span class="stage-num">II</span><span class="stage-label">MUN Experience</span></li>
+                <li class="stage-step"><span class="stage-num">III</span><span class="stage-label">Preferences</span></li>
+                <li class="stage-step"><span class="stage-num">IV</span><span class="stage-label">Referral &amp; Payment</span></li>
               </ol>
               <form class="reg-form" id="reg-form" novalidate>
-                <!-- STAGE I — INFORMATION -->
+                <!-- PAGE 1 — PERSONAL INFORMATION -->
                 <fieldset class="reg-fieldset reg-stage is-active" data-stage="1">
                   <legend class="reg-legend">
                     <span class="reg-legend-index">i</span>
-                    <span class="reg-legend-label">Information</span>
+                    <span class="reg-legend-label">Personal Information</span>
                   </legend>
                   <div class="reg-fields">
                     <div class="field">
-                      <label class="field-label" for="fullName">Full Name <span class="req">*</span></label>
+                      <label class="field-label" for="fullName">Name <span class="req">*</span></label>
                       <input class="input" id="fullName" name="fullName" required placeholder="e.g. Aarav Sharma" />
                     </div>
                     <div class="field">
@@ -1026,16 +1026,30 @@
                       <p class="field-note">Allotments and payment links go <strong>only</strong> to this address — double-check the spelling before continuing.</p>
                     </div>
                     <div class="field">
-                      <label class="field-label" for="phone">Phone (WhatsApp preferred) <span class="req">*</span></label>
+                      <label class="field-label" for="phone">Contact Number <span class="req">*</span></label>
                       <input class="input" id="phone" name="phone" required inputmode="tel" placeholder="+91 …" />
+                      <p class="field-note">WhatsApp preferred — the secretariat may reach you here.</p>
                     </div>
                     <div class="field">
-                      <label class="field-label" for="institution">Institution / Organisation <span class="req">*</span></label>
-                      <input class="input" id="institution" name="institution" required placeholder="School / college / IP house" />
+                      <label class="field-label" for="gradeOrTitle">Grade <span class="opt">(class / year)</span></label>
+                      <input class="input" id="gradeOrTitle" name="gradeOrTitle" placeholder="e.g. Grade XI · B.A. LL.B., 2nd year" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="emName">Emergency Contact — Parent / Guardian Name <span class="req">*</span></label>
+                      <input class="input" id="emName" name="emName" required placeholder="e.g. Meera Sharma" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="emPhone">Emergency Contact — Phone <span class="req">*</span></label>
+                      <input class="input" id="emPhone" name="emPhone" required inputmode="tel" placeholder="+91 …" />
                     </div>
                     <div class="field field--wide">
-                      <label class="field-label" for="gradeOrTitle">Class / Year / Professional Title</label>
-                      <input class="input" id="gradeOrTitle" name="gradeOrTitle" placeholder="e.g. Grade XI · B.A. LL.B., 2nd year" />
+                      <label class="field-label" for="institution">Current Institution <span class="req">*</span></label>
+                      <input class="input" id="institution" name="institution" required placeholder="School / college" />
+                    </div>
+                    <div class="field field--wide">
+                      <label class="field-label" for="allergies">Dietary restrictions, if any?</label>
+                      <input class="input" id="allergies" name="allergies" placeholder="e.g. peanut allergy · Jain food · leave blank if none" />
+                      <p class="field-note">Every meal across the three days is covered by your pass — the kitchen is planned against this list, so be specific.</p>
                     </div>
                   </div>
                   <div class="confirm-row">
@@ -1048,11 +1062,36 @@
                   </div>
                 </fieldset>
 
-                <!-- STAGE II — EXPERIENCE &amp; PREFERENCES -->
+                <!-- PAGE 2 — MUN EXPERIENCE -->
                 <fieldset class="reg-fieldset reg-stage" data-stage="2">
                   <legend class="reg-legend">
                     <span class="reg-legend-index">ii</span>
-                    <span class="reg-legend-label">Experience &amp; Preferences</span>
+                    <span class="reg-legend-label">MUN Experience</span>
+                  </legend>
+                  <div class="field field--exp">
+                    <label class="field-label" for="munCount">Number of previous MUNs attended?</label>
+                    <input class="input" id="munCount" name="munCount" type="number" min="0" max="99" inputmode="numeric" placeholder="e.g. 3 — put 0 if this is your first" />
+                    <p class="field-note">A rough count is fine — it helps the dais pitch the debate right.</p>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="expDetails">Previous MUN experience? <span class="opt">(past conferences and committees)</span></label>
+                    <textarea class="input textarea" id="expDetails" name="expDetails" rows="4" placeholder="e.g. HMUN '25 — UNSC · CVMUN '24 — Lok Sabha"></textarea>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="achievements">Achievements, if any? <span class="opt">(awards won)</span></label>
+                    <textarea class="input textarea" id="achievements" name="achievements" rows="3" placeholder="e.g. Best Delegate — DISEC, …"></textarea>
+                  </div>
+                  <div class="stage-foot">
+                    <button type="button" class="stage-back" data-back><i data-icon="chevron-left" data-cls="stage-back-icon"></i> Back</button>
+                    <button type="button" class="btn btn--crimson" data-next>Continue <i data-icon="arrow-right" data-cls="btn-arrow-icon"></i></button>
+                  </div>
+                </fieldset>
+
+                <!-- PAGE 3 — COMMITTEE PREFERENCES -->
+                <fieldset class="reg-fieldset reg-stage" data-stage="3">
+                  <legend class="reg-legend">
+                    <span class="reg-legend-index">iii</span>
+                    <span class="reg-legend-label">Committee Preferences</span>
                   </legend>
                   <button type="button" class="matrix-btn" data-matrix>
                     <i data-icon="file-text" data-cls="matrix-btn-icon"></i>
@@ -1061,85 +1100,78 @@
                     </span>
                     <i data-icon="arrow-right" data-cls="btn-arrow-icon"></i>
                   </button>
-                  <div class="field field--exp">
-                    <label class="field-label" for="experience">MUN Experience</label>
-                    <div class="select-wrap">
-                      <select class="select" id="experience" name="experience">
-                        <option value="novice" selected>Novice — 0 conferences</option>
-                        <option value="intermediate">Intermediate — 1–4 conferences</option>
-                        <option value="veteran">Veteran — 5+ conferences</option>
-                      </select>
-                      <i data-icon="chevron-down" data-cls="select-chevron"></i>
-                    </div>
-                  </div>
-
                   <div class="reg-prefs">
-                    <div class="field">
-                      <label class="field-label" for="pref1">Preference I <span class="req">*</span></label>
-                      <div class="select-wrap">
-                        <select class="select" id="pref1" name="committeePref1" data-committee-select required><option value="">Select a committee</option></select>
-                        <i data-icon="chevron-down" data-cls="select-chevron"></i>
+                    <div class="pref-block">
+                      <div class="field">
+                        <label class="field-label" for="pref1">First committee preference <span class="req">*</span></label>
+                        <div class="select-wrap">
+                          <select class="select" id="pref1" name="committeePref1" data-committee-select required><option value="">Select a committee</option></select>
+                          <i data-icon="chevron-down" data-cls="select-chevron"></i>
+                        </div>
+                      </div>
+                      <div class="field">
+                        <label class="field-label" for="portfolio1">Portfolio preference <span class="req">*</span></label>
+                        <input class="input" id="portfolio1" name="portfolio1" required placeholder="e.g. France" />
                       </div>
                     </div>
-                    <div class="field">
-                      <label class="field-label" for="pref2">Preference II</label>
-                      <div class="select-wrap">
-                        <select class="select" id="pref2" name="committeePref2" data-committee-select><option value="">Select a committee</option></select>
-                        <i data-icon="chevron-down" data-cls="select-chevron"></i>
+                    <div class="pref-block">
+                      <div class="field">
+                        <label class="field-label" for="pref2">Second committee preference</label>
+                        <div class="select-wrap">
+                          <select class="select" id="pref2" name="committeePref2" data-committee-select><option value="">Select a committee</option></select>
+                          <i data-icon="chevron-down" data-cls="select-chevron"></i>
+                        </div>
+                      </div>
+                      <div class="field">
+                        <label class="field-label" for="portfolio2">Portfolio preference</label>
+                        <input class="input" id="portfolio2" name="portfolio2" placeholder="e.g. Japan" />
                       </div>
                     </div>
-                    <div class="field">
-                      <label class="field-label" for="pref3">Preference III</label>
-                      <div class="select-wrap">
-                        <select class="select" id="pref3" name="committeePref3" data-committee-select><option value="">Select a committee</option></select>
-                        <i data-icon="chevron-down" data-cls="select-chevron"></i>
+                    <div class="pref-block">
+                      <div class="field">
+                        <label class="field-label" for="pref3">Third committee preference</label>
+                        <div class="select-wrap">
+                          <select class="select" id="pref3" name="committeePref3" data-committee-select><option value="">Select a committee</option></select>
+                          <i data-icon="chevron-down" data-cls="select-chevron"></i>
+                        </div>
+                      </div>
+                      <div class="field">
+                        <label class="field-label" for="portfolio3">Portfolio preference</label>
+                        <input class="input" id="portfolio3" name="portfolio3" placeholder="e.g. PM" />
                       </div>
                     </div>
                   </div>
-
-                  <div class="field">
-                    <label class="field-label" for="portfolio">Preferred Country / Leader Portfolio <span class="req">*</span></label>
-                    <input class="input" id="portfolio" name="portfolio" required placeholder="e.g. France in UNHRC · PM in Lok Sabha" />
-                    <p class="field-note">Committee and portfolio preferences are both required — browse the allocation matrix above before you choose.</p>
-                  </div>
+                  <p class="field-note">Committee and portfolio preferences are both required for your first choice. Pick a committee in preference II or III and its portfolio is required too — leave both blank if you'd rather name just one chamber.</p>
                   <div class="stage-foot">
                     <button type="button" class="stage-back" data-back><i data-icon="chevron-left" data-cls="stage-back-icon"></i> Back</button>
                     <button type="button" class="btn btn--crimson" data-next>Continue <i data-icon="arrow-right" data-cls="btn-arrow-icon"></i></button>
                   </div>
                 </fieldset>
 
-                <!-- STAGE III — PAYMENT -->
-                <fieldset class="reg-fieldset reg-stage" data-stage="3">
+                <!-- PAGE 4 — REFERRAL & PAYMENT -->
+                <fieldset class="reg-fieldset reg-stage" data-stage="4">
                   <legend class="reg-legend">
-                    <span class="reg-legend-index">iii</span>
-                    <span class="reg-legend-label">Payment</span>
+                    <span class="reg-legend-index">iv</span>
+                    <span class="reg-legend-label">Referral &amp; Payment</span>
                   </legend>
+                  <div class="field">
+                    <span class="field-label" id="referred-label">Were you referred by someone?</span>
+                    <div class="ref-pills" role="radiogroup" aria-labelledby="referred-label">
+                      <input class="ref-pill-input" type="radio" name="referred" id="referred-no" value="no" checked />
+                      <label class="ref-pill" for="referred-no">No</label>
+                      <input class="ref-pill-input" type="radio" name="referred" id="referred-yes" value="yes" />
+                      <label class="ref-pill" for="referred-yes">Yes</label>
+                    </div>
+                  </div>
+                  <div class="field" id="referral-name-field" hidden>
+                    <label class="field-label" for="referralName">If yes, kindly enter the reference name below <span class="req">*</span></label>
+                    <input class="input" id="referralName" name="referralName" placeholder="Full name of the person who referred you" />
+                  </div>
                   <div class="pay-panel">
                     <i data-icon="landmark" data-cls="pay-icon" data-sw="1.2"></i>
                     <p class="pay-amount" id="pay-amount">₹ XXXX</p>
                     <p class="pay-badge" id="pay-badge">To be disclosed</p>
                     <p class="pay-copy" id="pay-copy">The payment portal will open as soon as registrations do. When the fee is announced this panel shows YOUR exact amount — scan the QR with any UPI app, pay it to the last paise, then submit the UTR + payment screenshot. Delegates and Group Delegation share the same fee.</p>
-                  </div>
-                  <div class="stage-foot">
-                    <button type="button" class="stage-back" data-back><i data-icon="chevron-left" data-cls="stage-back-icon"></i> Back</button>
-                    <button type="button" class="btn btn--crimson" data-next>Continue <i data-icon="arrow-right" data-cls="btn-arrow-icon"></i></button>
-                  </div>
-                </fieldset>
-
-                <!-- STAGE IV — EXTRA NOTES -->
-                <fieldset class="reg-fieldset reg-stage" data-stage="4">
-                  <legend class="reg-legend">
-                    <span class="reg-legend-index">iv</span>
-                    <span class="reg-legend-label">Extra Notes</span>
-                  </legend>
-                  <div class="field">
-                    <label class="field-label" for="allergies">Allergies &amp; Dietary Restrictions <span class="req">*</span></label>
-                    <input class="input" id="allergies" name="allergies" required placeholder="e.g. peanut allergy · Jain food · none" />
-                    <p class="field-note">Every meal across the three days is covered by your pass — the kitchen is planned against this list, so be specific.</p>
-                  </div>
-                  <div class="field">
-                    <label class="field-label" for="notes">Anything else the secretariat should know?</label>
-                    <textarea class="input textarea" id="notes" name="notes" rows="5" placeholder="Access needs, prior achievements, delegation groupings…"></textarea>
                   </div>
                   <div class="stage-foot">
                     <button type="button" class="stage-back" data-back><i data-icon="chevron-left" data-cls="stage-back-icon"></i> Back</button>
