@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /supabase/
+Disallow: /scripts/
+Disallow: /skills/
+
+Sitemap: https://somunhyd.in/sitemap.xml

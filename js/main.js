@@ -1662,9 +1662,12 @@ deckInit();
 
   if (opened) {
     gate.remove();
-    site.hidden = false;
+    site.inert = false;
+    site.removeAttribute("aria-hidden");
     showView(currentView, { animate: false });
   } else {
+    site.inert = true;
+    site.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "hidden";
     setTimeout(() => enterBtn.focus({ preventScroll: true }), 1700);
 
@@ -1691,7 +1694,8 @@ deckInit();
       } catch { /* private mode */ }
       gate.classList.add("open");
       document.body.style.overflow = "";
-      site.hidden = false;
+      site.inert = false;
+      site.removeAttribute("aria-hidden");
       showView(currentView, { animate: false });
       setTimeout(() => gate.remove(), 1550);
     });
