@@ -5758,7 +5758,7 @@ em.accent {
   border: 1px dashed rgba(200, 16, 46, 0.45); padding: 0.7rem 0.9rem;
 }
 .regs-scroll { overflow-x: auto; max-height: 68vh; overflow-y: auto; border: 1px solid var(--line); }
-.regs-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+.regs-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.76rem; }
 .regs-table thead th {
   position: sticky; top: 0; z-index: 1;
   background: var(--ink); color: var(--beige-dim);
@@ -5767,6 +5767,12 @@ em.accent {
   text-align: left; padding: 0.65rem 0.7rem; white-space: nowrap;
   border-bottom: 1px solid var(--line);
 }
+.regs-table thead tr.regs-group th {
+  top: 0; z-index: 2; height: 1.5rem; padding: 0.2rem 0.7rem;
+  font-size: 0.56rem; letter-spacing: 0.22em; color: rgba(179, 164, 135, 0.75);
+}
+.regs-table thead tr.regs-cols th { top: 1.5rem; }
+.regs-gstart { border-left: 1px solid var(--line); }
 .regs-table tbody td {
   padding: 0.55rem 0.7rem; vertical-align: top;
   border-bottom: 1px solid rgba(179, 164, 135, 0.12);
@@ -5777,13 +5783,21 @@ em.accent {
 .regs-num { color: rgba(179, 164, 135, 0.55); font-family: "Sarasa Mono SC", ui-monospace, monospace; font-size: 0.68rem; }
 .regs-nowrap { white-space: nowrap; }
 .regs-name strong { display: block; color: var(--beige); font-weight: 500; }
-.regs-name em { font-style: normal; font-size: 0.68rem; color: var(--beige-dim); opacity: 0.8; }
 .regs-contact { min-width: 170px; }
 .regs-contact a { color: var(--beige-dim); text-decoration: none; border-bottom: 1px solid var(--border); word-break: break-all; }
 .regs-contact a:hover { color: var(--beige); border-color: var(--crimson); }
-.regs-contact span { display: block; font-family: "Sarasa Mono SC", ui-monospace, monospace; font-size: 0.68rem; }
+.regs-phone { font-family: "Sarasa Mono SC", ui-monospace, monospace; font-size: 0.7rem; }
+.regs-emerg { min-width: 150px; }
+.regs-emerg strong { display: block; color: var(--beige); font-weight: 500; }
+.regs-emerg span { display: block; font-family: "Sarasa Mono SC", ui-monospace, monospace; font-size: 0.68rem; }
+.regs-diet { max-width: 150px; word-break: break-word; }
+.regs-diet-hot { color: var(--crimson); }
+.regs-exp { max-width: 210px; min-width: 140px; word-break: break-word; }
+.regs-pf { max-width: 130px; min-width: 95px; word-break: break-word; }
+.regs-ref { min-width: 110px; word-break: break-word; }
+.regs-yes { color: var(--beige); font-weight: 500; }
+.regs-dim { opacity: 0.45; }
 .regs-cmt { font-family: "Sarasa Mono SC", ui-monospace, monospace; font-size: 0.7rem; letter-spacing: 0.05em; color: var(--beige); }
-.regs-portfolio { max-width: 220px; min-width: 140px; word-break: break-word; }
 .regs-chip {
   display: inline-block; border: 1px solid currentColor;
   padding: 0.05rem 0.5rem; font-size: 0.64rem;

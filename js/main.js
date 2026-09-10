@@ -2619,30 +2619,50 @@ function whenIST(t) {
     const q = (regsSearch.value || "").trim().toLowerCase();
     if (!q) return regsCache || [];
     return (regsCache || []).filter((r) => [
-      r.full_name, r.ref_code, r.email, r.phone, r.institution,
+      r.full_name, r.ref_code, r.email, r.phone, r.institution, r.grade_or_title,
+      r.emergency_name, r.emergency_phone,
       r.portfolio, r.committee_pref1, r.committee_pref2, r.committee_pref3,
       r.portfolio1, r.portfolio2, r.portfolio3,
       r.exp_details, r.achievements, r.allergies, r.referral_name, r.upi_utr,
     ].some((v) => v && String(v).toLowerCase().includes(q)));
   };
 
+  const dietCell = (v) => {
+    const s = (v || "").trim();
+    if (!s || /^none$/i.test(s)) return `<span class="regs-dim">—</span>`;
+    return `<span class="regs-diet-hot" title="${esc(s)}">${esc(s)}</span>`;
+  };
+  const dash = (v) => esc(v && String(v).trim() ? v : "—");
+
   const regsRow = (r, i) => {
     const [label, mood] = STATUS_CHIP[r.payment_status] || [r.payment_status || "—", ""];
+    const eName = (r.emergency_name || "").trim();
+    const ePhone = (r.emergency_phone || "").trim();
     return `<tr>
       <td class="regs-num">${i + 1}</td>
-      <td class="regs-nowrap">${whenIST(r.created_at)}</td>
       <td><span class="pa-code">${esc(r.ref_code || "—")}</span></td>
-      <td class="regs-name"><strong>${esc(r.full_name)}</strong>${r.grade_or_title ? `<em>${esc(r.grade_or_title)}</em>` : ""}</td>
-      <td class="regs-contact"><a href="mailto:${esc(r.email)}">${esc(r.email)}</a>${r.phone ? `<span>${esc(r.phone)}</span>` : ""}</td>
-      <td>${esc(r.institution || "—")}</td>
-      <td>${esc(expLabel(r.experience))}</td>
-      <td class="regs-cmt">${esc(cmtAcronym(r.committee_pref1))}</td>
+      <td class="regs-contact regs-gstart"><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></td>
+      <td class="regs-name"><strong>${esc(r.full_name)}</strong></td>
+      <td class="regs-phone regs-nowrap">${esc(r.phone || "—")}</td>
+      <td class="regs-emerg">${eName || ePhone ? `<strong>${esc(eName || "—")}</strong>${ePhone ? `<span>${esc(ePhone)}</span>` : ""}` : `<span class="regs-dim">—</span>`}</td>
+      <td>${dash(r.grade_or_title)}</td>
+      <td>${dash(r.institution)}</td>
+      <td class="regs-diet">${dietCell(r.allergies)}</td>
+      <td class="regs-gstart regs-nowrap">${esc(expLabel(r.experience))}</td>
+      <td class="regs-exp" title="${esc(r.exp_details || "")}">${dash(r.exp_details)}</td>
+      <td class="regs-exp" title="${esc(r.achievements || "")}">${dash(r.achievements)}</td>
+      <td class="regs-cmt regs-gstart">${esc(cmtAcronym(r.committee_pref1))}</td>
       <td class="regs-cmt">${esc(cmtAcronym(r.committee_pref2))}</td>
       <td class="regs-cmt">${esc(cmtAcronym(r.committee_pref3))}</td>
-      <td class="regs-portfolio" title="${esc(r.portfolio || "")}">${esc(r.portfolio || "—")}</td>
+      <td class="regs-pf" title="${esc(r.portfolio1 || "")}">${dash(r.portfolio1)}</td>
+      <td class="regs-pf" title="${esc(r.portfolio2 || "")}">${dash(r.portfolio2)}</td>
+      <td class="regs-pf" title="${esc(r.portfolio3 || "")}">${dash(r.portfolio3)}</td>
+      <td class="regs-gstart regs-nowrap">${r.referred ? `<strong class="regs-yes">yes</strong>` : `<span class="regs-dim">—</span>`}</td>
+      <td class="regs-ref">${dash(r.referral_name)}</td>
       <td class="regs-nowrap">${r.expected_amount != null ? fmtINR(r.expected_amount) : "—"}</td>
       <td class="pa-mono regs-nowrap">${esc(r.upi_utr || "—")}</td>
       <td class="regs-nowrap"><span class="regs-chip regs-chip--${mood}">${esc(label)}</span>${r.payment_status === "paid" && r.paid_at ? `<em class="regs-why">${whenIST(r.paid_at)}</em>` : ""}${r.payment_status === "failed" && r.status_note ? `<em class="regs-why" title="${esc(r.status_note)}">${esc(r.status_note)}</em>` : ""}</td>
+      <td class="regs-nowrap">${whenIST(r.created_at)}</td>
     </tr>`;
   };
 
@@ -2651,7 +2671,7 @@ function whenIST(t) {
     const rows = regsFiltered();
     regsTbody.innerHTML = rows.length
       ? rows.map(regsRow).join("")
-      : `<tr><td colspan="14" class="regs-empty">${(regsSearch.value || "").trim() ? "No registrant matches that filter." : "No registrants yet — the roster fills as applications land."}</td></tr>`;
+      : `<tr><td colspan="24" class="regs-empty">${(regsSearch.value || "").trim() ? "No registrant matches that filter." : "No registrants yet — the roster fills as applications land."}</td></tr>`;
     regsCount.hidden = false;
     regsCount.innerHTML = `<b>${rows.length}</b> shown · <b>${regsCache.length}</b> total${(regsSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
   }
@@ -2697,18 +2717,21 @@ function whenIST(t) {
     if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no rows.", true);
     const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const line = (arr) => arr.map(cell).join(",");
-    const head = ["#", "Registered", "Ref code", "Name", "Grade/Title", "Email", "Phone", "Institution", "Experience", "Dietary", "Past MUNs & committees", "Achievements", "Committee pref I", "Committee pref II", "Committee pref III", "Portfolio I", "Portfolio II", "Portfolio III", "Country / portfolio", "Status", "Fee", "UTR", "UTR submitted", "Verified at", "Note", "Referred by"];
+    const head = ["#", "Ref code", "Email", "Name", "Phone", "Emergency contact", "Emergency phone", "Grade", "Institution", "Dietary", "MUNs attended", "Past MUNs & committees", "Achievements", "Committee pref I", "Committee pref II", "Committee pref III", "Portfolio I", "Portfolio II", "Portfolio III", "Referred", "Reference name", "Fee", "UTR", "Status", "UTR submitted", "Verified at", "Note", "Registered"];
     const body = rows.map((r, i) => line([
-      i + 1, whenIST(r.created_at), r.ref_code, r.full_name, r.grade_or_title,
-      r.email, r.phone, r.institution, expLabel(r.experience),
-      r.allergies, r.exp_details, r.achievements,
+      i + 1, r.ref_code, r.email, r.full_name, r.phone,
+      r.emergency_name, r.emergency_phone, r.grade_or_title, r.institution,
+      (r.allergies || "").trim() && !/^none$/i.test((r.allergies || "").trim()) ? r.allergies : "",
+      expLabel(r.experience), r.exp_details, r.achievements,
       cmtAcronym(r.committee_pref1), cmtAcronym(r.committee_pref2), cmtAcronym(r.committee_pref3),
-      r.portfolio1, r.portfolio2, r.portfolio3, r.portfolio,
-      (STATUS_CHIP[r.payment_status] || [r.payment_status])[0],
+      r.portfolio1, r.portfolio2, r.portfolio3,
+      r.referred ? "yes" : "no", r.referral_name,
       r.expected_amount != null ? Number(r.expected_amount).toFixed(2) : "",
-      r.upi_utr, r.utr_submitted_at ? whenIST(r.utr_submitted_at) : "",
+      r.upi_utr,
+      (STATUS_CHIP[r.payment_status] || [r.payment_status])[0],
+      r.utr_submitted_at ? whenIST(r.utr_submitted_at) : "",
       r.paid_at ? whenIST(r.paid_at) : "", r.status_note,
-      r.referred ? (r.referral_name || "yes") : "",
+      whenIST(r.created_at),
     ]));
     const blob = new Blob(["\uFEFF" + line(head) + "\r\n" + body.join("\r\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
