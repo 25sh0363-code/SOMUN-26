@@ -457,13 +457,13 @@ export const FEES = [
     label: "Delegate",
     early: "₹ 2,799",
     standard: "TBD",
-    note: "Early bird opens Sep 16 — your invoice carries a unique paise ID",
+    note: "Early bird opens Sat, Sep 12 — your invoice carries a unique paise ID",
   },
   {
     label: "Group Delegation",
     early: "₹ 2,799",
     standard: "TBD",
-    note: "Same fee as delegates — early bird opens Sep 16",
+    note: "Same fee as delegates — early bird opens Sat, Sep 12",
   },
 ];
 

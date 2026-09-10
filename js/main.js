@@ -970,7 +970,7 @@ function applyRegGate() {
         stamp.textContent = "Opening Soon";
         const sub = document.createElement("span");
         sub.className = "reg-veil-sub";
-        sub.textContent = "Registrations haven’t opened yet — the portal goes live shortly.";
+        sub.textContent = "Registrations open Saturday, September 12 — the portal goes live that morning.";
         v.append(stamp, sub);
         regBox.append(v);
       }
@@ -2684,7 +2684,6 @@ function whenIST(t) {
       r.portfolio, r.committee_pref1, r.committee_pref2, r.committee_pref3,
       r.portfolio1, r.portfolio2, r.portfolio3,
       r.exp_details, r.achievements, r.allergies, r.referral_name, r.upi_utr,
-      r.delegation_name, r.delegation_head, r.delegation_head_phone,
     ].some((v) => v && String(v).toLowerCase().includes(q)));
   };
 
@@ -2708,7 +2707,6 @@ function whenIST(t) {
       <td class="regs-emerg">${eName || ePhone ? `<strong>${esc(eName || "—")}</strong>${ePhone ? `<span>${esc(ePhone)}</span>` : ""}` : `<span class="regs-dim">—</span>`}</td>
       <td>${dash(r.grade_or_title)}</td>
       <td>${dash(r.institution)}</td>
-      <td class="regs-del">${r.delegation_name || r.delegation_head || r.delegation_head_phone ? `<strong>${esc(r.delegation_name || "—")}</strong>${r.delegation_head ? `<span>${esc(r.delegation_head)}</span>` : ""}${r.delegation_head_phone ? `<span class="regs-phone">${esc(r.delegation_head_phone)}</span>` : ""}` : `<span class="regs-dim">—</span>`}</td>
       <td class="regs-diet">${dietCell(r.allergies)}</td>
       <td class="regs-gstart regs-nowrap">${esc(expLabel(r.experience))}</td>
       <td class="regs-exp" title="${esc(r.exp_details || "")}">${dash(r.exp_details)}</td>
@@ -2733,7 +2731,7 @@ function whenIST(t) {
     const rows = regsFiltered();
     regsTbody.innerHTML = rows.length
       ? rows.map(regsRow).join("")
-      : `<tr><td colspan="25" class="regs-empty">${(regsSearch.value || "").trim() ? "No registrant matches that filter." : "No verified delegates yet — rows land here the moment their payment clears."}</td></tr>`;
+      : `<tr><td colspan="24" class="regs-empty">${(regsSearch.value || "").trim() ? "No registrant matches that filter." : "No verified singles yet — rows land here the moment their payment clears."}</td></tr>`;
     regsCount.hidden = false;
     regsCount.innerHTML = `<b>${rows.length}</b> shown · <b>${regsCache.length}</b> total${(regsSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
   }
@@ -2766,7 +2764,9 @@ function whenIST(t) {
     });
     $("#pa-page-desk").hidden = which !== "desk";
     regsPage.hidden = which !== "regs";
+    delegPage.hidden = which !== "deleg";
     if (which === "regs" && (regsStale || !regsCache)) loadRegistrants();
+    if (which === "deleg" && (delegStale || !delegCache)) loadDelegations();
   }
   $$(".pa-tab").forEach((t) => t.addEventListener("click", () => setTab(t.dataset.patab)));
 
@@ -2779,11 +2779,10 @@ function whenIST(t) {
     if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no rows.", true);
     const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const line = (arr) => arr.map(cell).join(",");
-    const head = ["#", "Ref code", "Email", "Name", "Phone", "Emergency contact", "Emergency phone", "Grade", "Institution", "Delegation", "Delegation head", "Delegation head phone", "Dietary", "MUNs attended", "Past MUNs & committees", "Achievements", "Committee pref I", "Committee pref II", "Committee pref III", "Portfolio I", "Portfolio II", "Portfolio III", "Referred", "Reference name", "Fee", "UTR", "Status", "UTR submitted", "Verified at", "Note", "Registered"];
+    const head = ["#", "Ref code", "Email", "Name", "Phone", "Emergency contact", "Emergency phone", "Grade", "Institution", "Dietary", "MUNs attended", "Past MUNs & committees", "Achievements", "Committee pref I", "Committee pref II", "Committee pref III", "Portfolio I", "Portfolio II", "Portfolio III", "Referred", "Reference name", "Fee", "UTR", "Status", "UTR submitted", "Verified at", "Note", "Registered"];
     const body = rows.map((r, i) => line([
       i + 1, r.ref_code, r.email, r.full_name, r.phone,
       r.emergency_name, r.emergency_phone, r.grade_or_title, r.institution,
-      r.delegation_name, r.delegation_head, r.delegation_head_phone,
       (r.allergies || "").trim() && !/^none$/i.test((r.allergies || "").trim()) ? r.allergies : "",
       expLabel(r.experience), r.exp_details, r.achievements,
       cmtAcronym(r.committee_pref1), cmtAcronym(r.committee_pref2), cmtAcronym(r.committee_pref3),
@@ -2804,6 +2803,136 @@ function whenIST(t) {
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     showToast(`<strong>CSV downloaded</strong>${rows.length} row${rows.length === 1 ? "" : "s"} exported.`);
   });
+
+  /* — the third page: delegation registrations, foldered by the EXACT
+     delegation name the delegates typed (the form warns them word to
+     word, capital letter to capital letter — this is where that pays
+     off). Disband releases every member back to individual; detach
+     moves one. Payments and rows are never touched. — */
+  const delegPage = $("#pa-page-deleg");
+  const delegBox = $("#deleg-folders");
+  const delegSearch = $("#deleg-search");
+  const delegCount = $("#deleg-count");
+  const delegErr = $("#deleg-err");
+  let delegCache = null;
+  let delegLoading = false;
+  let delegStale = true;
+
+  async function loadDelegations() {
+    if (!key || delegLoading) return;
+    delegLoading = true;
+    delegErr.hidden = true;
+    try {
+      const rows = await rpc("pay_admin_delegations", { p_key: key });
+      delegCache = rows || [];
+      delegStale = false;
+      renderDelegations();
+    } catch (err) {
+      const msg = String(err.message || "");
+      delegErr.hidden = false;
+      delegErr.innerHTML = /could not find the function|pgrst202|schema cache/i.test(msg)
+        ? "The delegation register isn't installed on the database yet — run supabase/patch-delegation.sql (or payment.sql) in the SQL Editor."
+        : esc(msg || "Could not pull the delegation roster — try Refresh in a moment.");
+    } finally {
+      delegLoading = false;
+    }
+  }
+
+  function delegGroups() {
+    const q = (delegSearch.value || "").trim().toLowerCase();
+    let rows = delegCache || [];
+    if (q) {
+      rows = rows.filter((r) => [
+        r.delegation_name, r.delegation_head, r.delegation_head_phone,
+        r.full_name, r.ref_code, r.email, r.phone, r.institution, r.grade_or_title,
+        r.committee_pref1, r.committee_pref2, r.committee_pref3,
+        r.portfolio, r.upi_utr,
+      ].some((v) => v && String(v).toLowerCase().includes(q)));
+    }
+    const map = new Map();
+    for (const r of rows) {
+      const name = String(r.delegation_name || "");
+      if (!map.has(name)) map.set(name, []);
+      map.get(name).push(r);
+    }
+    return [...map.entries()].map(([name, members]) => ({
+      name,
+      members,
+      head: members.map((m) => (m.delegation_head || "").trim()).find(Boolean) || "",
+      phone: members.map((m) => (m.delegation_head_phone || "").trim()).find(Boolean) || "",
+      paid: members.filter((m) => m.payment_status === "paid").length,
+    }));
+  }
+
+  const delegMemberRow = (m) => {
+    const [label, mood] = STATUS_CHIP[m.payment_status] || [m.payment_status || "—", ""];
+    return `
+      <div class="deleg-member">
+        <div class="deleg-member-main">
+          <p class="deleg-member-name"><strong>${esc(m.full_name)}</strong><span class="pa-code">${esc(m.ref_code || "—")}</span><span class="regs-chip regs-chip--${mood}">${esc(label)}</span></p>
+          <p class="deleg-member-meta">${esc(m.email || "")}${m.phone ? ` · ${esc(m.phone)}` : ""}${m.institution ? ` · ${esc(m.institution)}` : ""}${m.grade_or_title ? ` · ${esc(m.grade_or_title)}` : ""}</p>
+          <p class="deleg-member-meta">wants <strong>${esc(cmtAcronym(m.committee_pref1))}</strong>${m.portfolio ? ` · ${esc(m.portfolio)}` : ""} · invoice <strong>${fmtINR(m.expected_amount)}</strong>${m.upi_utr ? ` · UTR <span class="pa-mono">${esc(m.upi_utr)}</span>` : ""}${m.paid_at ? ` · verified ${whenIST(m.paid_at)}` : ""}</p>
+        </div>
+        <div class="pa-row-actions">
+          ${m.shot_path ? `<button type="button" class="pa-btn" data-act="shot" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
+          <button type="button" class="pa-btn pa-btn--bad" data-act="detach" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" data-deleg="${esc(m.delegation_name)}" title="Move this delegate out of the delegation — they count as an individual registration">Move to individual</button>
+        </div>
+      </div>`;
+  };
+
+  const delegFolderTpl = (g) => `
+    <details class="deleg-folder">
+      <summary>
+        <span class="deleg-caret" aria-hidden="true"></span>
+        <span class="deleg-folder-id">
+          <span class="deleg-folder-name">${esc(g.name)}</span>
+          <span class="deleg-folder-meta">${g.members.length} delegate${g.members.length === 1 ? "" : "s"} · ${g.paid} verified · head ${g.head ? esc(g.head) : "—"}${g.phone ? ` <span class="regs-phone">${esc(g.phone)}</span>` : ""}</span>
+        </span>
+        ${g.members.length < 6 ? `<span class="deleg-risk" title="Minimum 6 delegates — below it this delegation gets disbanded">under 6 — at risk</span>` : ""}
+        <button type="button" class="pa-btn pa-btn--bad" data-act="deldel" data-deleg="${esc(g.name)}" title="Release every delegate in this folder back to individual registration — payments are untouched">Disband</button>
+      </summary>
+      <div class="deleg-members">${g.members.map(delegMemberRow).join("")}</div>
+    </details>`;
+
+  function renderDelegations() {
+    if (!delegCache) return;
+    const groups = delegGroups();
+    const shown = groups.reduce((n, g) => n + g.members.length, 0);
+    delegBox.innerHTML = groups.length
+      ? groups.map(delegFolderTpl).join("")
+      : `<p class="pa-empty">${(delegSearch.value || "").trim() ? "No delegation matches that filter." : "No delegation registrations yet — delegates who tick “Are you in a delegation?” land here, foldered by the exact name they typed."}</p>`;
+    delegCount.hidden = false;
+    delegCount.innerHTML = `<b>${groups.length}</b> folder${groups.length === 1 ? "" : "s"} · <b>${shown}</b> shown · <b>${delegCache.length}</b> under delegation${(delegSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
+  }
+
+  const delegCsv = $("#deleg-csv");
+  if (delegCsv) delegCsv.addEventListener("click", () => {
+    const rows = delegGroups().flatMap((g) => g.members);
+    if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no delegates.", true);
+    const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const line = (arr) => arr.map(cell).join(",");
+    const head = ["#", "Delegation", "Delegation head", "Delegation head phone", "Ref code", "Name", "Email", "Phone", "Institution", "Grade", "Committee pref I", "Committee pref II", "Committee pref III", "Portfolio", "Fee", "UTR", "Status", "Registered"];
+    const body = rows.map((m, i) => line([
+      i + 1, m.delegation_name, m.delegation_head, m.delegation_head_phone,
+      m.ref_code, m.full_name, m.email, m.phone, m.institution, m.grade_or_title,
+      cmtAcronym(m.committee_pref1), cmtAcronym(m.committee_pref2), cmtAcronym(m.committee_pref3),
+      m.portfolio,
+      m.expected_amount != null ? Number(m.expected_amount).toFixed(2) : "",
+      m.upi_utr,
+      (STATUS_CHIP[m.payment_status] || [m.payment_status])[0],
+      whenIST(m.created_at),
+    ]));
+    const blob = new Blob(["\uFEFF" + line(head) + "\r\n" + body.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `somun26-delegations-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    showToast(`<strong>CSV downloaded</strong>${rows.length} delegate${rows.length === 1 ? "" : "s"} exported.`);
+  });
+  if (delegSearch) delegSearch.addEventListener("input", renderDelegations);
+  const delegRefresh = $("#deleg-refresh");
+  if (delegRefresh) delegRefresh.addEventListener("click", loadDelegations);
 
   const rowTpl = {
     pending: (r) => `
@@ -2941,6 +3070,22 @@ function whenIST(t) {
     errEl.textContent = msg || "";
   }
 
+  /* destructive actions confirm in place: first click arms the button
+     (label swaps, crimson fill), second click commits, 6 s idle disarms */
+  function armAction(btn, armedLabel) {
+    btn.dataset.armed = "1";
+    btn.dataset.orig = btn.textContent;
+    btn.classList.add("is-armed");
+    btn.textContent = armedLabel;
+    setTimeout(() => {
+      if (btn.isConnected && btn.dataset.armed) {
+        btn.dataset.armed = "";
+        btn.classList.remove("is-armed");
+        btn.textContent = btn.dataset.orig || btn.textContent;
+      }
+    }, 6000);
+  }
+
   async function openWith(k) {
     const out = await rpc("pay_admin_overview", { p_key: k });
     key = k;
@@ -2954,6 +3099,7 @@ function whenIST(t) {
         if (document.hidden || !view.classList.contains("active") || !key) return;
         load().catch(() => { /* transient — next poll retries */ });
         if (!regsPage.hidden) loadRegistrants();
+        if (!delegPage.hidden) loadDelegations();
       }, 20000);
     }
   }
@@ -3014,8 +3160,26 @@ function whenIST(t) {
     if (!b) return;
     const act = b.dataset.act;
     const id = b.dataset.id;
+    if (act === "deldel") e.preventDefault();
     try {
-      if (act === "paid" || act === "failed" || act === "pending") {
+      if (act === "deldel") {
+        const dName = b.dataset.deleg || "";
+        if (!b.dataset.armed) {
+          armAction(b, "Confirm disband");
+          showToast(`<strong>Hold on</strong>Disbanding “${esc(dName)}” releases every delegate in it back to individual registration — payments stay untouched. Click again to confirm.`, true);
+          return;
+        }
+        const out = await rpc("pay_admin_delegation_delete", { p_key: key, p_name: dName });
+        const moved = (out && out.moved) || 0;
+        showToast(`<strong>Delegation disbanded</strong>“${esc(dName)}” is gone — ${moved} delegate${moved === 1 ? "" : "s"} now count as individual registrations.`);
+      } else if (act === "detach") {
+        if (!b.dataset.armed) {
+          armAction(b, "Confirm move");
+          return;
+        }
+        const out = await rpc("pay_admin_delegate_detach", { p_key: key, p_registration: id });
+        showToast(`<strong>Moved to individual</strong>${esc(b.dataset.name || "Delegate")} is out of ${esc((out && out.from) || "the delegation")}.`);
+      } else if (act === "paid" || act === "failed" || act === "pending") {
         let note = null;
         if (act === "failed") {
           note = (window.prompt("Rejection reason — this exact line is emailed to the delegate:") || "").trim();
@@ -3052,6 +3216,8 @@ function whenIST(t) {
         await load();
         regsStale = true;
         if (!regsPage.hidden) loadRegistrants();
+        delegStale = true;
+        if (!delegPage.hidden) loadDelegations();
       }
     } catch (err) {
       showToast(`<strong>Failed</strong>${esc(err.message || "Retry in a moment.")}`, true);

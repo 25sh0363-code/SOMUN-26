@@ -830,9 +830,11 @@ begin
 end $$;
 
 -- ─────────────────────────────────────────────────────────────
-   8c · CONSOLE — master register: every registrant, every status,
-        the whole roster in one table (committee + country prefs,
-        fee, UTR, verified or not) — the console's second page
+   8c · CONSOLE — master register: every SINGLE registrant, every
+        status, the whole roster in one table (committee + country
+        prefs, fee, UTR, verified or not) — the console's second page.
+        Verified delegates who registered under a delegation live in
+        the delegation folder view (8d), not here.
    ───────────────────────────────────────────────────────────── */
 
 create or replace function pay_admin_registrants(p_key text)
@@ -846,7 +848,6 @@ begin
       select id::text, created_at, ref_code, full_name, email, phone,
              institution, grade_or_title, experience,
              emergency_name, emergency_phone,
-             delegation_name, delegation_head, delegation_head_phone,
              exp_details, achievements, allergies,
              committee_pref1, committee_pref2, committee_pref3,
              portfolio1, portfolio2, portfolio3, portfolio,
@@ -855,7 +856,37 @@ begin
              paid_at, status_note, shot_path
         from registrations
        where payment_status = 'paid'
+         and delegation_name is null
        order by created_at desc
+       limit 5000) x), json_build_array());
+end $$;
+
+-- ─────────────────────────────────────────────────────────────
+   8d · CONSOLE — delegation register: every row that registered
+        under a delegation, any status. The console groups these
+        into folders keyed by the EXACT delegation name — byte for
+        byte, capital letter for capital letter — which is why the
+        form warns delegates to type it word to word.
+   ───────────────────────────────────────────────────────────── */
+
+create or replace function pay_admin_delegations(p_key text)
+returns json
+language plpgsql stable security definer set search_path = public as $$
+begin
+  perform somun_guard(p_key);
+
+  return coalesce((
+    select json_agg(x) from (
+      select id::text, created_at, ref_code, full_name, email, phone,
+             institution, grade_or_title, experience,
+             delegation_name, delegation_head, delegation_head_phone,
+             committee_pref1, committee_pref2, committee_pref3,
+             portfolio, portfolio1, portfolio2, portfolio3,
+             payment_status, expected_amount, upi_utr, utr_submitted_at,
+             paid_at, status_note, shot_path
+        from registrations
+       where delegation_name is not null
+       order by delegation_name, created_at desc
        limit 5000) x), json_build_array());
 end $$;
 
@@ -944,6 +975,60 @@ begin
   if not exists (select 1 from mail_queue where registration_id = v_id::text and sent_at is null) then
     insert into mail_queue (registration_id, to_email) values (v_id::text, v_email);
   end if;
+end $$;
+
+-- ─────────────────────────────────────────────────────────────
+   9c · CONSOLE — delegation actions
+        · disband: one wrong-spelled folder (or a delegation under
+          the six-delegate floor) releases every member back to
+          individual registration — payments and rows are untouched.
+        · detach: move ONE delegate out of a delegation the same way.
+        The name is matched EXACTLY (=, case-sensitive) — folders
+        split precisely the way the form warned delegates to type it.
+   ───────────────────────────────────────────────────────────── */
+
+create or replace function pay_admin_delegation_delete(p_key text, p_name text)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare
+  v_moved int;
+  v_name  text;
+begin
+  perform somun_guard(p_key);
+  v_name := nullif(trim(coalesce(p_name, '')), '');
+  if v_name is null then
+    raise exception 'No delegation name given.';
+  end if;
+
+  update registrations
+     set delegation_name = null, delegation_head = null, delegation_head_phone = null
+   where delegation_name = v_name;
+  get diagnostics v_moved = row_count;
+  if v_moved = 0 then
+    raise exception 'No delegates found under the exact name % — folders split on every capital letter, so re-check the spelling on the folder you meant.', v_name;
+  end if;
+  return json_build_object('moved', v_moved);
+end $$;
+
+create or replace function pay_admin_delegate_detach(p_key text, p_registration text)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare
+  v_id registrations.id%TYPE;
+  v_name text;
+begin
+  perform somun_guard(p_key);
+  select id, delegation_name into v_id, v_name
+    from registrations where id::text = p_registration;
+  if not found then raise exception 'Registration not found.'; end if;
+  if v_name is null then
+    raise exception 'That delegate is not registered under a delegation.';
+  end if;
+
+  update registrations
+     set delegation_name = null, delegation_head = null, delegation_head_phone = null
+   where id = v_id;
+  return json_build_object('moved', 1, 'from', v_name);
 end $$;
 
 -- ─────────────────────────────────────────────────────────────
@@ -1113,6 +1198,12 @@ grant execute on function
   pay_admin_search(text, text, text) to anon, authenticated;
 grant execute on function
   pay_admin_registrants(text) to anon, authenticated;
+grant execute on function
+  pay_admin_delegations(text) to anon, authenticated;
+grant execute on function
+  pay_admin_delegation_delete(text, text) to anon, authenticated;
+grant execute on function
+  pay_admin_delegate_detach(text, text) to anon, authenticated;
 grant execute on function
   pay_admin_decide(text, text, text, text) to anon, authenticated;
 grant execute on function

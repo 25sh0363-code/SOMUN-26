@@ -5917,3 +5917,94 @@ em.accent {
   color: var(--beige-dim); opacity: 0.85;
 }
 @media (max-width: 900px) { .pay-admin-sales { grid-template-columns: repeat(2, 1fr); } }
+
+/* ————— delegation warnings on the register form ————— */
+.delegation-fields .delg-warning {
+  grid-column: 1 / -1;
+  margin: 0 0 0.4rem;
+  padding: 0.75rem 0.95rem;
+  border: 1px solid rgba(200, 16, 46, 0.45);
+  border-left: 3px solid rgba(200, 16, 46, 0.85);
+  background: rgba(200, 16, 46, 0.07);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--beige-dim);
+}
+.delegation-fields .delg-warning strong { color: var(--beige); font-weight: 500; }
+.delg-strict strong { color: var(--crimson); font-weight: 500; }
+
+/* ————— delegation folders (console · all delegation registrations) ————— */
+.pa-hint {
+  margin: -0.35rem 0 0.9rem;
+  font-size: 0.74rem;
+  line-height: 1.65;
+  color: var(--beige-dim);
+  opacity: 0.9;
+  max-width: 78ch;
+}
+.deleg-folders { display: flex; flex-direction: column; gap: 0.7rem; }
+.deleg-folder { border: 1px solid var(--line); background: rgba(22, 17, 13, 0.45); }
+.deleg-folder > summary {
+  display: flex; align-items: center; gap: 0.85rem;
+  padding: 0.8rem 1rem;
+  cursor: pointer; list-style: none; user-select: none;
+}
+.deleg-folder > summary::-webkit-details-marker { display: none; }
+.deleg-folder > summary:hover { background: rgba(200, 16, 46, 0.05); }
+.deleg-caret {
+  flex: none; width: 9px; height: 9px;
+  border-right: 1.5px solid var(--beige-dim);
+  border-bottom: 1.5px solid var(--beige-dim);
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+}
+.deleg-folder[open] > summary .deleg-caret { transform: rotate(45deg); }
+.deleg-folder-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+.deleg-folder-name {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  color: var(--beige);
+  letter-spacing: 0.01em;
+}
+.deleg-folder-meta { font-size: 0.72rem; color: var(--beige-dim); letter-spacing: 0.04em; }
+.deleg-folder-meta .regs-phone { font-size: 0.68rem; }
+.deleg-risk {
+  flex: none;
+  padding: 0.22rem 0.6rem;
+  border: 1px solid rgba(200, 16, 46, 0.55);
+  background: rgba(200, 16, 46, 0.08);
+  color: var(--crimson);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.deleg-folder > summary .pa-btn { flex: none; }
+.deleg-members { border-top: 1px solid var(--line); display: flex; flex-direction: column; }
+.deleg-member {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 1rem; padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.deleg-member:last-child { border-bottom: none; }
+.deleg-member-main { min-width: 0; display: flex; flex-direction: column; gap: 0.28rem; }
+.deleg-member-name {
+  display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap;
+  font-size: 0.88rem; color: var(--beige);
+}
+.deleg-member-name strong { font-weight: 500; }
+.deleg-member-meta { font-size: 0.74rem; color: var(--beige-dim); line-height: 1.55; }
+.deleg-member-meta strong { color: var(--beige); }
+.deleg-member .pa-row-actions { flex: none; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 640px) {
+  .deleg-folder > summary { flex-wrap: wrap; }
+  .deleg-member { flex-direction: column; }
+  .deleg-member .pa-row-actions { justify-content: flex-start; }
+}
+
+/* armed destructive button — first-click confirm state */
+.pa-btn.is-armed {
+  background: rgba(200, 16, 46, 0.16);
+  border-color: var(--crimson);
+  color: var(--crimson);
+}

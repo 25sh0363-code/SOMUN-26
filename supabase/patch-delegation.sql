@@ -1,8 +1,13 @@
--- patch-delegation.sql — the delegation questions + verified-only register
+-- patch-delegation.sql — delegation questions + the delegation console
 -- Run in the Supabase SQL editor (idempotent — safe to re-run).
 -- Adds: registrations.delegation_name / delegation_head / delegation_head_phone,
--- register_delegate with the 3 new params (24 total),
--- pay_admin_registrants now returns ONLY paid rows + shot_path + delegation fields.
+-- register_delegate with the 3 delegation params (24 total),
+-- pay_admin_registrants now returns ONLY verified (paid) SINGLE registrations
+-- (delegation delegates are excluded — they live in the folder view),
+-- pay_admin_delegations (folder source: every row under a delegation, any status),
+-- pay_admin_delegation_delete (disband — releases every member to individual),
+-- pay_admin_delegate_detach (move ONE delegate back to individual registration)
+-- + grants for all of them.
 
 alter table registrations add column if not exists delegation_name       text;
 alter table registrations add column if not exists delegation_head       text;
@@ -233,7 +238,6 @@ begin
       select id::text, created_at, ref_code, full_name, email, phone,
              institution, grade_or_title, experience,
              emergency_name, emergency_phone,
-             delegation_name, delegation_head, delegation_head_phone,
              exp_details, achievements, allergies,
              committee_pref1, committee_pref2, committee_pref3,
              portfolio1, portfolio2, portfolio3, portfolio,
@@ -242,8 +246,74 @@ begin
              paid_at, status_note, shot_path
         from registrations
        where payment_status = 'paid'
+         and delegation_name is null
        order by created_at desc
        limit 5000) x), json_build_array());
+end $$;
+
+create or replace function pay_admin_delegations(p_key text)
+returns json
+language plpgsql stable security definer set search_path = public as $$
+begin
+  perform somun_guard(p_key);
+
+  return coalesce((
+    select json_agg(x) from (
+      select id::text, created_at, ref_code, full_name, email, phone,
+             institution, grade_or_title, experience,
+             delegation_name, delegation_head, delegation_head_phone,
+             committee_pref1, committee_pref2, committee_pref3,
+             portfolio, portfolio1, portfolio2, portfolio3,
+             payment_status, expected_amount, upi_utr, utr_submitted_at,
+             paid_at, status_note, shot_path
+        from registrations
+       where delegation_name is not null
+       order by delegation_name, created_at desc
+       limit 5000) x), json_build_array());
+end $$;
+
+create or replace function pay_admin_delegation_delete(p_key text, p_name text)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare
+  v_moved int;
+  v_name  text;
+begin
+  perform somun_guard(p_key);
+  v_name := nullif(trim(coalesce(p_name, '')), '');
+  if v_name is null then
+    raise exception 'No delegation name given.';
+  end if;
+
+  update registrations
+     set delegation_name = null, delegation_head = null, delegation_head_phone = null
+   where delegation_name = v_name;
+  get diagnostics v_moved = row_count;
+  if v_moved = 0 then
+    raise exception 'No delegates found under the exact name % — folders split on every capital letter, so re-check the spelling on the folder you meant.', v_name;
+  end if;
+  return json_build_object('moved', v_moved);
+end $$;
+
+create or replace function pay_admin_delegate_detach(p_key text, p_registration text)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare
+  v_id registrations.id%TYPE;
+  v_name text;
+begin
+  perform somun_guard(p_key);
+  select id, delegation_name into v_id, v_name
+    from registrations where id::text = p_registration;
+  if not found then raise exception 'Registration not found.'; end if;
+  if v_name is null then
+    raise exception 'That delegate is not registered under a delegation.';
+  end if;
+
+  update registrations
+     set delegation_name = null, delegation_head = null, delegation_head_phone = null
+   where id = v_id;
+  return json_build_object('moved', 1, 'from', v_name);
 end $$;
 
 grant execute on function
@@ -251,4 +321,13 @@ grant execute on function
   to anon, authenticated;
 grant execute on function
   pay_admin_registrants(text)
+  to anon, authenticated;
+grant execute on function
+  pay_admin_delegations(text)
+  to anon, authenticated;
+grant execute on function
+  pay_admin_delegation_delete(text, text)
+  to anon, authenticated;
+grant execute on function
+  pay_admin_delegate_detach(text, text)
   to anon, authenticated;
