@@ -5808,6 +5808,44 @@ em.accent {
 .regs-chip--bad { color: rgba(200, 16, 46, 0.75); }
 .regs-chip--wait { color: var(--beige-dim); }
 .regs-why { display: block; margin-top: 0.25rem; font-style: normal; font-size: 0.66rem; color: var(--beige-dim); opacity: 0.85; max-width: 200px; }
+.regs-del { min-width: 150px; }
+.regs-del strong { display: block; color: var(--beige); font-weight: 500; }
+.regs-del span { display: block; font-size: 0.68rem; }
+.regs-utr-cell .regs-shot { display: inline-block; margin-top: 0.35rem; font-size: 0.62rem; padding: 0.2rem 0.55rem; }
+
+/* delegation tick-box reveal on page 1 of the form */
+.delegation-toggle { margin-top: 0.5rem; }
+.delegation-fields { margin-top: 1rem; padding-left: 2.2rem; border-left: 2px solid rgba(200, 16, 46, 0.35); }
+@media (max-width: 640px) { .delegation-fields { padding-left: 0; border-left: 0; } }
+
+/* full-screen tick after the payment is filed to the verification desk */
+.utr-done { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 1.2rem; }
+.utr-done-veil { position: absolute; inset: 0; background: rgba(9, 6, 4, 0.92); backdrop-filter: blur(7px); }
+.utr-done-card {
+  position: relative; text-align: center; max-width: 600px;
+  display: flex; flex-direction: column; align-items: center; gap: 1.1rem;
+}
+.utr-done-tick { width: 116px; height: 116px; }
+.utr-done-ring {
+  fill: none; stroke: rgba(200, 16, 46, 0.4); stroke-width: 2.5;
+  stroke-dasharray: 183; stroke-dashoffset: 183;
+  animation: utrRing 0.7s ease-out forwards;
+}
+.utr-done-mark {
+  fill: none; stroke: var(--crimson); stroke-width: 5.5;
+  stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 50; stroke-dashoffset: 50;
+  animation: utrMark 0.5s 0.35s ease-out forwards;
+}
+@keyframes utrRing { to { stroke-dashoffset: 0; } }
+@keyframes utrMark { to { stroke-dashoffset: 0; } }
+.utr-done-title { font-family: var(--font-display); font-size: clamp(1.7rem, 4.5vw, 2.6rem); font-weight: 500; color: var(--beige); line-height: 1.15; }
+.utr-done-copy { font-size: 0.95rem; line-height: 1.65; color: var(--beige-dim); max-width: 46ch; }
+.utr-done-copy strong { color: var(--beige); font-weight: 500; }
+.utr-done-ref { font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--beige-dim); }
+.utr-done-ref .pa-code { font-size: 0.85rem; }
+.utr-done-count { font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(179, 164, 135, 0.55); }
+.utr-done[hidden] { display: none; }
 .regs-empty { text-align: center; padding: 2rem 1rem !important; color: var(--beige-dim); font-size: 0.78rem; }
 
 /* payment screenshot lightbox — opens in-page, never a raw tab */

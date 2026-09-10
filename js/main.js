@@ -1779,6 +1779,11 @@ if (SHOW_ITINERARY) {
       if (val("emName").length < 3) return "Please share a parent / guardian name for emergency contact.";
       if (val("emPhone").replace(/\D/g, "").length < 8) return "Please enter a valid parent / guardian phone number.";
       if (!val("institution")) return "Current institution is required.";
+      if ($("#in-delegation").checked) {
+        if (val("delegationName").length < 2) return "Please enter the name of your delegation.";
+        if (val("delegationHead").length < 3) return "Please enter the name of your delegation head.";
+        if (val("delegationHeadPhone").replace(/\D/g, "").length < 8) return "Please enter a valid contact number for your delegation head.";
+      }
     }
     if (n === 2) {
       const p1 = $("#pref1").value, p2 = $("#pref2").value, p3 = $("#pref3").value;
@@ -1824,6 +1829,18 @@ if (SHOW_ITINERARY) {
     })
   );
 
+  /* the delegation tick-box reveals the three delegation questions */
+  const inDelegation = $("#in-delegation");
+  if (inDelegation) {
+    const delFields = $("#delegation-fields");
+    inDelegation.addEventListener("change", () => {
+      delFields.hidden = !inDelegation.checked;
+      if (!inDelegation.checked) {
+        ["delegationName", "delegationHead", "delegationHeadPhone"].forEach((id) => ($(`#${id}`).value = ""));
+      }
+    });
+  }
+
   /* Enter key anywhere advances like Continue; the real submit only
      fires from the last stage */
   form.addEventListener("submit", async (e) => {
@@ -1859,6 +1876,9 @@ if (SHOW_ITINERARY) {
       referred: referred(),
       referralName: val("referralName"),
       allergies: val("allergies"),
+      delegationName: $("#in-delegation").checked ? val("delegationName") : "",
+      delegationHead: $("#in-delegation").checked ? val("delegationHead") : "",
+      delegationHeadPhone: $("#in-delegation").checked ? val("delegationHeadPhone") : "",
     };
     const portfolioSummary = [payload.portfolio1, payload.portfolio2, payload.portfolio3].filter(Boolean).join(" · ");
 
@@ -1896,6 +1916,9 @@ if (SHOW_ITINERARY) {
       referred: payload.referred,
       referral_name: payload.referred ? payload.referralName || null : null,
       allergies: payload.allergies || null,
+      delegation_name: payload.delegationName || null,
+      delegation_head: payload.delegationHead || null,
+      delegation_head_phone: payload.delegationHeadPhone || null,
     };
 
     try {
@@ -1927,6 +1950,9 @@ if (SHOW_ITINERARY) {
             p_referred: payload.referred,
             p_referral_name: payload.referred ? payload.referralName || null : null,
             p_allergies: payload.allergies || null,
+            p_delegation_name: payload.delegationName || null,
+            p_delegation_head: payload.delegationHead || null,
+            p_delegation_head_phone: payload.delegationHeadPhone || null,
           }),
         });
         code = (out && out.ref_code) || refCode;
@@ -2259,6 +2285,7 @@ if (SHOW_ITINERARY) {
     const btn = $("#utr-submit");
     const label = $("#utr-submit-label");
     if (!btn || btn.classList.contains("submitting")) return;
+    let submitted = false;
     const utr = ($("#utr-input").value || "").replace(/\s+/g, "");
     if (!/^[A-Za-z0-9]{10,16}$/.test(utr)) {
       return showToast("<strong>Almost there</strong>The UPI transaction ID is 10–16 letters and digits — usually the 12-digit UTR shown under transaction details in your UPI app.", true);
@@ -2294,13 +2321,13 @@ if (SHOW_ITINERARY) {
         }),
       });
       if (out && out.status === "paid") {
-        setUtrStatus("<strong>Verified — payment matched.</strong> Your fee is settled and the confirmation mail is on its way to your inbox.", "paid");
-        $("#utr-input").disabled = true;
-        btn.disabled = true;
+        submitted = true;
         showToast("<strong>Payment verified</strong>Your payment was already confirmed — see you at the table.");
+        showUtrDone(refCode, 'Payment <em class="accent">verified.</em>');
       } else {
-        setUtrStatus(`<strong>Submitted — your payment is on the verification desk.</strong> The secretariat confirms it against the bank statement and the confirmation mail follows. Keep your reference code <strong>${esc(refCode)}</strong>.`, "wait");
-        showToast("<strong>UTR received</strong>You can close this page — the secretariat confirms against the bank statement.");
+        submitted = true;
+        showToast("<strong>UTR received</strong>The secretariat confirms it against the bank statement.");
+        showUtrDone(refCode, 'Payment sent for <em class="accent">verification.</em>');
       }
     } catch (err) {
       const msg = String(err.message || "");
@@ -2311,10 +2338,43 @@ if (SHOW_ITINERARY) {
       }
     } finally {
       btn.classList.remove("submitting");
-      btn.disabled = false;
-      label.textContent = "Verify my payment";
+      btn.disabled = submitted;
+      if (!submitted) label.textContent = "Verify my payment";
     }
   }
+
+  /* the full-screen tick — payment filed to the verification desk;
+     Done or a 7-second countdown carries the delegate home */
+  let utrDoneTimer = 0;
+  function showUtrDone(refCode, titleHtml) {
+    const wrap = $("#utr-done");
+    if (!wrap) return;
+    $("#utr-done-title").innerHTML = titleHtml;
+    $("#utr-done-ref").textContent = refCode;
+    wrap.hidden = false;
+    document.body.style.overflow = "hidden";
+    window.scrollTo({ top: 0 });
+    let left = 7;
+    const counter = $("#utr-done-count");
+    if (counter) counter.textContent = left;
+    clearInterval(utrDoneTimer);
+    utrDoneTimer = setInterval(() => {
+      left -= 1;
+      if (counter) counter.textContent = Math.max(left, 0);
+      if (left <= 0) goHomeFromDone();
+    }, 1000);
+  }
+  function goHomeFromDone() {
+    clearInterval(utrDoneTimer);
+    const wrap = $("#utr-done");
+    if (wrap) wrap.hidden = true;
+    document.body.style.overflow = "";
+    window.location.hash = "#/";
+  }
+  const utrDoneBtn = $("#utr-done-btn");
+  if (utrDoneBtn) utrDoneBtn.addEventListener("click", goHomeFromDone);
+  const utrDoneVeil = document.querySelector("#utr-done .utr-done-veil");
+  if (utrDoneVeil) utrDoneVeil.addEventListener("click", goHomeFromDone);
 
   /* re-entering the register view remounts the wizard at stage I */
   window.__regReset = () => show(0);
@@ -2624,6 +2684,7 @@ function whenIST(t) {
       r.portfolio, r.committee_pref1, r.committee_pref2, r.committee_pref3,
       r.portfolio1, r.portfolio2, r.portfolio3,
       r.exp_details, r.achievements, r.allergies, r.referral_name, r.upi_utr,
+      r.delegation_name, r.delegation_head, r.delegation_head_phone,
     ].some((v) => v && String(v).toLowerCase().includes(q)));
   };
 
@@ -2647,6 +2708,7 @@ function whenIST(t) {
       <td class="regs-emerg">${eName || ePhone ? `<strong>${esc(eName || "—")}</strong>${ePhone ? `<span>${esc(ePhone)}</span>` : ""}` : `<span class="regs-dim">—</span>`}</td>
       <td>${dash(r.grade_or_title)}</td>
       <td>${dash(r.institution)}</td>
+      <td class="regs-del">${r.delegation_name || r.delegation_head || r.delegation_head_phone ? `<strong>${esc(r.delegation_name || "—")}</strong>${r.delegation_head ? `<span>${esc(r.delegation_head)}</span>` : ""}${r.delegation_head_phone ? `<span class="regs-phone">${esc(r.delegation_head_phone)}</span>` : ""}` : `<span class="regs-dim">—</span>`}</td>
       <td class="regs-diet">${dietCell(r.allergies)}</td>
       <td class="regs-gstart regs-nowrap">${esc(expLabel(r.experience))}</td>
       <td class="regs-exp" title="${esc(r.exp_details || "")}">${dash(r.exp_details)}</td>
@@ -2660,7 +2722,7 @@ function whenIST(t) {
       <td class="regs-gstart regs-nowrap">${r.referred ? `<strong class="regs-yes">yes</strong>` : `<span class="regs-dim">—</span>`}</td>
       <td class="regs-ref">${dash(r.referral_name)}</td>
       <td class="regs-nowrap">${r.expected_amount != null ? fmtINR(r.expected_amount) : "—"}</td>
-      <td class="pa-mono regs-nowrap">${esc(r.upi_utr || "—")}</td>
+      <td class="pa-mono regs-nowrap regs-utr-cell">${esc(r.upi_utr || "—")}${r.shot_path ? `<button type="button" class="pa-btn regs-shot" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the payment screenshot the delegate submitted">View payment</button>` : ""}</td>
       <td class="regs-nowrap"><span class="regs-chip regs-chip--${mood}">${esc(label)}</span>${r.payment_status === "paid" && r.paid_at ? `<em class="regs-why">${whenIST(r.paid_at)}</em>` : ""}${r.payment_status === "failed" && r.status_note ? `<em class="regs-why" title="${esc(r.status_note)}">${esc(r.status_note)}</em>` : ""}</td>
       <td class="regs-nowrap">${whenIST(r.created_at)}</td>
     </tr>`;
@@ -2671,7 +2733,7 @@ function whenIST(t) {
     const rows = regsFiltered();
     regsTbody.innerHTML = rows.length
       ? rows.map(regsRow).join("")
-      : `<tr><td colspan="24" class="regs-empty">${(regsSearch.value || "").trim() ? "No registrant matches that filter." : "No registrants yet — the roster fills as applications land."}</td></tr>`;
+      : `<tr><td colspan="25" class="regs-empty">${(regsSearch.value || "").trim() ? "No registrant matches that filter." : "No verified delegates yet — rows land here the moment their payment clears."}</td></tr>`;
     regsCount.hidden = false;
     regsCount.innerHTML = `<b>${rows.length}</b> shown · <b>${regsCache.length}</b> total${(regsSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
   }
@@ -2717,10 +2779,11 @@ function whenIST(t) {
     if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no rows.", true);
     const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const line = (arr) => arr.map(cell).join(",");
-    const head = ["#", "Ref code", "Email", "Name", "Phone", "Emergency contact", "Emergency phone", "Grade", "Institution", "Dietary", "MUNs attended", "Past MUNs & committees", "Achievements", "Committee pref I", "Committee pref II", "Committee pref III", "Portfolio I", "Portfolio II", "Portfolio III", "Referred", "Reference name", "Fee", "UTR", "Status", "UTR submitted", "Verified at", "Note", "Registered"];
+    const head = ["#", "Ref code", "Email", "Name", "Phone", "Emergency contact", "Emergency phone", "Grade", "Institution", "Delegation", "Delegation head", "Delegation head phone", "Dietary", "MUNs attended", "Past MUNs & committees", "Achievements", "Committee pref I", "Committee pref II", "Committee pref III", "Portfolio I", "Portfolio II", "Portfolio III", "Referred", "Reference name", "Fee", "UTR", "Status", "UTR submitted", "Verified at", "Note", "Registered"];
     const body = rows.map((r, i) => line([
       i + 1, r.ref_code, r.email, r.full_name, r.phone,
       r.emergency_name, r.emergency_phone, r.grade_or_title, r.institution,
+      r.delegation_name, r.delegation_head, r.delegation_head_phone,
       (r.allergies || "").trim() && !/^none$/i.test((r.allergies || "").trim()) ? r.allergies : "",
       expLabel(r.experience), r.exp_details, r.achievements,
       cmtAcronym(r.committee_pref1), cmtAcronym(r.committee_pref2), cmtAcronym(r.committee_pref3),

@@ -538,7 +538,7 @@ export const ITINERARY = [
 export const FAQS = [
   {
     q: "Who can attend SOMUN '26?",
-    a: "Any student from grade VIII onward — school, undergraduate or postgraduate. Delegates register individually or as part of a school delegation; individual applicants are matched to balanced committees by the secretariat.",
+    a: "SOMUN '26 is open only for students — from grade VIII right up to grade XII (class 12). Undergraduate and postgraduate students are not eligible this cycle. Delegates register individually or as part of a school delegation; individual applicants are matched to balanced committees by the secretariat.",
   },
   {
     q: "Do I need prior MUN experience?",

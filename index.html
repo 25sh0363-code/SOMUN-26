@@ -1051,6 +1051,27 @@
                       <input class="input" id="allergies" name="allergies" placeholder="e.g. peanut allergy · Jain food · leave blank if none" />
                       <p class="field-note">Every meal across the three days is covered by your pass — the kitchen is planned against this list, so be specific.</p>
                     </div>
+                    <div class="field field--wide delegation-toggle">
+                      <div class="confirm-row">
+                        <input class="checkbox" type="checkbox" id="in-delegation" />
+                        <label class="confirm-label" for="in-delegation">Are you in a delegation?</label>
+                      </div>
+                      <div class="reg-fields delegation-fields" id="delegation-fields" hidden>
+                        <div class="field">
+                          <label class="field-label" for="delegationName">Name of your delegation <span class="req">*</span></label>
+                          <input class="input" id="delegationName" name="delegationName" placeholder="e.g. Silver Oaks Delegation A" />
+                        </div>
+                        <div class="field">
+                          <label class="field-label" for="delegationHead">Name of your delegation head <span class="req">*</span></label>
+                          <input class="input" id="delegationHead" name="delegationHead" placeholder="Full name of your delegation head" />
+                        </div>
+                        <div class="field">
+                          <label class="field-label" for="delegationHeadPhone">Contact number of your delegation head <span class="req">*</span></label>
+                          <input class="input" id="delegationHeadPhone" name="delegationHeadPhone" inputmode="tel" placeholder="+91 …" />
+                          <p class="field-note">The secretariat coordinates registration-day logistics with the delegation head directly.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div class="confirm-row">
                     <input class="checkbox" type="checkbox" id="email-confirm" />
@@ -1281,9 +1302,9 @@
 
               <div class="pa-page" id="pa-page-regs" hidden>
                 <section class="pay-admin-card">
-                  <h3 class="pay-admin-h"><i data-icon="users" data-cls="pay-admin-h-ic"></i>All registrants — the master register</h3>
+                  <h3 class="pay-admin-h"><i data-icon="users" data-cls="pay-admin-h-ic"></i>All registrants — verified delegates</h3>
                   <div class="regs-tools">
-                    <input class="input" id="regs-search" type="text" placeholder="Filter by any detail — name, email, phone, emergency contact, grade, institution, dietary, committee, portfolio, referral" autocomplete="off" />
+                    <input class="input" id="regs-search" type="text" placeholder="Filter by any detail — name, email, phone, emergency contact, grade, institution, delegation, dietary, committee, portfolio, referral" autocomplete="off" />
                     <button type="button" class="pa-btn" id="regs-refresh" title="Pull the roster fresh from the ledger">Refresh</button>
                     <button type="button" class="pa-btn" id="regs-csv" title="Download what you see as a spreadsheet">Export CSV</button>
                   </div>
@@ -1294,7 +1315,7 @@
                       <thead>
                         <tr class="regs-group">
                           <th colspan="2" aria-hidden="true"></th>
-                          <th colspan="7" class="regs-gstart">Personal information</th>
+                          <th colspan="8" class="regs-gstart">Personal information</th>
                           <th colspan="3" class="regs-gstart">MUN experience</th>
                           <th colspan="6" class="regs-gstart">Committee preferences</th>
                           <th colspan="5" class="regs-gstart">Referral &amp; payment</th>
@@ -1302,14 +1323,14 @@
                         </tr>
                         <tr class="regs-cols">
                           <th>#</th><th>Ref code</th>
-                          <th class="regs-gstart">Email</th><th>Name</th><th>Phone</th><th>Emergency contact</th><th>Grade</th><th>Institution</th><th>Dietary</th>
+                          <th class="regs-gstart">Email</th><th>Name</th><th>Phone</th><th>Emergency contact</th><th>Grade</th><th>Institution</th><th>Delegation</th><th>Dietary</th>
                           <th class="regs-gstart">MUNs</th><th>Past MUNs &amp; committees</th><th>Achievements</th>
                           <th class="regs-gstart">Pref I</th><th>Pref II</th><th>Pref III</th><th>Portfolio I</th><th>Portfolio II</th><th>Portfolio III</th>
                           <th class="regs-gstart">Referred</th><th>Reference name</th><th>Fee</th><th>UTR</th><th>Status</th>
                           <th>Registered</th>
                         </tr>
                       </thead>
-                      <tbody id="regs-tbody"><tr><td colspan="24" class="regs-empty">Opening this page pulls the whole roster…</td></tr></tbody>
+                      <tbody id="regs-tbody"><tr><td colspan="25" class="regs-empty">Opening this page pulls the whole roster…</td></tr></tbody>
                     </table>
                   </div>
                 </section>
@@ -1471,6 +1492,23 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- payment-sent-for-verification — body-level full-screen tick,
+       auto-homes after 7 s or on Done -->
+  <div class="utr-done" id="utr-done" hidden>
+    <div class="utr-done-veil" data-utr-close></div>
+    <div class="utr-done-card" role="dialog" aria-modal="true" aria-label="Payment submitted">
+      <svg class="utr-done-tick" viewBox="0 0 64 64" aria-hidden="true">
+        <circle class="utr-done-ring" cx="32" cy="32" r="29" />
+        <path class="utr-done-mark" d="M19 33.5 28.5 43 46 24.5" />
+      </svg>
+      <h1 class="utr-done-title" id="utr-done-title">Payment sent for <em class="accent">verification.</em></h1>
+      <p class="utr-done-copy">Your payment was sent for verification — please wait for the confirmation email. It usually takes <strong>less than 12 hours</strong>.</p>
+      <p class="utr-done-ref">Your reference code <strong class="pa-code" id="utr-done-ref">SM26-XXXXX</strong></p>
+      <button type="button" class="btn btn--crimson" id="utr-done-btn">Done</button>
+      <p class="utr-done-count">Taking you home in <span id="utr-done-count">7</span>s…</p>
+    </div>
+  </div>
 
   <script type="module" src="js/main.js"></script>
 </body>

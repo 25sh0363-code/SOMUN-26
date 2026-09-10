@@ -47,12 +47,17 @@ one delegate, ₹2799.07 for the next. The paise are the payment's identity.
 
 ## The delegate flow
 
-Register (committee preference + its portfolio are **mandatory**, page 1
-collects personal + emergency contact + dietary needs, page 4 records a
-referral if any) → confirmation screen shows
+Register (committee preference + its portfolio are **mandatory**; page 1
+collects personal + emergency contact + dietary needs and an
+**"Are you in a delegation?"** tick-box that reveals three more required
+questions — delegation name, delegation head, delegation head's contact
+number; page 4 records a referral if any) → confirmation screen shows
 their **personal exact amount** (₹2799.63-style) → **scan the QR** with any
 UPI app — the amount is already on it — or copy the UPI ID + amount →
 submit the UTR + payment screenshot (both required, front and back end) →
+a full-screen tick confirms **"Payment sent for verification — please wait
+for the confirmation email (usually less than 12 hours)"** and returns
+them to the home page (after 7 seconds, or instantly via **Done**) →
 status stays **verifying** until you confirm.
 
 ## The secretariat flow (`#/verify`, console key)
@@ -61,12 +66,14 @@ The console is two pages behind one key — switch with the tabs at the top:
 
 - **Payment desk** — everything below: the meter, the UTR books, the
   outbox, the bank feed.
-- **All registrants** — the master register (`pay_admin_registrants`,
-  section 8c of payment.sql): every registrant in one table regardless of
-  payment state — registered date, ref code, name + grade, email + phone,
-  institution, experience, committee prefs I–III, country / portfolio,
-  fee, UTR and a status chip (fee pending · verifying · verified ·
-  rejected, with the rejection reason under rejected rows). The filter
+- **All registrants** — the verified-delegates register
+  (`pay_admin_registrants`, section 8c of payment.sql): only rows whose
+  payment is **confirmed (paid)** appear here — registered date, ref code,
+  name, email, phone, emergency contact, grade, institution, delegation
+  (name · head · head's phone), dietary flag, experience, past MUNs,
+  achievements, committee prefs I–III with their portfolios, referral,
+  fee, UTR and the verified-on date. **View payment** under the UTR opens
+  the delegate's submitted screenshot in the popup lightbox. The filter
   box narrows live across every column, and **Export CSV** downloads
   exactly what you see (Excel-ready, UTF-8 BOM) for allocation day.
 

@@ -67,6 +67,9 @@ alter table registrations add column if not exists portfolio2      text;
 alter table registrations add column if not exists portfolio3      text;
 alter table registrations add column if not exists referred        boolean not null default false;
 alter table registrations add column if not exists referral_name   text;
+alter table registrations add column if not exists delegation_name       text;
+alter table registrations add column if not exists delegation_head       text;
+alter table registrations add column if not exists delegation_head_phone text;
 
 -- the retired advisory screenshot reader is gone — its column goes too
 alter table registrations drop column if exists shot_check;
@@ -333,6 +336,9 @@ create or replace function register_delegate(
   p_portfolio3      text default null,
   p_referred        boolean default false,
   p_referral_name   text default null,
+  p_delegation_name       text default null,
+  p_delegation_head       text default null,
+  p_delegation_head_phone text default null,
   p_allergies       text default null,
   p_notes           text default null
 ) returns json
@@ -359,6 +365,9 @@ begin
   p_portfolio2      := nullif(trim(coalesce(p_portfolio2, '')), '');
   p_portfolio3      := nullif(trim(coalesce(p_portfolio3, '')), '');
   p_referral_name   := nullif(trim(coalesce(p_referral_name, '')), '');
+  p_delegation_name       := nullif(trim(coalesce(p_delegation_name, '')), '');
+  p_delegation_head       := nullif(trim(coalesce(p_delegation_head, '')), '');
+  p_delegation_head_phone := nullif(trim(coalesce(p_delegation_head_phone, '')), '');
   p_allergies       := nullif(trim(coalesce(p_allergies, '')), '');
   p_notes           := nullif(trim(coalesce(p_notes, '')), '');
 
@@ -407,6 +416,19 @@ begin
   if not p_referred then
     p_referral_name := null;
   end if;
+  if p_delegation_name is not null or p_delegation_head is not null
+     or p_delegation_head_phone is not null then
+    if p_delegation_name is null or length(p_delegation_name) < 2 then
+      raise exception 'Please enter the name of your delegation.';
+    end if;
+    if p_delegation_head is null or length(p_delegation_head) < 3 then
+      raise exception 'Please enter the name of your delegation head.';
+    end if;
+    if p_delegation_head_phone is null
+       or length(regexp_replace(p_delegation_head_phone, '\D', '', 'g')) < 8 then
+      raise exception 'Please enter a valid contact number for your delegation head.';
+    end if;
+  end if;
 
   -- one readable portfolio cell for the console + mails
   v_portfolio := nullif(concat_ws(' · ', p_portfolio1, p_portfolio2, p_portfolio3), '');
@@ -453,14 +475,16 @@ begin
            emergency_name, emergency_phone, experience, exp_details, achievements,
            committee_pref1, committee_pref2, committee_pref3,
            portfolio1, portfolio2, portfolio3, portfolio,
-           referred, referral_name, allergies, notes,
+           referred, referral_name, delegation_name, delegation_head, delegation_head_phone,
+           allergies, notes,
            tier, fee_base, expected_paise, expected_amount, payment_status)
         values
           (v_ref, p_full_name, p_email, p_phone, p_institution, p_grade_or_title,
            p_emergency_name, p_emergency_phone, p_experience, p_exp_details, p_achievements,
            p_pref1, p_pref2, p_pref3,
            p_portfolio1, p_portfolio2, p_portfolio3, v_portfolio,
-           p_referred, p_referral_name, p_allergies, p_notes,
+           p_referred, p_referral_name, p_delegation_name, p_delegation_head, p_delegation_head_phone,
+           p_allergies, p_notes,
            'early', v_base, v_paise, v_base + v_paise / 100.0, 'registered')
         returning id into v_id;
         exit;
@@ -478,14 +502,16 @@ begin
        emergency_name, emergency_phone, experience, exp_details, achievements,
        committee_pref1, committee_pref2, committee_pref3,
        portfolio1, portfolio2, portfolio3, portfolio,
-       referred, referral_name, allergies, notes,
+       referred, referral_name, delegation_name, delegation_head, delegation_head_phone,
+       allergies, notes,
        tier, fee_base, payment_status)
     values
       (v_ref, p_full_name, p_email, p_phone, p_institution, p_grade_or_title,
        p_emergency_name, p_emergency_phone, p_experience, p_exp_details, p_achievements,
        p_pref1, p_pref2, p_pref3,
        p_portfolio1, p_portfolio2, p_portfolio3, v_portfolio,
-       p_referred, p_referral_name, p_allergies, p_notes,
+       p_referred, p_referral_name, p_delegation_name, p_delegation_head, p_delegation_head_phone,
+       p_allergies, p_notes,
        'early', null, 'registered')
     returning id into v_id;
   end if;
@@ -820,13 +846,15 @@ begin
       select id::text, created_at, ref_code, full_name, email, phone,
              institution, grade_or_title, experience,
              emergency_name, emergency_phone,
+             delegation_name, delegation_head, delegation_head_phone,
              exp_details, achievements, allergies,
              committee_pref1, committee_pref2, committee_pref3,
              portfolio1, portfolio2, portfolio3, portfolio,
              referred, referral_name,
              payment_status, expected_amount, upi_utr, utr_submitted_at,
-             paid_at, status_note
+             paid_at, status_note, shot_path
         from registrations
+       where payment_status = 'paid'
        order by created_at desc
        limit 5000) x), json_build_array());
 end $$;
@@ -1070,7 +1098,8 @@ end $$;
 
 grant execute on function
   register_delegate(text, text, text, text, text, text, text, text, text, text,
-                    text, text, text, text, text, text, text, boolean, text, text, text)
+                    text, text, text, text, text, text, text, boolean, text, text, text,
+                    text, text, text)
   to anon, authenticated;
 grant execute on function
   submit_payment_utr(text, text, numeric, text) to anon, authenticated;
