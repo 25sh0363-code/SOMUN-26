@@ -12,7 +12,7 @@ export const CONFERENCE = {
   dates: "OCTOBER 30 — NOVEMBER 1, 2026",
   venue: "Silver Oaks International School, Bowrampet Campus",
   city: "Hyderabad, India",
-  email: "somunpr@gmail.com",
+  email: "delaffairssomun@gmail.com",
   countdownTarget: "2026-10-30T09:00:00+05:30",
 };
 

@@ -25,7 +25,7 @@ var FROM_NAME = "SOMUN '26";
 var EVENT = {
   dates: 'October 30 — November 1, 2026',
   venue: 'Silver Oaks International School, Bowrampet Campus',
-  email: 'somunpr@gmail.com'
+  email: 'delaffairssomun@gmail.com'
 };
 
 function doPost(e) {
@@ -97,7 +97,7 @@ function _sendPaymentVerified(p) {
 }
 
 /* Rejection notice — the reason the secretariat typed + a direct line
-   to somunpr@gmail.com to discuss it further. */
+   to delaffairssomun@gmail.com to discuss it further. */
 function _sendPaymentRejected(p) {
   var name = p.name || 'Delegate';
   var ref  = p.ref_code || '—';
