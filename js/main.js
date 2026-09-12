@@ -2772,7 +2772,7 @@ function whenIST(t) {
 
   function delegGroups() {
     const q = (delegSearch.value || "").trim().toLowerCase();
-    let rows = delegCache || [];
+    let rows = (delegCache || []).filter((r) => r.payment_status === "paid");
     if (q) {
       rows = rows.filter((r) => [
         r.delegation_name, r.delegation_head, r.delegation_head_phone,
@@ -2792,12 +2792,12 @@ function whenIST(t) {
       members,
       head: members.map((m) => (m.delegation_head || "").trim()).find(Boolean) || "",
       phone: members.map((m) => (m.delegation_head_phone || "").trim()).find(Boolean) || "",
-      paid: members.filter((m) => m.payment_status === "paid").length,
     }));
   }
 
   const delegMemberRow = (m) => {
     const [label, mood] = STATUS_CHIP[m.payment_status] || [m.payment_status || "—", ""];
+    const armed = isArmed("detach", m.id);
     return `
       <details class="deleg-member" data-k="M:${esc(m.id)}">
         <summary>
@@ -2811,37 +2811,41 @@ function whenIST(t) {
           ${m.status_note ? `<p class="regs-note">${esc(m.status_note)}</p>` : ""}
           <div class="pa-row-actions">
             ${m.shot_path ? `<button type="button" class="pa-btn regs-shot" data-act="shot" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" title="Open the payment screenshot the delegate submitted">View payment</button>` : ""}
-            <button type="button" class="pa-btn pa-btn--bad" data-act="detach" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" data-deleg="${esc(m.delegation_name)}" title="Move this delegate out of the delegation — they count as an individual registration">Move to individual</button>
+            <button type="button" class="pa-btn pa-btn--bad${armed ? " is-armed" : ""}" data-act="detach" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" data-deleg="${esc(m.delegation_name)}" title="Move this delegate out of the delegation — they count as an individual registration">${armed ? "Confirm move" : "Move to individual"}</button>
           </div>
         </div>
       </details>`;
   };
 
-  const delegFolderTpl = (g) => `
+  const delegFolderTpl = (g) => {
+    const armed = isArmed("deldel", g.name);
+    return `
     <details class="deleg-folder" data-k="F:${esc(g.name)}">
       <summary>
         <span class="deleg-caret" aria-hidden="true"></span>
         <span class="deleg-folder-id">
           <span class="deleg-folder-name">${esc(g.name)}</span>
-          <span class="deleg-folder-meta">${g.members.length} delegate${g.members.length === 1 ? "" : "s"} · ${g.paid} verified · head ${g.head ? esc(g.head) : "—"}${g.phone ? ` <span class="regs-phone">${esc(g.phone)}</span>` : ""}</span>
+          <span class="deleg-folder-meta">${g.members.length} delegate${g.members.length === 1 ? "" : "s"} · head ${g.head ? esc(g.head) : "—"}${g.phone ? ` <span class="regs-phone">${esc(g.phone)}</span>` : ""}</span>
         </span>
         ${g.members.length < 6 ? `<span class="deleg-risk" title="Minimum 6 delegates — below it this delegation gets disbanded">under 6 — at risk</span>` : ""}
-        <button type="button" class="pa-btn pa-btn--bad" data-act="deldel" data-deleg="${esc(g.name)}" title="Release every delegate in this folder back to individual registration — payments are untouched">Disband</button>
+        <button type="button" class="pa-btn pa-btn--bad${armed ? " is-armed" : ""}" data-act="deldel" data-deleg="${esc(g.name)}" title="Release every delegate in this folder back to individual registration — payments are untouched">${armed ? "Confirm disband" : "Disband"}</button>
       </summary>
       <div class="deleg-members">${g.members.map(delegMemberRow).join("")}</div>
     </details>`;
+  };
 
   function renderDelegations() {
     if (!delegCache) return;
     const groups = delegGroups();
     const shown = groups.reduce((n, g) => n + g.members.length, 0);
+    const total = (delegCache || []).filter((r) => r.payment_status === "paid").length;
     const open = keepOpen(delegBox, "details[data-k]");
     delegBox.innerHTML = groups.length
       ? groups.map(delegFolderTpl).join("")
-      : `<p class="pa-empty">${(delegSearch.value || "").trim() ? "No delegation matches that filter." : "No delegation registrations yet — delegates who tick “Are you in a delegation?” land here, foldered by the exact name they typed."}</p>`;
+      : `<p class="pa-empty">${(delegSearch.value || "").trim() ? "No delegation matches that filter." : "No verified delegations yet — a folder lands here only once its delegates clear payment; still-pending ones wait on the desk."}</p>`;
     restoreOpen(delegBox, open);
     delegCount.hidden = false;
-    delegCount.innerHTML = `<b>${groups.length}</b> folder${groups.length === 1 ? "" : "s"} · <b>${shown}</b> shown · <b>${delegCache.length}</b> under delegation${(delegSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
+    delegCount.innerHTML = `<b>${groups.length}</b> folder${groups.length === 1 ? "" : "s"} · <b>${shown}</b> shown · <b>${total}</b> verified under delegation${(delegSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
   }
 
   const delegCsv = $("#deleg-csv");
@@ -3010,19 +3014,32 @@ function whenIST(t) {
   }
 
   /* destructive actions confirm in place: first click arms the button
-     (label swaps, crimson fill), second click commits, 6 s idle disarms */
+     (label swaps, crimson fill), second click commits, 12 s idle disarms.
+     The armed state lives in a registry keyed by action+row, NOT in the
+     button node — the 20 s poll re-renders the lists and would otherwise
+     wipe the arm mid-countdown, making the second click a silent no-op. */
+  const armedActs = new Map();
+  const armedKey = (act, id) => `${act}:${id || ""}`;
+  const isArmed = (act, id) => {
+    const t = armedActs.get(armedKey(act, id));
+    return t != null && t > Date.now();
+  };
   function armAction(btn, armedLabel) {
+    const act = btn.dataset.act;
+    const id = btn.dataset.id || btn.dataset.deleg || "";
+    armedActs.set(armedKey(act, id), Date.now() + 12000);
     btn.dataset.armed = "1";
     btn.dataset.orig = btn.textContent;
     btn.classList.add("is-armed");
     btn.textContent = armedLabel;
     setTimeout(() => {
+      armedActs.delete(armedKey(act, id));
       if (btn.isConnected && btn.dataset.armed) {
         btn.dataset.armed = "";
         btn.classList.remove("is-armed");
         btn.textContent = btn.dataset.orig || btn.textContent;
       }
-    }, 6000);
+    }, 12000);
   }
 
   async function openWith(k) {
@@ -3099,23 +3116,26 @@ function whenIST(t) {
     if (!b) return;
     const act = b.dataset.act;
     const id = b.dataset.id;
+    const gid = id || b.dataset.deleg || "";
     if (act === "deldel") e.preventDefault();
     try {
       if (act === "deldel") {
         const dName = b.dataset.deleg || "";
-        if (!b.dataset.armed) {
+        if (!isArmed(act, gid)) {
           armAction(b, "Confirm disband");
           showToast(`<strong>Hold on</strong>Disbanding “${esc(dName)}” releases every delegate in it back to individual registration — payments stay untouched. Click again to confirm.`, true);
           return;
         }
+        armedActs.delete(armedKey(act, gid));
         const out = await rpc("pay_admin_delegation_delete", { p_key: key, p_name: dName });
         const moved = (out && out.moved) || 0;
         showToast(`<strong>Delegation disbanded</strong>“${esc(dName)}” is gone — ${moved} delegate${moved === 1 ? "" : "s"} now count as individual registrations.`);
       } else if (act === "detach") {
-        if (!b.dataset.armed) {
+        if (!isArmed(act, gid)) {
           armAction(b, "Confirm move");
           return;
         }
+        armedActs.delete(armedKey(act, gid));
         const out = await rpc("pay_admin_delegate_detach", { p_key: key, p_registration: id });
         showToast(`<strong>Moved to individual</strong>${esc(b.dataset.name || "Delegate")} is out of ${esc((out && out.from) || "the delegation")}.`);
       } else if (act === "paid" || act === "failed" || act === "pending") {
