@@ -2547,6 +2547,12 @@ function whenIST(t) {
   const bookSearch = { pending: null, paid: null, rejected: null };
   let lastOverview = null;
 
+  /* — the mail card: two books (not-sent / sent) + a live send console.
+     While a bulk send runs, its own poller owns the card — the 20 s
+     overview re-render must not wipe the console mid-flight — */
+  let mailBooksCache = null;
+  const mailRun = { active: false, log: [], targets: new Map(), sentIds: new Set(), linger: 0 };
+
   /* — the second page: the master register, one expandable card per delegate — */
   const regsPage = $("#pa-page-regs");
   const regsList = $("#regs-list");
@@ -2966,31 +2972,38 @@ function whenIST(t) {
     const pending = o.pending || [];
     pend.innerHTML = bookHtml("pending", pending, `No UTRs waiting — the feed verifies them on arrival.`);
 
-    /* mail queue — the confirmation emails outbox */
+    /* mail queue — two books: not-sent (actionable) + sent (archive) */
     const mail = $("#pay-admin-mail");
-    const mails = o.mail || [];
-    mail.innerHTML = mails.length
-      ? mails.map((m) => {
-          const kind = m.template === "payment_rejected" ? `<span class="pa-hot">rejection notice</span>` : `confirmation`;
-          const state = m.sent_at
-            ? `<span class="pa-ok">sent ${whenIST(m.sent_at)}</span>`
-            : m.last_error
-            ? `<span class="pa-hot" title="The mailer hook refused this one">${esc(m.last_error)}</span>`
-            : Number(m.attempts) > 0
-            ? `handed to the mailer · attempt ${esc(m.attempts)} — still here after a minute? see MAIL-SETUP step 4`
-            : `<span class="pa-hot">waiting to send</span>`;
-          return `
-        <div class="pa-row" data-id="${esc(m.registration_id || "")}">
-          <div class="pa-row-main">
-            <p class="pa-row-title"><strong>${esc(m.full_name || m.to_email)}</strong>${m.ref_code ? `<span class="pa-code">${esc(m.ref_code)}</span>` : ""}</p>
-            <p class="pa-row-meta">${kind} · ${state} · ${whenIST(m.created_at)} → ${esc(m.to_email)}</p>
-          </div>
-          <div class="pa-row-actions">
-            ${m.registration_id ? `<button class="pa-btn" data-act="requeue" data-id="${esc(m.registration_id)}">Requeue</button>` : ""}
-          </div>
-        </div>`;
-        }).join("")
-      : `<p class="pa-empty">Nothing here yet — confirmation emails fire the moment a payment verifies.</p>`;
+    if (mailRun.active) {
+      /* a bulk send is live — its own poller owns this card */
+    } else if (o.mail_books) {
+      renderMailBooks(o.mail_books);
+    } else {
+      /* fallback until payment.sql is re-run — the old single outbox */
+      const mails = o.mail || [];
+      mail.innerHTML = mails.length
+        ? mails.map((m) => {
+            const kind = m.template === "payment_rejected" ? `<span class="pa-hot">rejection notice</span>` : `confirmation`;
+            const state = m.sent_at
+              ? `<span class="pa-ok">sent ${whenIST(m.sent_at)}</span>`
+              : m.last_error
+              ? `<span class="pa-hot" title="The mailer hook refused this one">${esc(m.last_error)}</span>`
+              : Number(m.attempts) > 0
+              ? `handed to the mailer · attempt ${esc(m.attempts)} — still here after a minute? see MAIL-SETUP step 4`
+              : `<span class="pa-hot">waiting to send</span>`;
+            return `
+          <div class="pa-row" data-id="${esc(m.registration_id || "")}">
+            <div class="pa-row-main">
+              <p class="pa-row-title"><strong>${esc(m.full_name || m.to_email)}</strong>${m.ref_code ? `<span class="pa-code">${esc(m.ref_code)}</span>` : ""}</p>
+              <p class="pa-row-meta">${kind} · ${state} · ${whenIST(m.created_at)} → ${esc(m.to_email)}</p>
+            </div>
+            <div class="pa-row-actions">
+              ${m.registration_id ? `<button class="pa-btn" data-act="requeue" data-id="${esc(m.registration_id)}">Requeue</button>` : ""}
+            </div>
+          </div>`;
+          }).join("")
+        : `<p class="pa-empty">Nothing here yet — confirmation emails fire the moment a payment verifies.</p>`;
+    }
 
     /* verified */
     const paid = $("#pay-admin-paid");
@@ -3001,6 +3014,138 @@ function whenIST(t) {
     const rej = $("#pay-admin-rejected");
     const rejected = o.rejected_recent || [];
     rej.innerHTML = bookHtml("rejected", rejected, `No rejected payments — the ledger is clean.`);
+  }
+
+  /* — the two mail books + the one-click sender — */
+  const mailWaitState = (m) =>
+    m.last_error
+      ? `<span class="pa-hot" title="The mailer hook refused this one">${esc(m.last_error)}</span>`
+      : Number(m.attempts) > 0
+      ? `handed to the mailer · attempt ${esc(m.attempts)}`
+      : `<span class="pa-hot">waiting to send</span>`;
+
+  const mailRowHtml = (m, sent) => `
+        <div class="pa-row" data-id="${esc(m.id || "")}">
+          <div class="pa-row-main">
+            <p class="pa-row-title"><strong>${esc(m.name || m.email)}</strong>${m.ref_code ? `<span class="pa-code">${esc(m.ref_code)}</span>` : ""}</p>
+            <p class="pa-row-meta">${esc(m.email || "")} · ${sent ? `<span class="pa-ok">sent ${whenIST(m.sent_at)}</span>` : mailWaitState(m)}</p>
+          </div>
+          ${sent ? "" : `<div class="pa-row-actions"><button class="pa-btn" data-act="requeue" data-id="${esc(m.id)}">Requeue</button></div>`}
+        </div>`;
+
+  function renderMailBooks(b) {
+    mailBooksCache = b;
+    const waiting = b.waiting || [];
+    const sent = b.sent || [];
+    const rw = b.reject_waiting || 0;
+    const showLog = mailRun.log.length && (mailRun.active || Date.now() < mailRun.linger);
+    const logHtml = showLog
+      ? `<div class="pa-maillog${mailRun.active ? " pa-maillog-live" : ""}" id="pa-maillog">${mailRun.log
+          .map((l) => {
+            const kinds = String(l.kind || "").split(/\s+/).filter((k) => k && k !== "final").map((k) => ` pa-maillog-line--${k}`).join("");
+            const fin = String(l.kind || "").includes("final") ? " pa-maillog-final" : "";
+            return `<div class="pa-maillog-line${kinds}${fin}"><em>${l.t}</em>${l.html}</div>`;
+          })
+          .join("")}</div>`
+      : "";
+    $("#pay-admin-mail").innerHTML = `
+      <div class="pa-mbox pa-mbox--wait">
+        <div class="pa-mbox-head">
+          <span class="pa-mbox-title">Not sent</span><span class="pa-mbox-count">${waiting.length}</span>
+          ${waiting.length ? `<button type="button" class="pa-btn pa-hbtn" data-act="mailall" title="Queue every waiting confirmation mail and narrate each one as it leaves">Send all mails</button>` : ""}
+        </div>
+        ${waiting.length
+          ? `<div class="pay-admin-list">${waiting.slice(0, 60).map((m) => mailRowHtml(m, false)).join("")}${waiting.length > 60 ? `<p class="pa-empty">…and ${waiting.length - 60} more</p>` : ""}</div>`
+          : `<p class="pa-empty">Every verified delegate has their confirmation mail.</p>`}
+        ${logHtml}
+        ${rw ? `<p class="pa-empty">${rw} rejection notice${rw === 1 ? " is" : "s are"} also waiting — Send all mails re-fires those too.</p>` : ""}
+      </div>
+      <div class="pa-mbox pa-mbox--sent">
+        <div class="pa-mbox-head">
+          <span class="pa-mbox-title">Sent</span><span class="pa-mbox-count">${sent.length}</span>
+        </div>
+        ${sent.length
+          ? `<div class="pay-admin-list">${sent.slice(0, 60).map((m) => mailRowHtml(m, true)).join("")}${sent.length > 60 ? `<p class="pa-empty">…and ${sent.length - 60} more</p>` : ""}</div>`
+          : `<p class="pa-empty">No confirmation mails have gone out yet.</p>`}
+      </div>`;
+    const lg = $("#pa-maillog");
+    if (lg) lg.scrollTop = lg.scrollHeight;
+  }
+
+  const mailLogPush = (html, kind) => {
+    mailRun.log.push({
+      html,
+      kind: kind || "",
+      t: new Date().toLocaleTimeString("en-IN", { hour12: false }),
+    });
+  };
+
+  /* one click: bulk-queue everything waiting, then poll the books every
+     2.5 s and narrate each mail as the mailer marks it sent — the run
+     ends with "Mails sent to X people." or an honest stuck-note */
+  async function sendAllMails() {
+    if (mailRun.active) return;
+    const b = mailBooksCache || (lastOverview && lastOverview.mail_books);
+    const waiting = (b && b.waiting) || [];
+    if (!waiting.length) {
+      showToast("<strong>Nothing to send</strong>Every verified delegate already has their confirmation mail.", true);
+      return;
+    }
+    mailRun.active = true;
+    mailRun.log = [];
+    mailRun.targets = new Map(waiting.map((m) => [m.id, m]));
+    mailRun.sentIds = new Set();
+    mailRun.linger = 0;
+    mailLogPush(`Handing ${waiting.length} mail${waiting.length === 1 ? "" : "s"} to the mailer…`);
+    renderMailBooks(b);
+
+    let bulk = null;
+    try {
+      bulk = await rpc("pay_admin_mail_bulk", { p_key: key });
+    } catch (err) {
+      mailLogPush(esc(err.message || "could not reach the mail queue"), "err");
+      mailRun.active = false;
+      renderMailBooks(mailBooksCache);
+      showToast(`<strong>Send failed</strong>${esc(err.message || "Retry in a moment.")}`, true);
+      return;
+    }
+    const q = (bulk && bulk.queued) || 0;
+    const r = (bulk && bulk.requeued) || 0;
+    mailLogPush(`queued ${q} new · re-fired ${r} stuck — watching the outbox…`);
+    renderMailBooks(mailBooksCache);
+
+    for (let i = 0; i < 40; i++) {
+      await new Promise((res) => setTimeout(res, 2500));
+      let books;
+      try {
+        books = await rpc("pay_admin_mail_books", { p_key: key });
+      } catch {
+        continue; /* transient — the next tick retries */
+      }
+      const newly = (books.sent || [])
+        .filter((m) => mailRun.targets.has(m.id) && !mailRun.sentIds.has(m.id))
+        .sort((x, y) => String(x.sent_at || "").localeCompare(String(y.sent_at || "")));
+      for (const m of newly) {
+        mailRun.sentIds.add(m.id);
+        mailLogPush(`sent to <strong>${esc(m.name || m.email)}</strong>${m.ref_code ? ` · ${esc(m.ref_code)}` : ""}`, "ok");
+      }
+      if (!(books.waiting || []).length) {
+        mailLogPush(`Mails sent to ${mailRun.sentIds.size} people.`, "final");
+        mailRun.active = false;
+        mailRun.linger = Date.now() + 120000;
+        renderMailBooks(books);
+        showToast(`<strong>Outbox clear</strong>Mails sent to ${mailRun.sentIds.size} people.`);
+        return;
+      }
+      renderMailBooks(books);
+    }
+    /* 100 s and rows are still unsent — say so, honestly */
+    const leftN = ((mailBooksCache && mailBooksCache.waiting) || []).length;
+    mailLogPush(`${mailRun.sentIds.size} of ${mailRun.targets.size} sent · ${leftN} still waiting — check the mailer hook (MAIL-SETUP step 4) and the daily Gmail quota, then hit Send all again.`, "err final");
+    mailRun.active = false;
+    mailRun.linger = Date.now() + 120000;
+    renderMailBooks(mailBooksCache);
+    showToast(`<strong>Still waiting</strong>${leftN} mail${leftN === 1 ? "" : "s"} did not leave — see the note in the console.`, true);
   }
 
   async function load() {
@@ -3176,12 +3321,9 @@ function whenIST(t) {
       } else if (act === "requeue") {
         await rpc("pay_admin_requeue", { p_key: key, p_registration: id });
         showToast("<strong>Requeued</strong>The confirmation email fires again for this delegate.");
-      } else if (act === "mailsweep") {
-        const out = await rpc("pay_admin_mail_sweep", { p_key: key });
-        const n = (out && out.swept) || 0;
-        showToast(n
-          ? `<strong>Resending</strong>${n} waiting mail${n === 1 ? "" : "s"} handed to the mailer again.`
-          : "<strong>Nothing to resend</strong>No stuck mails right now.", !n);
+      } else if (act === "mailall") {
+        sendAllMails();
+        return;
       }
       if (act !== "shot") {
         const card = b.closest(".pay-admin-card");
