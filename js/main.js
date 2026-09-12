@@ -2617,8 +2617,8 @@ function whenIST(t) {
       ${regsFact("Institution", dash(r.institution))}
       ${regsFact("Dietary", dietCell(r.allergies))}
       ${regsFact("MUN experience", esc(expLabel(r.experience)))}
-      ${regsFact("Past MUNs & committees", dash(r.exp_details), "regs-fact--wide")}
-      ${regsFact("Achievements", dash(r.achievements), "regs-fact--wide")}
+      ${regsFact("Past MUNs & committees", dash(r.exp_details))}
+      ${regsFact("Achievements", dash(r.achievements))}
       ${regsFact("Pref I", esc(cmtAcronym(r.committee_pref1)), "regs-cmt")}
       ${regsFact("Pref II", esc(cmtAcronym(r.committee_pref2)), "regs-cmt")}
       ${regsFact("Pref III", esc(cmtAcronym(r.committee_pref3)), "regs-cmt")}
