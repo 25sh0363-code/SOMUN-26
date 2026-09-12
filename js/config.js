@@ -30,7 +30,7 @@ export const CONFIG = {
   /* Registration portal gate — flip to true when registrations open.
      While false: the register page stays browsable, but the wizard box
      is blurred + inert under an "Opening Soon" stamp. */
-  REGISTRATIONS_OPEN: false,
+  REGISTRATIONS_OPEN: true,
   TESTER_PIN: "somun26",
 
   /* Committees reveal gate — flip to true on reveal day.
