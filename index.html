@@ -108,7 +108,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300..700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20260912h" />
+  <link rel="stylesheet" href="css/styles.css?v=20260912i" />
 </head>
 <body class="grain">
 
@@ -1132,14 +1132,14 @@
                         <div class="field">
                           <label class="field-label" for="delegationName">Name of your delegation <span class="req">*</span></label>
                           <input class="input" id="delegationName" name="delegationName" autocomplete="off" placeholder="e.g. Silver Oaks Delegation A" />
-                          <p class="field-note delg-strict"><strong>Match it word to word, capital letter to capital letter.</strong> “Silver Oaks Delegation A” and “silver oaks delegation a” count as two different delegations — type the name exactly as your delegation head registered it, or you will land in a separate folder.</p>
+                          <p class="field-note delg-strict"><strong>Type the delegation name exactly as your delegation head registered it.</strong> Capital letters and stray spaces don't matter — “Silver Oaks Delegation A” and “silver oaks delegation a” land in the same folder — but different words still split: “Delegation A” and “Del A” are two folders.</p>
                         </div>
                         <div class="field">
-                          <label class="field-label" for="delegationHead">Name of your delegation head <span class="req">*</span></label>
+                          <label class="field-label" for="delegationHead">Name of your delegation head</label>
                           <input class="input" id="delegationHead" name="delegationHead" placeholder="Full name of your delegation head" />
                         </div>
                         <div class="field">
-                          <label class="field-label" for="delegationHeadPhone">Contact number of your delegation head <span class="req">*</span></label>
+                          <label class="field-label" for="delegationHeadPhone">Contact number of your delegation head</label>
                           <input class="input" id="delegationHeadPhone" name="delegationHeadPhone" inputmode="tel" placeholder="+91 …" />
                           <p class="field-note">The secretariat coordinates registration-day logistics with the delegation head directly.</p>
                         </div>
@@ -1411,7 +1411,7 @@
               <div class="pa-page" id="pa-page-deleg" hidden>
                 <section class="pay-admin-card">
                   <h3 class="pay-admin-h"><i data-icon="scroll-text" data-cls="pay-admin-h-ic"></i>All delegation registrations</h3>
-                  <p class="pa-hint">Delegates fall into a folder only when the delegation name matches word for word, capital letter for capital letter — exactly as the form warned. A folder under six delegates is at risk: below the minimum, disband it from the folder header and its delegates return to individual registration (payments are untouched).</p>
+                  <p class="pa-hint">Delegates fall into one folder when the delegation name matches word for word — capital letters and stray spaces are ignored, so “silver oaks” and “Silver Oaks” share a folder. A folder under six delegates is at risk: below the minimum, disband it from the folder header and its delegates return to individual registration (payments are untouched).</p>
                   <div class="regs-tools">
                     <input class="input" id="deleg-search" type="text" placeholder="Filter folders or delegates — delegation, head, name, email, phone, institution, committee, portfolio" autocomplete="off" />
                     <button type="button" class="pa-btn" id="deleg-refresh" title="Pull the delegation roster fresh from the ledger">Refresh</button>
@@ -1597,6 +1597,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=20260912h"></script>
+  <script type="module" src="js/main.js?v=20260912i"></script>
 </body>
 </html>

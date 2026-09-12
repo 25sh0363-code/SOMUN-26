@@ -2734,11 +2734,12 @@ function whenIST(t) {
     showToast(`<strong>CSV downloaded</strong>${rows.length} row${rows.length === 1 ? "" : "s"} exported.`);
   });
 
-  /* — the third page: delegation registrations, foldered by the EXACT
-     delegation name the delegates typed (the form warns them word to
-     word, capital letter to capital letter — this is where that pays
-     off). Disband releases every member back to individual; detach
-     moves one. Payments and rows are never touched. — */
+  /* — the third page: delegation registrations, foldered by the
+     delegation name the delegates typed — one delegation is one folder:
+     capital letters and stray spaces are ignored when matching, and the
+     folder keeps the spelling the largest share of its delegates typed.
+     Disband releases every member back to individual; detach moves one.
+     Payments and rows are never touched. — */
   const delegPage = $("#pa-page-deleg");
   const delegBox = $("#deleg-folders");
   const delegSearch = $("#deleg-search");
@@ -2781,16 +2782,27 @@ function whenIST(t) {
     }
     const map = new Map();
     for (const r of rows) {
-      const name = String(r.delegation_name || "");
-      if (!map.has(name)) map.set(name, []);
-      map.get(name).push(r);
+      const k = String(r.delegation_name || "").trim().toLowerCase();
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(r);
     }
-    return [...map.entries()].map(([name, members]) => ({
-      name,
-      members,
-      head: members.map((m) => (m.delegation_head || "").trim()).find(Boolean) || "",
-      phone: members.map((m) => (m.delegation_head_phone || "").trim()).find(Boolean) || "",
-    }));
+    return [...map.entries()].map(([, members]) => {
+      const spell = new Map();
+      for (const m of members) {
+        const v = String(m.delegation_name || "").trim();
+        spell.set(v, (spell.get(v) || 0) + 1);
+      }
+      let name = "", best = 0;
+      for (const [v, n] of spell) {
+        if (n > best) { name = v; best = n; }
+      }
+      return {
+        name,
+        members,
+        head: members.map((m) => (m.delegation_head || "").trim()).find(Boolean) || "",
+        phone: members.map((m) => (m.delegation_head_phone || "").trim()).find(Boolean) || "",
+      };
+    });
   }
 
   const delegMemberRow = (m) => {
