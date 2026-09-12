@@ -277,6 +277,7 @@ em.accent {
 .reveal.in-view {
   opacity: 1;
   transform: none;
+  will-change: auto; /* release the fixed-overlay containing block */
 }
 
 /* load-time animations (hero + gate) */
@@ -943,7 +944,7 @@ em.accent {
 }
 .view { display: none; }
 .view.active { display: block; flex: 1 0 auto; }
-.view.active.view-enter { animation: viewIn 0.45s var(--ease-out) both; }
+.view.active.view-enter { animation: viewIn 0.45s var(--ease-out) backwards; }
 /* success screen rises in when the form clears (matches the original) */
 #reg-success:not([hidden]) { animation: fadeUpSm 0.6s var(--ease-out) both; }
 @keyframes viewIn {
