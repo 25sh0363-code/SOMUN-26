@@ -3394,6 +3394,25 @@ em.accent {
   padding: 0.9rem 1rem;
 }
 .matrix-row-name { font-size: 12px; color: var(--beige-dim); margin-bottom: 0.45rem; }
+.matrix-row-top { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.45rem; }
+.matrix-row-top .matrix-row-name { margin-bottom: 0; }
+.matrix-dl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--crimson);
+  border: 1px solid rgba(200, 16, 46, 0.5);
+  padding: 0.3rem 0.65rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+}
+.matrix-dl:hover { background: var(--crimson); color: var(--beige); }
+.matrix-dl-icon { width: 11px; height: 11px; }
 .matrix-acronym { font-family: var(--font-display); font-size: 1.05rem; color: var(--beige); line-height: 1.2; }
 .matrix-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .matrix-chip {

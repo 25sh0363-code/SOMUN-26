@@ -6,7 +6,7 @@
    resources (Supabase) · itinerary
    ———————————————————————————————————————————————————————— */
 
-import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, ALLOCATION_MATRIX } from "./data.js";
+import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, ALLOCATION_MATRIX, MATRIX_PDFS } from "./data.js";
 import { CONFIG, supabaseConfigured, cashfreeEnabled, feeAnnounced, qrPayEnabled, payFlow, formatINR } from "./config.js";
 import { icon, hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
@@ -2394,16 +2394,21 @@ if (SHOW_ITINERARY) {
   };
 
   function renderMatrix() {
-    body.innerHTML = REG_OPTIONS.map((c) => {
+    body.innerHTML = COMMITTEES.map((c) => {
       const list = listFor(c.slug);
+      const pdf = MATRIX_PDFS[c.slug];
+      const dl = pdf
+        ? `<a class="matrix-dl" href="${pdf}" download><i data-icon="download" data-cls="matrix-dl-icon"></i><span>PDF</span></a>`
+        : "";
       const right = list.length
-        ? `<div class="matrix-chips">${list.map((p) => `<span class="matrix-chip">${p}</span>`).join("")}</div>`
+        ? `<div class="matrix-chips">${list.map((p) => `<span class="matrix-chip">${esc(p)}</span>`).join("")}</div>`
         : `<span class="matrix-releasing">Releasing soon</span>`;
       return `<div class="matrix-row">
         <div class="matrix-acronym">${c.acronym}</div>
-        <div><p class="matrix-row-name">${c.name}</p>${right}</div>
+        <div><div class="matrix-row-top"><p class="matrix-row-name">${c.name}</p>${dl}</div>${right}</div>
       </div>`;
     }).join("");
+    hydrateIcons(body);
   }
 
   function openMatrix() {
