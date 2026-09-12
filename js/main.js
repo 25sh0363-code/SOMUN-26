@@ -3176,6 +3176,12 @@ function whenIST(t) {
       } else if (act === "requeue") {
         await rpc("pay_admin_requeue", { p_key: key, p_registration: id });
         showToast("<strong>Requeued</strong>The confirmation email fires again for this delegate.");
+      } else if (act === "mailsweep") {
+        const out = await rpc("pay_admin_mail_sweep", { p_key: key });
+        const n = (out && out.swept) || 0;
+        showToast(n
+          ? `<strong>Resending</strong>${n} waiting mail${n === 1 ? "" : "s"} handed to the mailer again.`
+          : "<strong>Nothing to resend</strong>No stuck mails right now.", !n);
       }
       if (act !== "shot") {
         const card = b.closest(".pay-admin-card");
