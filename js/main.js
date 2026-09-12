@@ -1773,8 +1773,6 @@ if (SHOW_ITINERARY) {
       if (!val("institution")) return "Current institution is required.";
       if ($("#in-delegation").checked) {
         if (val("delegationName").length < 2) return "Please enter the name of your delegation.";
-        if (val("delegationHead").length < 3) return "Please enter the name of your delegation head.";
-        if (val("delegationHeadPhone").replace(/\D/g, "").length < 8) return "Please enter a valid contact number for your delegation head.";
       }
     }
     if (n === 2) {
