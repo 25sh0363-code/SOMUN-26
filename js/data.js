@@ -16,7 +16,7 @@ export const CONFERENCE = {
   countdownTarget: "2026-10-30T09:00:00+05:30",
 };
 
-/* ————— Difficulty stamps: "Beginner" | "Intermediate" | "Advanced" —————
+/* ————— Committee entries —————
    photo: "" → an empty, framed plate is shown (ready for artwork later).
    Once you have an image, drop it in images/committees/ and set
    photo: "images/committees/unhrc.jpg" — the plate fills automatically. */
@@ -29,15 +29,12 @@ export const CONFERENCE = {
      overview[] about willDo why  → the committee's own page sections
      focusLabel + focus[]         → focus chips section
      kicker                       → closing line (optional)
-     tagline                      → sub-line under the acronym (optional)
-     diffKey                      → Beginner | Intermediate | Advanced | Mixed */
+     tagline                      → sub-line under the acronym (optional) */
 export const COMMITTEES = [
   {
     slug: "disec",
     acronym: "DISEC",
     name: "Disarmament and International Security Committee",
-    difficulty: "Beginner",
-    diffKey: "Beginner",
     photo: "images/committees/disec.jpg",
     description:
       "Where diplomacy meets deterrence. DISEC confronts the weapons, technologies and strategic rivalries that shape the global security order. Every resolution is a negotiation between national interest and collective survival.",
@@ -70,8 +67,6 @@ export const COMMITTEES = [
     slug: "ecosoc",
     acronym: "ECOSOC",
     name: "Economic and Social Council",
-    difficulty: "Intermediate",
-    diffKey: "Intermediate",
     photo: "images/committees/ecosoc.jpg",
     description:
       "The global economy has no borders. From inequality and sustainable development to access to essential resources, ECOSOC asks a difficult question: how can prosperity become a global reality rather than a national privilege?",
@@ -104,8 +99,6 @@ export const COMMITTEES = [
     slug: "unctc",
     acronym: "UNCTC",
     name: "United Nations Counter-Terrorism Committee",
-    difficulty: "Intermediate",
-    diffKey: "Intermediate",
     photo: "images/committees/unctc.jpg",
     description:
       "Security has a price, but so does the loss of freedom. UNCTC confronts the evolving architecture of international terrorism, forcing states to balance intelligence, prevention and security with sovereignty and fundamental rights.",
@@ -138,8 +131,6 @@ export const COMMITTEES = [
     slug: "unoosa",
     acronym: "UNOOSA",
     name: "United Nations Office for Outer Space Affairs",
-    difficulty: "Beginner",
-    diffKey: "Beginner",
     photo: "images/committees/unoosa.jpg",
     description:
       "Humanity's next geopolitical frontier lies far beyond Earth. As nations and private actors race into orbit, UNOOSA faces the challenge of keeping space peaceful, accessible and sustainable before the final frontier becomes the next contested domain.",
@@ -173,8 +164,6 @@ export const COMMITTEES = [
     slug: "uncsw",
     acronym: "UNCSW",
     name: "United Nations Commission on the Status of Women",
-    difficulty: "Intermediate",
-    diffKey: "Intermediate",
     photo: "images/committees/uncsw.jpg",
     description:
       "Equality on paper does not always become equality in practice. UNCSW examines the barriers that continue to shape the lives of women and girls, challenging delegates to transform international commitments into meaningful action.",
@@ -207,8 +196,6 @@ export const COMMITTEES = [
     slug: "unodc",
     acronym: "UNODC",
     name: "United Nations Office on Drugs and Crime",
-    difficulty: "Intermediate",
-    diffKey: "Intermediate",
     photo: "images/committees/unodc.jpg",
     description:
       "Crime has learned to cross borders faster than laws can follow. UNODC confronts transnational criminal networks, illicit trafficking and corruption, demanding cooperation between states whose interests do not always align.",
@@ -241,8 +228,6 @@ export const COMMITTEES = [
     slug: "mcu",
     acronym: "MCU",
     name: "Marvel Cinematic Universe Committee",
-    difficulty: "Beginner",
-    diffKey: "Beginner",
     photo: "images/committees/mcu.jpg",
     description:
       "The world has survived gods, invasions and the collapse of reality itself. Now the fate of the universe rests in your hands. Heroes, villains, governments and cosmic powers enter a crisis where one decision can rewrite everything.",
@@ -277,8 +262,6 @@ export const COMMITTEES = [
     acronym: "HCC",
     name: "Historical Crisis Committee",
     tagline: "History. Reimagined.",
-    difficulty: "Advanced",
-    diffKey: "Advanced",
     photo: "images/committees/hcc-ccc.jpg",
     description:
       "History is written by those who survive it. But what happens when you are given the power to change it? The Historical Crisis Committee places delegates inside a defining moment, where information is scarce, decisions are immediate and the timeline is anything but fixed.",
@@ -312,8 +295,6 @@ export const COMMITTEES = [
     slug: "icc",
     acronym: "ICC",
     name: "International Cricket Council",
-    difficulty: "Advanced",
-    diffKey: "Advanced",
     photo: "images/committees/icc.jpg",
     description:
       "Cricket unites billions, but the game is governed by competing interests, national ambitions and an evolving global landscape. Inside the ICC, delegates must decide not only how cricket is played, but where the sport goes next.",
@@ -347,8 +328,6 @@ export const COMMITTEES = [
     slug: "unhrc",
     acronym: "UNHRC",
     name: "United Nations Human Rights Council",
-    difficulty: "Intermediate",
-    diffKey: "Intermediate",
     photo: "images/committees/unhrc.jpg",
     description:
       "Geneva's conscience arrives in Hyderabad. The Council examines state accountability where it is most contested, confronting human rights violations inside conflicts and across the open internet.",
@@ -381,8 +360,6 @@ export const COMMITTEES = [
     slug: "aippm",
     acronym: "Lok Sabha",
     name: "The House of the People",
-    difficulty: "Advanced",
-    diffKey: "Advanced",
     photo: "images/committees/aippm.jpg",
     description:
       "India's political theatre moves from the campaign trail to the floor of the House. Behind every bill lies an argument, an alliance and a battle for consensus. Here, delegates do not represent countries. They represent political power.",
@@ -417,8 +394,6 @@ export const COMMITTEES = [
     acronym: "IP",
     name: "International Press",
     tagline: "The Fourth Estate",
-    difficulty: "Beginner / Intermediate",
-    diffKey: "Mixed",
     photo: "images/committees/ip.jpg",
     description:
       "Every committee has a story. Few people get to decide how it is told. The International Press enters the conference as its eyes and ears, investigating developments, questioning delegates and turning hours of diplomacy into stories that shape the narrative.",

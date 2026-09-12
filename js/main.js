@@ -374,7 +374,6 @@ $("#year").textContent = new Date().getFullYear();
         <span class="preview-ghost" aria-hidden="true">${String(i + 1).padStart(2, "0")}</span>
         <div class="preview-top">
           <span class="preview-acronym">${c.acronym}</span>
-          <span class="preview-diff">${c.difficulty}</span>
         </div>
         <p class="preview-name">${c.name}</p>
         <p class="preview-desc">${c.description}</p>
@@ -436,20 +435,17 @@ const track = $("#deck-track");
 
             <div class="dossier-body">
               <div class="dossier-content">
-                <div class="dossier-top stagger-item" style="${stag(1)}">
-                  <span class="diff-chip diff-chip--${c.diffKey}">${c.difficulty}</span>
-                </div>
-                <h3 class="dossier-acronym stagger-item" style="${stag(2)}">${c.acronym}</h3>
-                <p class="dossier-name stagger-item" style="${stag(3)}">${c.name}</p>
-                <div class="fleuron-rule stagger-item" style="${stag(4)}" aria-hidden="true">
+                <h3 class="dossier-acronym stagger-item" style="${stag(1)}">${c.acronym}</h3>
+                <p class="dossier-name stagger-item" style="${stag(2)}">${c.name}</p>
+                <div class="fleuron-rule stagger-item" style="${stag(3)}" aria-hidden="true">
                   <span class="fleuron-rule-l"></span><span class="fleuron-rule-d"></span><span class="fleuron-rule-r"></span>
                 </div>
-                <p class="dossier-desc stagger-item" style="${stag(5)}">${c.description}</p>
-                <div class="agendas stagger-item" style="${stag(6)}">
+                <p class="dossier-desc stagger-item" style="${stag(4)}">${c.description}</p>
+                <div class="agendas stagger-item" style="${stag(5)}">
                   <p class="agendas-kicker">Before the house</p>
                   ${c.agendas.map((a) => `<p class="agenda"><span class="agenda-diamond"></span>${a}</p>`).join("")}
                 </div>
-                <div class="dossier-foot stagger-item" style="${stag(7)}">
+                <div class="dossier-foot stagger-item" style="${stag(6)}">
                   <div class="dossier-foot-row">
                     <button class="take-seat" data-committee="${c.slug}" aria-label="${c.cta} — ${c.acronym}">
                       <span class="take-seat-fill"></span>
@@ -474,7 +470,7 @@ const track = $("#deck-track");
 /* ————— Committees veiled: the deck renders in place, then gets the exact
    treatment of the register wizard box — blurred + inert under a centered
    "Coming Soon" seal. Flip CONFIG.COMMITTEES_REVEALED in config.js to
-   release; deck, head copy, executive boards and the chamber note all
+   release; deck, head copy and the executive boards all
    restore untouched, nothing else to change. ————— */
 if (!CONFIG.COMMITTEES_REVEALED) {
   const cView = $(".view[data-view='committees']");
@@ -485,9 +481,8 @@ if (!CONFIG.COMMITTEES_REVEALED) {
   $(".section-head-title", cView).innerHTML = `The arena is <em class="accent">sealed.</em>`;
   $(".section-head-intro", cView).textContent = "Twelve chambers are being briefed behind closed doors — dossiers, daises and portfolios unlock with the first committees reveal. Watch this space.";
 
-  /* executive boards + chamber note stay dark until the chambers are declared */
+  /* executive boards stay dark until the chambers are declared */
   $("#exec-strip").setAttribute("hidden", "");
-  $("#chamber-note").setAttribute("hidden", "");
 
   const deckEl = $("#deck");
   deckEl.classList.add("is-veiled");
@@ -558,7 +553,6 @@ function renderCommitteePage(slug) {
       <header class="committee-head reveal" data-delay="0.05">
         <div class="committee-kicker-row">
           <p class="committee-kicker">Committee ${roman} · ${pad2(idx + 1)} of ${pad2(COMMITTEES.length)}</p>
-          <span class="diff-chip diff-chip--${c.diffKey}">${c.difficulty}</span>
         </div>
         <h1 class="committee-acronym text-hollow">${c.acronym}</h1>
         <p class="committee-name">${sub}</p>
@@ -579,7 +573,6 @@ function renderCommitteePage(slug) {
           <p class="committee-plate-note"><i data-icon="gavel"></i> Rule of procedure and dais assignments release with the background guides.</p>
           <div class="cv-facts reveal" data-delay="0.16">
             <div class="cv-fact"><span>Chamber</span><strong>${c.acronym}</strong></div>
-            <div class="cv-fact"><span>Level</span><strong>${c.difficulty}</strong></div>
             <div class="cv-fact"><span>On the floor</span><strong>${c.itemsLabel.replace(/^2 /, "").replace(/^./, (ch) => ch.toUpperCase())}</strong></div>
           </div>
         </div>
@@ -2556,9 +2549,9 @@ function whenIST(t) {
   const bookSearch = { pending: null, paid: null, rejected: null };
   let lastOverview = null;
 
-  /* — the second page: the master register, every registrant one table — */
+  /* — the second page: the master register, one expandable card per delegate — */
   const regsPage = $("#pa-page-regs");
-  const regsTbody = $("#regs-tbody");
+  const regsList = $("#regs-list");
   const regsCount = $("#regs-count");
   const regsErr = $("#regs-err");
   const regsSearch = $("#regs-search");
@@ -2610,40 +2603,56 @@ function whenIST(t) {
     const [label, mood] = STATUS_CHIP[r.payment_status] || [r.payment_status || "—", ""];
     const eName = (r.emergency_name || "").trim();
     const ePhone = (r.emergency_phone || "").trim();
-    return `<tr>
-      <td class="regs-num">${i + 1}</td>
-      <td><span class="pa-code">${esc(r.ref_code || "—")}</span></td>
-      <td class="regs-contact regs-gstart"><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></td>
-      <td class="regs-name"><strong>${esc(r.full_name)}</strong></td>
-      <td class="regs-phone regs-nowrap">${esc(r.phone || "—")}</td>
-      <td class="regs-emerg">${eName || ePhone ? `<strong>${esc(eName || "—")}</strong>${ePhone ? `<span>${esc(ePhone)}</span>` : ""}` : `<span class="regs-dim">—</span>`}</td>
-      <td>${dash(r.grade_or_title)}</td>
-      <td>${dash(r.institution)}</td>
-      <td class="regs-diet">${dietCell(r.allergies)}</td>
-      <td class="regs-gstart regs-nowrap">${esc(expLabel(r.experience))}</td>
-      <td class="regs-exp" title="${esc(r.exp_details || "")}">${dash(r.exp_details)}</td>
-      <td class="regs-exp" title="${esc(r.achievements || "")}">${dash(r.achievements)}</td>
-      <td class="regs-cmt regs-gstart">${esc(cmtAcronym(r.committee_pref1))}</td>
-      <td class="regs-cmt">${esc(cmtAcronym(r.committee_pref2))}</td>
-      <td class="regs-cmt">${esc(cmtAcronym(r.committee_pref3))}</td>
-      <td class="regs-pf" title="${esc(r.portfolio1 || "")}">${dash(r.portfolio1)}</td>
-      <td class="regs-pf" title="${esc(r.portfolio2 || "")}">${dash(r.portfolio2)}</td>
-      <td class="regs-pf" title="${esc(r.portfolio3 || "")}">${dash(r.portfolio3)}</td>
-      <td class="regs-gstart regs-nowrap">${r.referred ? `<strong class="regs-yes">yes</strong>` : `<span class="regs-dim">—</span>`}</td>
-      <td class="regs-ref">${dash(r.referral_name)}</td>
-      <td class="regs-nowrap">${r.expected_amount != null ? fmtINR(r.expected_amount) : "—"}</td>
-      <td class="pa-mono regs-nowrap regs-utr-cell">${esc(r.upi_utr || "—")}${r.shot_path ? `<button type="button" class="pa-btn regs-shot" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the payment screenshot the delegate submitted">View payment</button>` : ""}</td>
-      <td class="regs-nowrap"><span class="regs-chip regs-chip--${mood}">${esc(label)}</span>${r.payment_status === "paid" && r.paid_at ? `<em class="regs-why">${whenIST(r.paid_at)}</em>` : ""}${r.payment_status === "failed" && r.status_note ? `<em class="regs-why" title="${esc(r.status_note)}">${esc(r.status_note)}</em>` : ""}</td>
-      <td class="regs-nowrap">${whenIST(r.created_at)}</td>
-    </tr>`;
+    const fact = (l, v, cls) => `<div class="regs-fact${cls ? ` ${cls}` : ""}"><span>${l}</span><strong>${v}</strong></div>`;
+    return `
+      <details class="regs-item" data-k="R:${esc(r.id)}">
+        <summary>
+          <span class="regs-caret" aria-hidden="true"></span>
+          <span class="regs-item-name"><strong>${esc(r.full_name)}</strong></span>
+          <span class="pa-code">${esc(r.ref_code || "—")}</span>
+          <span class="regs-chip regs-chip--${mood}">${esc(label)}</span>
+        </summary>
+        <div class="regs-item-body">
+          ${fact("Email", `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`)}
+          ${fact("Phone", esc(r.phone || "—"))}
+          ${fact("Emergency", eName || ePhone ? `${esc(eName || "—")}${ePhone ? ` · ${esc(ePhone)}` : ""}` : "—")}
+          ${fact("Grade", dash(r.grade_or_title))}
+          ${fact("Institution", dash(r.institution))}
+          ${fact("Dietary", dietCell(r.allergies))}
+          ${fact("MUN experience", esc(expLabel(r.experience)))}
+          ${fact("Past MUNs & committees", dash(r.exp_details))}
+          ${fact("Achievements", dash(r.achievements))}
+          ${fact("Pref I", esc(cmtAcronym(r.committee_pref1)), "regs-cmt")}
+          ${fact("Pref II", esc(cmtAcronym(r.committee_pref2)), "regs-cmt")}
+          ${fact("Pref III", esc(cmtAcronym(r.committee_pref3)), "regs-cmt")}
+          ${fact("Portfolio I", dash(r.portfolio1))}
+          ${fact("Portfolio II", dash(r.portfolio2))}
+          ${fact("Portfolio III", dash(r.portfolio3))}
+          ${fact("Referred", r.referred ? "yes" : "—")}
+          ${fact("Reference", dash(r.referral_name))}
+          ${fact("Fee", r.expected_amount != null ? fmtINR(r.expected_amount) : "—")}
+          ${fact("UTR", esc(r.upi_utr || "—"))}
+          ${fact("Verified", r.paid_at ? whenIST(r.paid_at) : "—")}
+          ${fact("Registered", whenIST(r.created_at))}
+          ${r.status_note ? `<p class="regs-note">${esc(r.status_note)}</p>` : ""}
+          <div class="pa-row-actions">
+            ${r.shot_path ? `<button type="button" class="pa-btn regs-shot" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the payment screenshot the delegate submitted">View payment</button>` : ""}
+          </div>
+        </div>
+      </details>`;
   };
+
+  const keepOpen = (root, sel) => new Set([...root.querySelectorAll(sel)].filter((d) => d.open).map((d) => d.dataset.k));
+  const restoreOpen = (root, keys) => root.querySelectorAll("details[data-k]").forEach((d) => { if (keys.has(d.dataset.k)) d.open = true; });
 
   function renderRegistrants() {
     if (!regsCache) return;
     const rows = regsFiltered();
-    regsTbody.innerHTML = rows.length
+    const open = keepOpen(regsList, "details.regs-item[data-k]");
+    regsList.innerHTML = rows.length
       ? rows.map(regsRow).join("")
-      : `<tr><td colspan="24" class="regs-empty">${(regsSearch.value || "").trim() ? "No registrant matches that filter." : "No verified singles yet — rows land here the moment their payment clears."}</td></tr>`;
+      : `<p class="regs-empty">${(regsSearch.value || "").trim() ? "No registrant matches that filter." : "No single registrations yet — rows land here the moment the first delegate signs up."}</p>`;
+    restoreOpen(regsList, open);
     regsCount.hidden = false;
     regsCount.innerHTML = `<b>${rows.length}</b> shown · <b>${regsCache.length}</b> total${(regsSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
   }
@@ -2779,21 +2788,26 @@ function whenIST(t) {
   const delegMemberRow = (m) => {
     const [label, mood] = STATUS_CHIP[m.payment_status] || [m.payment_status || "—", ""];
     return `
-      <div class="deleg-member">
-        <div class="deleg-member-main">
-          <p class="deleg-member-name"><strong>${esc(m.full_name)}</strong><span class="pa-code">${esc(m.ref_code || "—")}</span><span class="regs-chip regs-chip--${mood}">${esc(label)}</span></p>
+      <details class="deleg-member" data-k="M:${esc(m.id)}">
+        <summary>
+          <span class="regs-caret" aria-hidden="true"></span>
+          <span class="deleg-member-name"><strong>${esc(m.full_name)}</strong></span>
+          <span class="pa-code">${esc(m.ref_code || "—")}</span>
+          <span class="regs-chip regs-chip--${mood}">${esc(label)}</span>
+        </summary>
+        <div class="deleg-member-body">
           <p class="deleg-member-meta">${esc(m.email || "")}${m.phone ? ` · ${esc(m.phone)}` : ""}${m.institution ? ` · ${esc(m.institution)}` : ""}${m.grade_or_title ? ` · ${esc(m.grade_or_title)}` : ""}</p>
           <p class="deleg-member-meta">wants <strong>${esc(cmtAcronym(m.committee_pref1))}</strong>${m.portfolio ? ` · ${esc(m.portfolio)}` : ""} · invoice <strong>${fmtINR(m.expected_amount)}</strong>${m.upi_utr ? ` · UTR <span class="pa-mono">${esc(m.upi_utr)}</span>` : ""}${m.paid_at ? ` · verified ${whenIST(m.paid_at)}` : ""}</p>
+          <div class="pa-row-actions">
+            ${m.shot_path ? `<button type="button" class="pa-btn" data-act="shot" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
+            <button type="button" class="pa-btn pa-btn--bad" data-act="detach" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" data-deleg="${esc(m.delegation_name)}" title="Move this delegate out of the delegation — they count as an individual registration">Move to individual</button>
+          </div>
         </div>
-        <div class="pa-row-actions">
-          ${m.shot_path ? `<button type="button" class="pa-btn" data-act="shot" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
-          <button type="button" class="pa-btn pa-btn--bad" data-act="detach" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" data-deleg="${esc(m.delegation_name)}" title="Move this delegate out of the delegation — they count as an individual registration">Move to individual</button>
-        </div>
-      </div>`;
+      </details>`;
   };
 
   const delegFolderTpl = (g) => `
-    <details class="deleg-folder">
+    <details class="deleg-folder" data-k="F:${esc(g.name)}">
       <summary>
         <span class="deleg-caret" aria-hidden="true"></span>
         <span class="deleg-folder-id">
@@ -2810,9 +2824,11 @@ function whenIST(t) {
     if (!delegCache) return;
     const groups = delegGroups();
     const shown = groups.reduce((n, g) => n + g.members.length, 0);
+    const open = keepOpen(delegBox, "details[data-k]");
     delegBox.innerHTML = groups.length
       ? groups.map(delegFolderTpl).join("")
       : `<p class="pa-empty">${(delegSearch.value || "").trim() ? "No delegation matches that filter." : "No delegation registrations yet — delegates who tick “Are you in a delegation?” land here, foldered by the exact name they typed."}</p>`;
+    restoreOpen(delegBox, open);
     delegCount.hidden = false;
     delegCount.innerHTML = `<b>${groups.length}</b> folder${groups.length === 1 ? "" : "s"} · <b>${shown}</b> shown · <b>${delegCache.length}</b> under delegation${(delegSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
   }
