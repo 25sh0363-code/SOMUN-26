@@ -1090,7 +1090,8 @@
                 <li class="stage-step is-current"><span class="stage-num">I</span><span class="stage-label">Personal Information</span></li>
                 <li class="stage-step"><span class="stage-num">II</span><span class="stage-label">MUN Experience</span></li>
                 <li class="stage-step"><span class="stage-num">III</span><span class="stage-label">Preferences</span></li>
-                <li class="stage-step"><span class="stage-num">IV</span><span class="stage-label">Referral &amp; Payment</span></li>
+                <li class="stage-step"><span class="stage-num">IV</span><span class="stage-label">Terms &amp; Conditions</span></li>
+                <li class="stage-step"><span class="stage-num">V</span><span class="stage-label">Referral &amp; Payment</span></li>
               </ol>
               <form class="reg-form" id="reg-form" novalidate>
                 <!-- PAGE 1 — PERSONAL INFORMATION -->
@@ -1141,6 +1142,7 @@
                         <label class="confirm-label" for="in-delegation">Are you in a delegation?</label>
                       </div>
                       <div class="reg-fields delegation-fields" id="delegation-fields" hidden>
+                        <p class="delg-note">If you wish to become a <strong>Delegation Head</strong> or start your own delegation, please fill in your details and share them with others who are interested in joining your delegation.</p>
                         <p class="delg-warning"><strong>Before you form a delegation —</strong> a delegation needs a <strong>minimum of 6 delegates</strong>. If fewer than 6 register under the same name, the delegation will be disbanded and its delegates will be moved to individual registration.</p>
                         <div class="field">
                           <label class="field-label" for="delegationName">Name of your delegation <span class="req">*</span></label>
@@ -1164,7 +1166,7 @@
                     <label class="confirm-label" for="email-confirm">I confirm my email is correct — it is the only way SOMUN will be able to reach me.</label>
                   </div>
                   <div class="stage-foot">
-                    <span class="stage-count">Stage 1 of 4</span>
+                    <span class="stage-count">Stage 1 of 5</span>
                     <button type="button" class="btn btn--crimson" data-next>Continue <i data-icon="arrow-right" data-cls="btn-arrow-icon"></i></button>
                   </div>
                 </fieldset>
@@ -1259,6 +1261,24 @@
                 <fieldset class="reg-fieldset reg-stage" data-stage="4">
                   <legend class="reg-legend">
                     <span class="reg-legend-index">iv</span>
+                    <span class="reg-legend-label">Terms &amp; Conditions</span>
+                  </legend>
+                  <div class="tc-head">
+                    <i data-icon="shield-alert" data-cls="tc-icon" data-sw="1.4"></i>
+                    <p class="tc-kicker">Before you submit — the fine print</p>
+                  </div>
+                  <div class="confirm-row tc-confirm">
+                    <input class="checkbox" type="checkbox" id="tc-check" />
+                    <label class="confirm-label" for="tc-check"><strong class="tc-strong">NOTICE:</strong> ALL PAYMENTS MADE TO SOMUN 2026 ARE STRICTLY NON-REFUNDABLE AND FINAL.</label>
+                  </div>
+                  <div class="stage-foot">
+                    <button type="button" class="stage-back" data-back><i data-icon="chevron-left" data-cls="stage-back-icon"></i> Back</button>
+                    <button type="button" class="btn btn--crimson" data-next>Continue <i data-icon="arrow-right" data-cls="btn-arrow-icon"></i></button>
+                  </div>
+                </fieldset>
+                <fieldset class="reg-fieldset reg-stage" data-stage="5">
+                  <legend class="reg-legend">
+                    <span class="reg-legend-index">v</span>
                     <span class="reg-legend-label">Referral &amp; Payment</span>
                   </legend>
                   <div class="field">
@@ -1571,7 +1591,7 @@
           <i data-icon="x" data-cls="matrix-close-icon"></i>
         </button>
       </div>
-      <p class="matrix-intro">Open or download each chamber's official allocation matrix. Remaining chambers go live as the secretariat finalises them.</p>
+      <p class="matrix-intro">Open or download each chamber's official allocation matrix — every chamber's list is live.</p>
       <div class="matrix-body" id="matrix-body"><!-- rows rendered by js --></div>
     </div>
   </div>

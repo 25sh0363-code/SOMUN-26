@@ -470,7 +470,7 @@ export const FEES = [
 /* ————— Allocation matrix (viewer on the Register page) —————
    The "View the allocation matrix" modal reads ALLOCATION_MATRIX
    and links each chamber's official matrix PDF from MATRIX_PDFS.
-   Empty chambers show "Releasing soon". unoosa + icc pending. */
+   All twelve chambers are live. */
 export const ALLOCATION_MATRIX = {
   "unhrc": [
     "Republic of Albania",
@@ -958,6 +958,7 @@ export const MATRIX_PDFS = {
   "ecosoc": "allocations/ecosoc.pdf",
   "unctc": "allocations/unctc.pdf",
   "hcc-ccc": "allocations/hcc.pdf",
+  "icc": "allocations/icc.pdf",
   "ip": "allocations/ip.pdf",
   "aippm": "allocations/aippm.pdf",
   "mcu": "allocations/mcu.pdf",

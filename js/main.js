@@ -1743,7 +1743,7 @@ if (SHOW_ITINERARY) {
   renderDay();
 }
 
-/* ————————————————— Register form — 4-stage wizard (Supabase) ————— */
+/* ————————————————— Register form — 5-stage wizard (Supabase) ————— */
 
 {
   const form = $("#reg-form");
@@ -1793,7 +1793,10 @@ if (SHOW_ITINERARY) {
       if (p2 && !val("portfolio2")) return "Please enter your preferred portfolio for your second committee too.";
       if (p3 && !val("portfolio3")) return "Please enter your preferred portfolio for your third committee too.";
     }
-    if (n === 3 && referred() && !val("referralName")) {
+    if (n === 3 && !$("#tc-check").checked) {
+      return "Please accept the notice — ALL PAYMENTS TO SOMUN 2026 ARE NON-REFUNDABLE AND FINAL.";
+    }
+    if (n === 4 && referred() && !val("referralName")) {
       return "Please enter the full name of the person who referred you.";
     }
     return null;

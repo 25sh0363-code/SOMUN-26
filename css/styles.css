@@ -3236,11 +3236,11 @@ em.accent {
   color: var(--beige);
 }
 .ref-pill-input:focus-visible + .ref-pill { outline: 2px solid var(--crimson); outline-offset: 2px; }
-/* ————— Registration wizard (4 stages) ————— */
+/* ————— Registration wizard (5 stages) ————— */
 .stages {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
   margin-bottom: 2.25rem;
 }
@@ -3274,7 +3274,7 @@ em.accent {
 .stage-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.22em; color: var(--beige-dim); line-height: 1.5; }
 .stage-step.is-current .stage-label { color: var(--beige); }
 @media (max-width: 640px) {
-  .stages { grid-template-columns: repeat(4, auto); gap: 0.75rem; justify-content: space-between; }
+  .stages { grid-template-columns: repeat(5, auto); gap: 0.75rem; justify-content: space-between; }
   .stage-label { display: none; }
 }
 .reg-stage { display: none; }
@@ -3311,7 +3311,7 @@ em.accent {
 }
 .stage-back:hover { color: var(--beige); }
 .stage-back-icon { width: 14px; height: 14px; }
-.field-note { font-size: 12px; line-height: 1.6; color: var(--beige-dim); }
+.field-note { font-size: 13px; line-height: 1.6; color: var(--beige-dim); }
 .field-note strong { color: var(--crimson); font-weight: 600; }
 .confirm-row {
   display: flex;
@@ -5919,6 +5919,18 @@ em.accent {
 @media (max-width: 900px) { .pay-admin-sales { grid-template-columns: repeat(2, 1fr); } }
 
 /* ————— delegation warnings on the register form ————— */
+.delegation-fields .delg-note {
+  grid-column: 1 / -1;
+  margin: 0 0 0.4rem;
+  padding: 0.75rem 0.95rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--crimson);
+  background: rgba(22, 17, 13, 0.5);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--beige-dim);
+}
+.delegation-fields .delg-note strong { color: var(--beige); font-weight: 500; }
 .delegation-fields .delg-warning {
   grid-column: 1 / -1;
   margin: 0 0 0.4rem;
@@ -5932,6 +5944,18 @@ em.accent {
 }
 .delegation-fields .delg-warning strong { color: var(--beige); font-weight: 500; }
 .delg-strict strong { color: var(--crimson); font-weight: 500; }
+
+/* ————— terms & conditions stage (IV) ————— */
+.tc-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.4rem; }
+.tc-icon { width: 18px; height: 18px; color: var(--crimson); flex-shrink: 0; }
+.tc-kicker { font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--beige-dim); }
+.tc-confirm {
+  padding: 1.1rem 1.2rem;
+  border: 1px solid rgba(200, 16, 46, 0.45);
+  background: rgba(200, 16, 46, 0.07);
+}
+.tc-confirm .confirm-label { font-size: 0.875rem; font-weight: 500; letter-spacing: 0.02em; }
+.tc-strong { color: var(--crimson); font-weight: 600; letter-spacing: 0.04em; }
 
 /* ————— delegation folders (console · all delegation registrations) ————— */
 .pa-hint {
