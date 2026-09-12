@@ -7,7 +7,7 @@
    ———————————————————————————————————————————————————————— */
 
 import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, MATRIX_PDFS } from "./data.js";
-import { CONFIG, supabaseConfigured, cashfreeEnabled, feeAnnounced, qrPayEnabled, payFlow, formatINR } from "./config.js";
+import { CONFIG, supabaseConfigured, feeAnnounced, payFlow, formatINR } from "./config.js";
 import { icon, hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
 
@@ -998,8 +998,7 @@ applyRegGate();
 
 /* ————— Stage III payment panel: fee comes from CONFIG.REGISTRATION_FEE.
    While the fee is 0 (undisclosed) the panel keeps its placeholder copy.
-   Once announced the amount fills in, and the copy follows the ACTIVE
-   flow: Cashfree (if ever wired with an app id + fee) or the UPI QR
+   Once announced the amount fills in and the copy follows the UPI QR
    auto-verification path. Exposed for re-render after config changes. ————— */
 function renderPayStage() {
   const amt = $("#pay-amount");
@@ -1009,10 +1008,7 @@ function renderPayStage() {
     amt.textContent = formatINR(CONFIG.REGISTRATION_FEE);
     if (badge) badge.textContent = "Per delegate · Group Delegation alike";
     if (copy) {
-      const flow = payFlow();
-      copy.textContent = flow === "cashfree"
-        ? "You can settle the fee online right after submitting — UPI, cards and netbanking, checkout powered by Cashfree."
-        : flow === "qr"
+      copy.textContent = payFlow() === "qr"
         ? "Three steps: 1 · Submit this form — the confirmation screen shows YOUR exact amount (the fee plus a personal paise ID that is yours alone). 2 · Scan the QR with ANY UPI app — GPay, PhonePe or Paytm — your exact amount is already on it; confirm and pay. 3 · On the same screen, enter the 12-digit UTR and attach the payment screenshot — both are required. The secretariat matches your payment against the bank statement; the confirmation email follows."
         : "Online checkout is being wired up. Your fee is locked in — settle it from the confirmation screen or the payment link emailed to you.";
     }
@@ -1974,7 +1970,7 @@ if (SHOW_ITINERARY) {
       $("#refcode").textContent = code;
       $("#reg-form-wrap").hidden = true;
       $("#reg-success").hidden = false;
-      armPayNow(code, invoice);
+      armPayQR(code, invoice);
       showToast(`<strong>Registration received</strong>Your reference code is ${code}.`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -1989,93 +1985,6 @@ if (SHOW_ITINERARY) {
       label.textContent = "Submit Application";
     }
   });
-
-  /* ——— online payment (Cashfree via Supabase Edge Functions) ———
-     Dormant until CONFIG carries both CASHFREE_APP_ID and a fee. The
-     browser only ever talks to the two edge functions — the Cashfree
-     secret key stays server-side, never in this file. Flow:
-     create-payment → { order_id, payment_session_id } → Cashfree SDK
-     modal checkout → verify-payment flips the box to "Payment received". */
-  function loadCashfreeSDK() {
-    if (window.Cashfree) return Promise.resolve(window.Cashfree);
-    return new Promise((resolve, reject) => {
-      const s = document.createElement("script");
-      s.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
-      s.onload = () => resolve(window.Cashfree);
-      s.onerror = () => reject(new Error("Could not load the payment checkout. Check your connection and retry."));
-      document.head.append(s);
-    });
-  }
-
-  async function payNow(refCode) {
-    const fnBase = `${CONFIG.SUPABASE_URL.replace(/\/$/, "")}/functions/v1`;
-    const headers = {
-      "Content-Type": "application/json",
-      apikey: CONFIG.SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
-    };
-    const created = await fetch(`${fnBase}/create-payment`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ ref_code: refCode }),
-    });
-    if (!created.ok) {
-      const e = await created.json().catch(() => ({}));
-      throw new Error(e.error || "Payment could not be started. Please retry in a moment.");
-    }
-    const { order_id, payment_session_id } = await created.json();
-    const CF = await loadCashfreeSDK();
-    const cashfree = new CF({ mode: CONFIG.CASHFREE_MODE });
-    try {
-      await cashfree.checkout({ paymentSessionId: payment_session_id, redirectTarget: "_modal" });
-    } catch (_) { /* modal closed/abandoned — verification decides the state */ }
-    const verified = await fetch(`${fnBase}/verify-payment`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ order_id, ref_code: refCode }),
-    });
-    if (!verified.ok) {
-      const e = await verified.json().catch(() => ({}));
-      throw new Error(e.error || "We could not confirm the payment just yet — if you were charged, the secretariat will reconcile it.");
-    }
-    return verified.json();
-  }
-
-  function armPayNow(refCode, invoice) {
-    const box = $("#pay-now-box");
-    const btn = $("#pay-now-btn");
-    if (box && btn && cashfreeEnabled()) {
-      $("#pay-now-amount").textContent = formatINR(CONFIG.REGISTRATION_FEE);
-      box.hidden = false;
-      btn.addEventListener("click", async () => {
-        if (btn.classList.contains("submitting")) return;
-        btn.classList.add("submitting");
-        btn.disabled = true;
-        const label = $("#pay-now-label");
-        const prev = label.textContent;
-        label.textContent = "Opening checkout…";
-        try {
-          const result = await payNow(refCode);
-          if (result && result.status === "PAID") {
-            box.classList.add("is-paid");
-            label.textContent = "Payment received — see you at the table.";
-            showToast(`<strong>Payment received</strong>Your fee is settled. The receipt travels to ${$("#email") ? $("#email").value : "your email"}.`);
-          } else {
-            label.textContent = prev;
-            showToast("<strong>Payment pending</strong>If the checkout closed early you can retry — or wait for the email receipt.", true);
-          }
-        } catch (err) {
-          label.textContent = prev;
-          showToast(`<strong>Payment not completed</strong>${err.message || "Please retry."}`, true);
-        } finally {
-          btn.classList.remove("submitting");
-          btn.disabled = false;
-        }
-      });
-      return;
-    }
-    armPayQR(refCode, invoice);
-  }
 
   /* ——— UPI payment (the no-gateway watermark path) ———
      The delegate is invoiced the base fee + a UNIQUE paise suffix — the
@@ -2165,35 +2074,27 @@ if (SHOW_ITINERARY) {
        scanned is the exact personal invoice. And the scan runs inside
        the UPI app's own scanner — the trusted merchant flow every shop
        QR in India rides on — which is precisely the road around the
-       risk engines that kill browser-opened upi:// intents. The static
-       IMAGE (if ever configured) survives as the fallback for when the
-       QR library can't load. */
+       risk engines that kill browser-opened upi:// intents. The VPA
+       itself arrives from Supabase (app_secrets → payee_vpa) inside
+       the registration invoice. */
     const img = $("#pay-qr-img");
     const empty = $("#pay-qr-empty");
-    const vpa = ((payInvoice && payInvoice.vpa) || (CONFIG.UPI_QR && CONFIG.UPI_QR.UPI_ID) || "").trim();
-    const imgSrc = ((CONFIG.UPI_QR && CONFIG.UPI_QR.IMAGE) || "").trim();
+    const vpa = ((payInvoice && payInvoice.vpa) || "").trim();
     const uri = vpa ? upiPayUri(vpa, amount) : "";
 
-    const showStatic = () => {
-      if (!imgSrc) {
-        empty.hidden = false;
-        return;
+    const showEmpty = () => {
+      const t = empty.querySelector("span");
+      if (t) {
+        t.textContent = vpa
+          ? "QR goes live here — pay to the UPI ID below"
+          : "The QR is being engraved — pay via the UPI ID the secretariat shares, then submit the UTR below.";
       }
-      img.addEventListener("load", () => { img.hidden = false; empty.hidden = true; }, { once: true });
-      img.addEventListener("error", () => {
-        img.hidden = true;
-        empty.hidden = Boolean(vpa);
-        if (!vpa) {
-          const t = empty.querySelector("span");
-          if (t) t.textContent = "The QR is being engraved — pay via the UPI ID the secretariat shares, then submit the UTR below.";
-        }
-      }, { once: true });
-      img.src = imgSrc;
+      empty.hidden = false;
     };
 
     if (uri) {
       loadQrLib().then((ok) => {
-        if (!ok) return showStatic();
+        if (!ok) return showEmpty();
         const qr = window.qrcode(0, "M"); /* typeNumber 0 = auto-size, M = 15% recovery */
         qr.addData(uri);
         qr.make();
@@ -2202,7 +2103,7 @@ if (SHOW_ITINERARY) {
         empty.hidden = true;
       });
     } else {
-      showStatic();
+      showEmpty();
     }
 
     if (vpa) {

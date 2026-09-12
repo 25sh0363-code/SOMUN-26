@@ -8,8 +8,10 @@
    one delegate, ₹2799.07 for the next) — the paise are the payment's
    identity. The delegate pays that exact amount (app deep link / QR),
    submits the UTR + success screenshot, and the secretariat reconciles
-   the bank statement in #/verify — see supabase/PAYMENTS.md. The
-   dormant Cashfree path below stays for the day KYC ever arrives.
+   the bank statement in #/verify — see supabase/PAYMENTS.md.
+   The payee UPI ID lives in Supabase (app_secrets → payee_vpa) — the
+   registration RPC returns it with every invoice. Nothing payment-
+   related is configured in this file.
 
    SUPABASE — LIVE (keys wired in):
    1. Run supabase/schema.sql ONCE in the Supabase SQL Editor — it
@@ -22,14 +24,6 @@
    3. Flip REGISTRATIONS_OPEN below when the portal should open.
    NOTE: the anon key is safe to publish — row security only allows
    inserting registrations and reading released resources.
-
-   CASHFREE — KEYS BLANK UNTIL HANDOVER:
-   Paste the app id below when received. The SECRET KEY is a reminder
-   slot only — it must be installed server-side on the edge functions:
-        supabase secrets set CASHFREE_APP_ID=… CASHFREE_SECRET_KEY=…
-   While CASHFREE_APP_ID is empty (or REGISTRATION_FEE is 0) every
-   payment surface on the site stays dormant: stage III keeps the
-   "to be disclosed" panel and the success box hides its pay button.
    ———————————————————————————————————————————————————————— */
 
 export const CONFIG = {
@@ -73,42 +67,23 @@ export const CONFIG = {
   RESOURCES_TABLE: "resources",
   STORAGE_BUCKET: "resources", // public bucket for background guides etc.
 
-  /* ——— Cashfree payments (blank until keys are handed over) ———
-     CASHFREE_APP_ID   → pasted here when received (public identifier).
-     CASHFREE_SECRET_KEY → reminder slot ONLY. It is installed server-side
-       (`supabase secrets set CASHFREE_SECRET_KEY=…`) and read by the
-       create-payment / verify-payment edge functions. Never shipped to
-       the browser — the frontend never reads this field.
-     CASHFREE_MODE     → "sandbox" while testing, "production" on go-live.
-     REGISTRATION_FEE  → BASE fee in rupees per delegate/IP pass. The
-       delegate's actual invoice = base + their unique paise suffix,
-       stamped server-side at registration (supabase/payment.sql).
-       0 = not announced yet (stage III shows "to be disclosed",
-       pay box hidden). */
-  CASHFREE_APP_ID: "",
-  CASHFREE_SECRET_KEY: "",
-  CASHFREE_MODE: "sandbox",
+  /* Fee the browser announces (stage III shows it once > 0 — while 0
+     every payment surface stays dormant under "to be disclosed"). The
+     INVOICED amount itself is stamped per delegate server-side from
+     app_secrets → fee_base_early (supabase/payment.sql) — keep the two
+     in step when the early-bird window ends. */
   REGISTRATION_FEE: 2799,   /* early-bird base — round one TBD */
 
   /* ——— UPI watermark payments (the live path — no gateway, no KYC) ———
-     IMAGE      → the conference payment QR. Drop the screenshot at
-                  images/payment-qr.png (or paste any hosted URL here).
-     UPI_ID     → FALLBACK VPA. The primary source is `payee_vpa` in the
-                  app_secrets table (payment.sql section 1) — the server
-                  returns it with every invoice. Set both or either;
-                  without a VPA the app button stays hidden.
-     PAYEE_NAME → name shown with the QR / deep link.
-
-     Verification keys do NOT live in this file — they are set inside
-     Supabase (app_secrets table, see supabase/PAYMENTS.md):
-       admin_key  → unlocks the secretariat console at #/verify
-     While REGISTRATION_FEE is 0 every payment surface stays dormant
-     (stage III keeps the "to be disclosed" panel). */
+     The payee UPI ID is NOT set here — it lives in Supabase:
+       app_secrets → payee_vpa   (Table Editor → app_secrets, edit the cell)
+     The register_delegate RPC returns it with every invoice and the
+     confirmation screen builds the per-delegate QR from it — the UPI ID
+     can be swapped any time without touching this repo.
+     Verification keys do NOT live in this file either — they are set
+     inside Supabase (app_secrets table, see supabase/PAYMENTS.md):
+       admin_key  → unlocks the secretariat console at #/verify */
   UPI_QR: {
-    IMAGE: "images/payment-qr.png",
-    UPI_ID: "",
-    PAYEE_NAME: "SOMUN '26",
-
     /* REQUIRE_PAYMENT_SHOT → delegates MUST attach the UPI success
        screenshot (private payment-shots bucket). The watermark scheme
        runs on screenshots — keep true. */
@@ -121,34 +96,15 @@ export function supabaseConfigured() {
   return Boolean(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
 }
 
-/* payments go live only when BOTH the app id and the fee are set */
-export function cashfreeEnabled() {
-  return Boolean(
-    supabaseConfigured() &&
-    CONFIG.CASHFREE_APP_ID &&
-    CONFIG.CASHFREE_MODE &&
-    Number(CONFIG.REGISTRATION_FEE) > 0
-  );
-}
-
 /* fee announced but checkout not wired yet → show the amount, no button */
 export function feeAnnounced() {
   return Number(CONFIG.REGISTRATION_FEE) > 0;
 }
 
-/* the QR flow is live once a QR image or a UPI id is configured */
-export function qrPayEnabled() {
-  const q = CONFIG.UPI_QR || {};
-  return Boolean((q.IMAGE && q.IMAGE.trim()) || (q.UPI_ID && q.UPI_ID.trim()));
-}
-
 /* which payment flow the site should run right now:
-   "cashfree" → gateway checkout · "qr" → QR + auto verification · "none" */
+   "qr" → UPI watermark QR + secretariat verification · "none" */
 export function payFlow() {
-  if (!feeAnnounced()) return "none";
-  if (cashfreeEnabled()) return "cashfree";
-  if (qrPayEnabled()) return "qr";
-  return "none";
+  return feeAnnounced() ? "qr" : "none";
 }
 
 const inrFmt = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
