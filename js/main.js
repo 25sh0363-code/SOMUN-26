@@ -6,7 +6,7 @@
    resources (Supabase) · itinerary
    ———————————————————————————————————————————————————————— */
 
-import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, ALLOCATION_MATRIX, MATRIX_PDFS } from "./data.js";
+import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, MATRIX_PDFS } from "./data.js";
 import { CONFIG, supabaseConfigured, cashfreeEnabled, feeAnnounced, qrPayEnabled, payFlow, formatINR } from "./config.js";
 import { icon, hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
@@ -2387,25 +2387,21 @@ if (SHOW_ITINERARY) {
   const overlay = $("#matrix-overlay");
   const body = $("#matrix-body");
 
-  const listFor = (slug) => {
-    const raw = ALLOCATION_MATRIX[slug] || [];
-    const arr = Array.isArray(raw) ? raw : String(raw).split(",");
-    return arr.map((s) => s.trim()).filter(Boolean);
-  };
-
   function renderMatrix() {
     body.innerHTML = COMMITTEES.map((c) => {
-      const list = listFor(c.slug);
       const pdf = MATRIX_PDFS[c.slug];
-      const dl = pdf
-        ? `<a class="matrix-dl" href="${pdf}" download><i data-icon="download" data-cls="matrix-dl-icon"></i><span>PDF</span></a>`
-        : "";
-      const right = list.length
-        ? `<div class="matrix-chips">${list.map((p) => `<span class="matrix-chip">${esc(p)}</span>`).join("")}</div>`
+      const actions = pdf
+        ? `<div class="matrix-actions">
+            <a class="matrix-act" href="${pdf}" target="_blank" rel="noopener"><i data-icon="eye" data-cls="matrix-act-icon"></i><span>View PDF</span></a>
+            <a class="matrix-act matrix-act--solid" href="${pdf}" download><i data-icon="download" data-cls="matrix-act-icon"></i><span>Download</span></a>
+          </div>`
         : `<span class="matrix-releasing">Releasing soon</span>`;
       return `<div class="matrix-row">
         <div class="matrix-acronym">${c.acronym}</div>
-        <div><div class="matrix-row-top"><p class="matrix-row-name">${c.name}</p>${dl}</div>${right}</div>
+        <div class="matrix-row-main">
+          <p class="matrix-row-name">${c.name}</p>
+          ${actions}
+        </div>
       </div>`;
     }).join("");
     hydrateIcons(body);

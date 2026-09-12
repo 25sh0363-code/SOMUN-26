@@ -952,6 +952,7 @@ export const ALLOCATION_MATRIX = {
 export const MATRIX_PDFS = {
   "unhrc": "allocations/unhrc.pdf",
   "disec": "allocations/disec.pdf",
+  "unoosa": "allocations/unoosa.pdf",
   "uncsw": "allocations/uncsw.pdf",
   "unodc": "allocations/unodc.pdf",
   "ecosoc": "allocations/ecosoc.pdf",

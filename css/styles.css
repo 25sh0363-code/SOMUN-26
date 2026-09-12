@@ -3388,41 +3388,34 @@ em.accent {
   display: grid;
   grid-template-columns: 6.5rem 1fr;
   gap: 1rem;
-  align-items: start;
+  align-items: center;
   border: 1px solid var(--line);
   background: rgba(13, 10, 8, 0.4);
   padding: 0.9rem 1rem;
 }
-.matrix-row-name { font-size: 12px; color: var(--beige-dim); margin-bottom: 0.45rem; }
-.matrix-row-top { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.45rem; }
-.matrix-row-top .matrix-row-name { margin-bottom: 0; }
-.matrix-dl {
+.matrix-row-name { font-size: 12px; color: var(--beige-dim); margin: 0; }
+.matrix-row-main { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.matrix-actions { display: inline-flex; gap: 0.4rem; flex-shrink: 0; }
+.matrix-act {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  flex-shrink: 0;
   font-size: 9px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--crimson);
-  border: 1px solid rgba(200, 16, 46, 0.5);
-  padding: 0.3rem 0.65rem;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.3s, color 0.3s;
-}
-.matrix-dl:hover { background: var(--crimson); color: var(--beige); }
-.matrix-dl-icon { width: 11px; height: 11px; }
-.matrix-acronym { font-family: var(--font-display); font-size: 1.05rem; color: var(--beige); line-height: 1.2; }
-.matrix-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.matrix-chip {
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  color: var(--beige);
   border: 1px solid var(--line);
   background: rgba(236, 225, 203, 0.03);
-  color: var(--beige-dim);
-  padding: 0.25rem 0.55rem;
+  padding: 0.42rem 0.7rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.3s, background 0.3s, color 0.3s;
 }
+.matrix-act:hover { border-color: var(--crimson); }
+.matrix-act--solid { color: var(--crimson); border-color: rgba(200, 16, 46, 0.5); }
+.matrix-act--solid:hover { background: var(--crimson); color: var(--beige); }
+.matrix-act-icon { width: 11px; height: 11px; }
+.matrix-acronym { font-family: var(--font-display); font-size: 1.05rem; color: var(--beige); line-height: 1.2; }
 .matrix-releasing {
   font-size: 10px;
   letter-spacing: 0.22em;
