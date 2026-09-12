@@ -261,9 +261,12 @@ begin
     select json_agg(x) from (
       select id::text, created_at, ref_code, full_name, email, phone,
              institution, grade_or_title, experience,
+             emergency_name, emergency_phone,
+             exp_details, achievements, allergies,
              delegation_name, delegation_head, delegation_head_phone,
              committee_pref1, committee_pref2, committee_pref3,
              portfolio, portfolio1, portfolio2, portfolio3,
+             referred, referral_name,
              payment_status, expected_amount, upi_utr, utr_submitted_at,
              paid_at, status_note, shot_path
         from registrations
