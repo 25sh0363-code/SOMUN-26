@@ -3445,6 +3445,16 @@ em.accent {
   padding: 0.35rem 0.8rem;
 }
 .pay-copy { margin-top: 0.75rem; max-width: 34rem; font-size: 0.875rem; line-height: 1.7; color: var(--beige-dim); }
+.pay-refund {
+  margin-top: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: rgba(179, 164, 135, 0.85);
+}
+.pay-refund-ic { width: 12px; height: 12px; flex-shrink: 0; color: var(--crimson); }
 @media (max-width: 640px) {
   .matrix-row { grid-template-columns: 1fr; gap: 0.5rem; }
   .matrix-modal { padding: 1.25rem; }

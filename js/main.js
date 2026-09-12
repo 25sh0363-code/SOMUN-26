@@ -11,13 +11,12 @@ import { CONFIG, supabaseConfigured, feeAnnounced, payFlow, formatINR } from "./
 import { icon, hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
 
-/* The registrations page presents Group Delegation in International
-   Press's slot — same position in the preference selects and the
-   allocation matrix, different participation mode. The committees page
-   keeps its own full chamber list straight from data.js. */
-const REG_OPTIONS = COMMITTEES.map((c) => c.slug === "ip"
-  ? { slug: "gd", acronym: "GD", name: "Group Delegation" }
-  : c);
+/* The preference selects list the real chambers only — Group Delegation
+   is NOT a committee; joining one is the delegation tick-box back in
+   stage I. REG_OPTIONS stays as the lookup table behind the console's
+   acronym column, with a "gd" row kept so older registrations still
+   read cleanly. */
+const REG_OPTIONS = [...COMMITTEES, { slug: "gd", acronym: "GD", name: "Group Delegation" }];
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -808,7 +807,7 @@ if (supabaseConfigured()) {
 $$("[data-committee-select]").forEach((sel) => {
   sel.innerHTML =
     `<option value="">Select a committee</option>` +
-    REG_OPTIONS.map((c) => `<option value="${c.slug}">${c.acronym} — ${c.name}</option>`).join("");
+    COMMITTEES.map((c) => `<option value="${c.slug}">${c.acronym} — ${c.name}</option>`).join("");
 });
 
 /* ————————————————— Router ————————————————— */
@@ -2150,7 +2149,7 @@ if (SHOW_ITINERARY) {
     /* the note re-reads for the QR-only flow */
     const note = $("#pay-qr-note");
     if (note) {
-      note.innerHTML = `Scan the QR with <strong>any UPI app</strong> — your exact amount is already on it, confirm and pay. Prefer typing? <strong>Copy the UPI ID + exact amount</strong> and pay manually — identical to the last paise. Then submit the UTR + screenshot below — <strong>both are required</strong>; the secretariat confirms against the bank statement.`;
+      note.innerHTML = `Scan the QR with <strong>any UPI app</strong> — your exact amount is already on it, confirm and pay. Prefer typing? <strong>Copy the UPI ID + exact amount</strong> and pay manually — identical to the last paise. Then submit the UTR + screenshot below — <strong>both are required</strong>; the secretariat confirms against the bank statement. Fees, once paid, are <strong>non-refundable</strong>.`;
     }
 
     $("#utr-submit").addEventListener("click", () => submitUTR(refCode));
