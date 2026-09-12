@@ -1809,6 +1809,10 @@ if (SHOW_ITINERARY) {
       st.classList.toggle("is-current", i === cur);
       st.classList.toggle("is-done", i < cur);
     });
+    const rail = $("#reg-stages");
+    if (rail.getBoundingClientRect().top < 64) {
+      rail.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
   /* click delegation for Continue / Back (submit button excluded) */

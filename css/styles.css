@@ -3243,6 +3243,7 @@ em.accent {
   grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
   margin-bottom: 2.25rem;
+  scroll-margin-top: 96px;
 }
 .stage-step { position: relative; padding-top: 0.875rem; display: grid; row-gap: 0.55rem; justify-items: start; }
 .stage-step::before {
