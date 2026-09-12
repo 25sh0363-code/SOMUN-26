@@ -2598,48 +2598,17 @@ function whenIST(t) {
     return `<span class="regs-diet-hot" title="${esc(s)}">${esc(s)}</span>`;
   };
   const dash = (v) => esc(v && String(v).trim() ? v : "—");
+  const dossierFact = (l, v, cls) => `<div class="regs-fact${cls ? ` ${cls}` : ""}"><span>${l}</span><strong>${v}</strong></div>`;
 
-  const regsRow = (r, i) => {
+  const regsRow = (r) => {
     const [label, mood] = STATUS_CHIP[r.payment_status] || [r.payment_status || "—", ""];
-    const eName = (r.emergency_name || "").trim();
-    const ePhone = (r.emergency_phone || "").trim();
-    const fact = (l, v, cls) => `<div class="regs-fact${cls ? ` ${cls}` : ""}"><span>${l}</span><strong>${v}</strong></div>`;
     return `
-      <details class="regs-item" data-k="R:${esc(r.id)}">
-        <summary>
-          <span class="regs-caret" aria-hidden="true"></span>
-          <span class="regs-item-name"><strong>${esc(r.full_name)}</strong></span>
-          <span class="pa-code">${esc(r.ref_code || "—")}</span>
-          <span class="regs-chip regs-chip--${mood}">${esc(label)}</span>
-        </summary>
-        <div class="regs-item-body">
-          ${fact("Email", `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`)}
-          ${fact("Phone", esc(r.phone || "—"))}
-          ${fact("Emergency", eName || ePhone ? `${esc(eName || "—")}${ePhone ? ` · ${esc(ePhone)}` : ""}` : "—")}
-          ${fact("Grade", dash(r.grade_or_title))}
-          ${fact("Institution", dash(r.institution))}
-          ${fact("Dietary", dietCell(r.allergies))}
-          ${fact("MUN experience", esc(expLabel(r.experience)))}
-          ${fact("Past MUNs & committees", dash(r.exp_details))}
-          ${fact("Achievements", dash(r.achievements))}
-          ${fact("Pref I", esc(cmtAcronym(r.committee_pref1)), "regs-cmt")}
-          ${fact("Pref II", esc(cmtAcronym(r.committee_pref2)), "regs-cmt")}
-          ${fact("Pref III", esc(cmtAcronym(r.committee_pref3)), "regs-cmt")}
-          ${fact("Portfolio I", dash(r.portfolio1))}
-          ${fact("Portfolio II", dash(r.portfolio2))}
-          ${fact("Portfolio III", dash(r.portfolio3))}
-          ${fact("Referred", r.referred ? "yes" : "—")}
-          ${fact("Reference", dash(r.referral_name))}
-          ${fact("Fee", r.expected_amount != null ? fmtINR(r.expected_amount) : "—")}
-          ${fact("UTR", esc(r.upi_utr || "—"))}
-          ${fact("Verified", r.paid_at ? whenIST(r.paid_at) : "—")}
-          ${fact("Registered", whenIST(r.created_at))}
-          ${r.status_note ? `<p class="regs-note">${esc(r.status_note)}</p>` : ""}
-          <div class="pa-row-actions">
-            ${r.shot_path ? `<button type="button" class="pa-btn regs-shot" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the payment screenshot the delegate submitted">View payment</button>` : ""}
-          </div>
-        </div>
-      </details>`;
+      <button type="button" class="regs-item" data-dossier="regs" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}">
+        <span class="regs-item-name"><strong>${esc(r.full_name)}</strong></span>
+        <span class="pa-code">${esc(r.ref_code || "—")}</span>
+        <span class="regs-chip regs-chip--${mood}">${esc(label)}</span>
+        <span class="regs-open" aria-hidden="true">+</span>
+      </button>`;
   };
 
   const keepOpen = (root, sel) => new Set([...root.querySelectorAll(sel)].filter((d) => d.open).map((d) => d.dataset.k));
@@ -2648,11 +2617,9 @@ function whenIST(t) {
   function renderRegistrants() {
     if (!regsCache) return;
     const rows = regsFiltered();
-    const open = keepOpen(regsList, "details.regs-item[data-k]");
     regsList.innerHTML = rows.length
       ? rows.map(regsRow).join("")
       : `<p class="regs-empty">${(regsSearch.value || "").trim() ? "No registrant matches that filter." : "No single registrations yet — rows land here the moment the first delegate signs up."}</p>`;
-    restoreOpen(regsList, open);
     regsCount.hidden = false;
     regsCount.innerHTML = `<b>${rows.length}</b> shown · <b>${regsCache.length}</b> total${(regsSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
   }
@@ -2788,22 +2755,12 @@ function whenIST(t) {
   const delegMemberRow = (m) => {
     const [label, mood] = STATUS_CHIP[m.payment_status] || [m.payment_status || "—", ""];
     return `
-      <details class="deleg-member" data-k="M:${esc(m.id)}">
-        <summary>
-          <span class="regs-caret" aria-hidden="true"></span>
-          <span class="deleg-member-name"><strong>${esc(m.full_name)}</strong></span>
-          <span class="pa-code">${esc(m.ref_code || "—")}</span>
-          <span class="regs-chip regs-chip--${mood}">${esc(label)}</span>
-        </summary>
-        <div class="deleg-member-body">
-          <p class="deleg-member-meta">${esc(m.email || "")}${m.phone ? ` · ${esc(m.phone)}` : ""}${m.institution ? ` · ${esc(m.institution)}` : ""}${m.grade_or_title ? ` · ${esc(m.grade_or_title)}` : ""}</p>
-          <p class="deleg-member-meta">wants <strong>${esc(cmtAcronym(m.committee_pref1))}</strong>${m.portfolio ? ` · ${esc(m.portfolio)}` : ""} · invoice <strong>${fmtINR(m.expected_amount)}</strong>${m.upi_utr ? ` · UTR <span class="pa-mono">${esc(m.upi_utr)}</span>` : ""}${m.paid_at ? ` · verified ${whenIST(m.paid_at)}` : ""}</p>
-          <div class="pa-row-actions">
-            ${m.shot_path ? `<button type="button" class="pa-btn" data-act="shot" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" title="Open the submitted payment screenshot">View payment</button>` : ""}
-            <button type="button" class="pa-btn pa-btn--bad" data-act="detach" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" data-deleg="${esc(m.delegation_name)}" title="Move this delegate out of the delegation — they count as an individual registration">Move to individual</button>
-          </div>
-        </div>
-      </details>`;
+      <button type="button" class="deleg-member" data-dossier="deleg" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}">
+        <span class="deleg-member-name"><strong>${esc(m.full_name)}</strong></span>
+        <span class="pa-code">${esc(m.ref_code || "—")}</span>
+        <span class="regs-chip regs-chip--${mood}">${esc(label)}</span>
+        <span class="regs-open" aria-hidden="true">+</span>
+      </button>`;
   };
 
   const delegFolderTpl = (g) => `
@@ -2819,6 +2776,99 @@ function whenIST(t) {
       </summary>
       <div class="deleg-members">${g.members.map(delegMemberRow).join("")}</div>
     </details>`;
+
+  /* — the dossier popup — one click on any delegate row (single list or
+     inside a delegation folder) floats every detail they gave us into a
+     single panel; same full dossier for both, delegation members just
+     carry the folder's name, head and contact on top */
+
+  const dossier = $("#dossier");
+  const dossierBody = $("#dossier-body");
+  let dossierReturnFocus = null;
+
+  const dossierHtml = (r) => {
+    const [label, mood] = STATUS_CHIP[r.payment_status] || [r.payment_status || "—", ""];
+    const eName = (r.emergency_name || "").trim();
+    const ePhone = (r.emergency_phone || "").trim();
+    const slots = [r.portfolio1, r.portfolio2, r.portfolio3];
+    const hasSlots = slots.some((v) => v && String(v).trim());
+    return `
+      <header class="dossier-head">
+        <p class="dossier-kicker"><span>§</span>delegate dossier</p>
+        <h3 class="dossier-title">${esc(r.full_name)}</h3>
+        <p class="dossier-sub">
+          <span class="pa-code">${esc(r.ref_code || "—")}</span>
+          <span class="regs-chip regs-chip--${mood}">${esc(label)}</span>
+          ${r.institution ? `<span class="dossier-inst">${esc(r.institution)}</span>` : ""}
+        </p>
+      </header>
+      <div class="dossier-grid">
+        ${r.delegation_name ? dossierFact("Delegation", esc(r.delegation_name)) : ""}
+        ${r.delegation_name ? dossierFact("Delegation head", `${esc(r.delegation_head || "—")}${r.delegation_head_phone ? ` · <span class="regs-phone">${esc(r.delegation_head_phone)}</span>` : ""}`) : ""}
+        ${dossierFact("Email", `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`)}
+        ${dossierFact("Phone", esc(r.phone || "—"))}
+        ${dossierFact("Emergency", eName || ePhone ? `${esc(eName || "—")}${ePhone ? ` · ${esc(ePhone)}` : ""}` : "—")}
+        ${dossierFact("Grade", dash(r.grade_or_title))}
+        ${dossierFact("Institution", dash(r.institution))}
+        ${dossierFact("Dietary", dietCell(r.allergies))}
+        ${dossierFact("MUN experience", esc(expLabel(r.experience)))}
+        ${dossierFact("Past MUNs & committees", dash(r.exp_details), "regs-fact--wide")}
+        ${dossierFact("Achievements", dash(r.achievements), "regs-fact--wide")}
+        ${dossierFact("Pref I", esc(cmtAcronym(r.committee_pref1)), "regs-cmt")}
+        ${dossierFact("Pref II", esc(cmtAcronym(r.committee_pref2)), "regs-cmt")}
+        ${dossierFact("Pref III", esc(cmtAcronym(r.committee_pref3)), "regs-cmt")}
+        ${r.portfolio ? dossierFact("Portfolio allotted", dash(r.portfolio)) : ""}
+        ${hasSlots ? dossierFact("Portfolio I", dash(r.portfolio1)) + dossierFact("Portfolio II", dash(r.portfolio2)) + dossierFact("Portfolio III", dash(r.portfolio3)) : ""}
+        ${dossierFact("Referred", r.referred ? "yes" : "—")}
+        ${dossierFact("Reference", dash(r.referral_name))}
+        ${dossierFact("Fee", r.expected_amount != null ? fmtINR(r.expected_amount) : "—")}
+        ${dossierFact("UTR", esc(r.upi_utr || "—"))}
+        ${dossierFact("UTR submitted", r.utr_submitted_at ? whenIST(r.utr_submitted_at) : "—")}
+        ${dossierFact("Verified", r.paid_at ? whenIST(r.paid_at) : "—")}
+        ${dossierFact("Registered", whenIST(r.created_at))}
+        ${r.status_note ? `<p class="regs-note">${esc(r.status_note)}</p>` : ""}
+      </div>
+      <div class="dossier-foot">
+        ${r.shot_path ? `<button type="button" class="pa-btn" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the payment screenshot the delegate submitted">View payment</button>` : ""}
+        ${r.delegation_name ? `<button type="button" class="pa-btn pa-btn--bad" data-act="detach" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" data-deleg="${esc(r.delegation_name)}" title="Move this delegate out of the delegation — they count as an individual registration">Move to individual</button>` : ""}
+      </div>`;
+  };
+
+  function openDossier(r) {
+    if (!dossier || !r) return;
+    dossierBody.innerHTML = dossierHtml(r);
+    dossier.hidden = false;
+    const x = dossier.querySelector(".dossier-x");
+    if (x) x.focus({ preventScroll: true });
+  }
+
+  function closeDossier() {
+    if (!dossier || dossier.hidden) return;
+    dossier.hidden = true;
+    if (dossierReturnFocus && document.contains(dossierReturnFocus)) {
+      dossierReturnFocus.focus({ preventScroll: true });
+    }
+    dossierReturnFocus = null;
+  }
+
+  document.addEventListener("click", (e) => {
+    const row = e.target.closest("[data-dossier]");
+    if (row) {
+      const id = row.dataset.id;
+      const pool = row.dataset.dossier === "regs" ? regsCache : delegCache;
+      const r = (pool || []).find((x) => String(x.id) === id);
+      if (r) {
+        dossierReturnFocus = row;
+        openDossier(r);
+      }
+      return;
+    }
+    if (e.target.closest("[data-dossier-close]")) closeDossier();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !dossier.hidden) closeDossier();
+  });
 
   function renderDelegations() {
     if (!delegCache) return;
@@ -3106,6 +3156,7 @@ function whenIST(t) {
           return;
         }
         const out = await rpc("pay_admin_delegate_detach", { p_key: key, p_registration: id });
+        closeDossier();
         showToast(`<strong>Moved to individual</strong>${esc(b.dataset.name || "Delegate")} is out of ${esc((out && out.from) || "the delegation")}.`);
       } else if (act === "paid" || act === "failed" || act === "pending") {
         let note = null;

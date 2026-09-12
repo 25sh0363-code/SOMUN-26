@@ -1436,6 +1436,17 @@
                 <figcaption class="pa-light-cap" id="pa-light-cap" hidden></figcaption>
               </figure>
             </div>
+
+            <!-- delegate dossier — one click on any delegate row (single
+                 list or inside a delegation folder) floats every detail
+                 they gave us up in a single panel -->
+            <div class="dossier" id="dossier" hidden>
+              <div class="dossier-veil" data-dossier-close></div>
+              <article class="dossier-panel" role="dialog" aria-modal="true" aria-label="Delegate dossier">
+                <button type="button" class="dossier-x" data-dossier-close aria-label="Close the dossier">&times;</button>
+                <div class="dossier-scroll" id="dossier-body"></div>
+              </article>
+            </div>
           </div>
         </div>
       </main>
