@@ -3807,6 +3807,10 @@ showView(currentView, { animate: false });
   let lastRef = "";
   let lastAt = 0;
 
+  /* the console's rpc lives inside the verify-console block — the desk
+     is outside it, so it carries its own (same one-liner over sb) */
+  const rpc = (fn, args) => sb(`rpc/${fn}`, { method: "POST", body: JSON.stringify(args) });
+
   /* committee datalist for the allocate forms (both roster tabs) */
   const dl = document.getElementById("committee-list");
   if (dl && typeof COMMITTEES !== "undefined") {
