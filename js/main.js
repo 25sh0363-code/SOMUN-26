@@ -805,7 +805,7 @@ $$("[data-committee-select]").forEach((sel) => {
 
 /* ————————————————— Router ————————————————— */
 
-const VIEWS = ["home", "about", "committees", "committee", "itinerary", "resources", "register", "verify", "faqs"];
+const VIEWS = ["home", "about", "committees", "committee", "itinerary", "resources", "register", "verify", "faqs", "regdesk"];
 const HASHES = {
   home: "#/",
   about: "#/about",
@@ -2647,11 +2647,13 @@ function whenIST(t) {
           <span class="regs-item-name"><strong>${esc(r.full_name)}</strong></span>
           <span class="pa-code">${esc(r.ref_code || "—")}</span>
           <span class="regs-chip regs-chip--${mood}">${esc(label)}</span>
+          ${allocByReg(r.id) ? `<span class="regs-chip regs-chip--paid" title="Committee seat — manage it from the Allocated delegates tab">Seat · ${esc(allocByReg(r.id).committee)}${allocByReg(r.id).portfolio ? " · " + esc(allocByReg(r.id).portfolio) : ""}</span>` : ""}
         </summary>
         <div class="regs-item-body">
           ${regsFacts(r)}
           ${r.status_note ? `<p class="regs-note">${esc(r.status_note)}</p>` : ""}
           <div class="pa-row-actions">
+            <button type="button" class="pa-btn" data-act="alloc" data-id="${esc(r.id)}" data-ref="${esc(r.ref_code || "")}" data-name="${esc(r.full_name)}" title="Assign this delegate's committee seat">${allocByReg(r.id) ? "Edit allocation" : "Allocate"}</button>
             ${r.shot_path ? `<button type="button" class="pa-btn regs-shot" data-act="shot" data-id="${esc(r.id)}" data-name="${esc(r.full_name)}" title="Open the payment screenshot the delegate submitted">View payment</button>` : ""}
           </div>
         </div>
@@ -2703,8 +2705,10 @@ function whenIST(t) {
     $("#pa-page-desk").hidden = which !== "desk";
     regsPage.hidden = which !== "regs";
     delegPage.hidden = which !== "deleg";
+    if (allocPage) allocPage.hidden = which !== "alloc";
     if (which === "regs" && (regsStale || !regsCache)) loadRegistrants();
     if (which === "deleg" && (delegStale || !delegCache)) loadDelegations();
+    if (which === "alloc" && (allocStale || !allocCache)) loadAllocations();
   }
   $$(".pa-tab").forEach((t) => t.addEventListener("click", () => setTab(t.dataset.patab)));
 
@@ -2892,11 +2896,13 @@ function whenIST(t) {
           <span class="deleg-member-name"><strong>${esc(m.full_name)}</strong></span>
           <span class="pa-code">${esc(m.ref_code || "—")}</span>
           <span class="regs-chip regs-chip--${mood}">${esc(label)}</span>
+          ${allocByReg(m.id) ? `<span class="regs-chip regs-chip--paid" title="Committee seat — manage it from the Allocated delegates tab">Seat · ${esc(allocByReg(m.id).committee)}${allocByReg(m.id).portfolio ? " · " + esc(allocByReg(m.id).portfolio) : ""}</span>` : ""}
         </summary>
         <div class="deleg-member-body">
           ${regsFacts(m)}
           ${m.status_note ? `<p class="regs-note">${esc(m.status_note)}</p>` : ""}
           <div class="pa-row-actions">
+            <button type="button" class="pa-btn" data-act="alloc" data-id="${esc(m.id)}" data-ref="${esc(m.ref_code || "")}" data-name="${esc(m.full_name)}" title="Assign this delegate's committee seat">${allocByReg(m.id) ? "Edit allocation" : "Allocate"}</button>
             ${m.shot_path ? `<button type="button" class="pa-btn regs-shot" data-act="shot" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" title="Open the payment screenshot the delegate submitted">View payment</button>` : ""}
             <button type="button" class="pa-btn pa-btn--bad${armed ? " is-armed" : ""}" data-act="detach" data-id="${esc(m.id)}" data-name="${esc(m.full_name)}" data-deleg="${esc(m.delegation_name)}" title="Move this delegate out of the delegation — they count as an individual registration">${armed ? "Confirm move" : "Move to individual"}</button>
           </div>
@@ -2960,6 +2966,95 @@ function whenIST(t) {
   if (delegSearch) delegSearch.addEventListener("input", renderDelegations);
   const delegRefresh = $("#deleg-refresh");
   if (delegRefresh) delegRefresh.addEventListener("click", loadDelegations);
+
+  /* — the fourth page: allocated delegates — everyone holding a seat,
+     individuals and delegation members alike. Seats are set from the
+     Allocate button on either roster tab; the mail (details + QR entry
+     pass) queues from here; check-ins stream in from RegDesk scans.
+     Seat state lives in the allocations table (supabase/alloc.sql) —
+     registrations is never touched. — */
+  const allocPage = $("#pa-page-alloc");
+  const allocList = $("#alloc-list");
+  const allocCount = $("#alloc-count");
+  const allocErr = $("#alloc-err");
+  let allocCache = null;
+  let allocLoading = false;
+  let allocStale = true;
+
+  const allocByReg = (id) => {
+    if (!allocCache) return null;
+    const s = String(id);
+    return allocCache.find((a) => String(a.registration_id) === s) || null;
+  };
+
+  const checkinChips = (checkins) => {
+    const c = checkins || {};
+    const keys = Object.keys(c).sort();
+    if (!keys.length) return `<span style="opacity:.55;font-size:12.5px;">not checked in yet</span>`;
+    return keys.map((k) => `<span class="regs-chip regs-chip--paid" title="${esc(k)} · ${esc(String((c[k] || {}).at || ""))}">Day ${esc(String((c[k] || {}).day || "?"))} ✓</span>`).join(" ");
+  };
+
+  async function loadAllocations() {
+    if (!key || allocLoading) return;
+    allocLoading = true;
+    allocErr.hidden = true;
+    try {
+      allocCache = (await rpc("alloc_admin_list", { p_key: key })) || [];
+      allocStale = false;
+      renderAllocations();
+      if (regsCache) renderRegistrants();
+      if (delegCache) renderDelegations();
+    } catch (err) {
+      allocErr.hidden = false;
+      allocErr.innerHTML = /could not find the function|pgrst202|schema cache/i.test(String(err.message || ""))
+        ? "Allocations aren't installed on the database yet — run supabase/alloc.sql in the SQL Editor."
+        : esc(err.message || "Could not pull the allocated roster.");
+    } finally {
+      allocLoading = false;
+    }
+  }
+
+  function renderAllocations() {
+    if (!allocCache) return;
+    const mailed = allocCache.filter((a) => a.mail_sent_at).length;
+    const queued = allocCache.filter((a) => a.mail_queued_at && !a.mail_sent_at).length;
+    const istToday = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+    const inToday = allocCache.filter((a) => a.checkins && Object.keys(a.checkins).includes(istToday)).length;
+    allocCount.innerHTML = `<b>${allocCache.length}</b> seated · <b>${mailed}</b> mailed · <b>${queued}</b> queued · <b>${inToday}</b> checked in today`;
+    allocList.innerHTML = allocCache.length ? allocCache.map((a) => `
+      <details class="regs-item" data-k="A:${esc(a.ref_code)}">
+        <summary>
+          <span class="regs-caret" aria-hidden="true"></span>
+          <span><strong>${esc(a.full_name)}</strong></span>
+          <span class="pa-code">${esc(a.ref_code || "—")}</span>
+          <span class="regs-chip regs-chip--paid">${esc(a.committee)}${a.portfolio ? " · " + esc(a.portfolio) : ""}</span>
+        </summary>
+        <div class="regs-item-body">
+          <p class="pa-row-sub">${esc(a.email || "—")}${a.phone ? " · " + esc(a.phone) : ""}${a.institution ? " · " + esc(a.institution) : ""}${a.delegation_name ? " · delegation " + esc(a.delegation_name) : ""}${a.grade_or_title ? " · " + esc(a.grade_or_title) : ""}</p>
+          <p class="regs-note">Mail: ${a.mail_sent_at ? `sent ${whenIST(a.mail_sent_at)}` : a.mail_queued_at ? `queued ${whenIST(a.mail_queued_at)} — waiting on the mailer` : "not queued yet"} &nbsp;·&nbsp; Check-ins: ${checkinChips(a.checkins)}</p>
+          <div class="pa-row-actions">
+            <button type="button" class="pa-btn" data-act="allocmail" data-id="${esc(a.registration_id)}" data-name="${esc(a.full_name)}" title="Queue (or re-send) the allocation mail with the QR entry pass">${a.mail_queued_at ? "Re-send mail" : "Queue mail"}</button>
+            <button type="button" class="pa-btn pa-btn--bad${isArmed("unalloc", a.registration_id) ? " is-armed" : ""}" data-act="unalloc" data-id="${esc(a.registration_id)}" data-name="${esc(a.full_name)}" title="Pull this seat back — the delegate returns to the unallocated roster; payments are untouched">${isArmed("unalloc", a.registration_id) ? "Confirm remove" : "Remove seat"}</button>
+          </div>
+        </div>
+      </details>`).join("")
+      : `<p class="regs-empty">No seats yet — hit Allocate on a verified delegate (either roster tab) and they land here.</p>`;
+  }
+
+  if (allocPage) {
+    $("#alloc-refresh").addEventListener("click", loadAllocations);
+    $("#alloc-mail-all").addEventListener("click", async () => {
+      try {
+        const n = await rpc("alloc_mail_queue", { p_key: key });
+        showToast(n
+          ? `<strong>Allocation mail queued</strong>${n} delegate${n === 1 ? "" : "s"} will receive their seat + QR pass.`
+          : "<strong>Nothing to queue</strong>Every allocated delegate already has their mail queued or sent.", !n);
+        loadAllocations();
+      } catch (err) {
+        showToast(`<strong>Queue failed</strong>${esc(err.message || "Try again in a moment.")}`, true);
+      }
+    });
+  }
 
   const rowTpl = {
     pending: (r) => `
@@ -3289,6 +3384,7 @@ function whenIST(t) {
     if (k.length < 8) return setErr("That key is too short.");
     try {
       await openWith(k);
+      loadAllocations().catch(() => {});
     } catch (err) {
       const msg = String(err.message || "");
       setErr(/could not find the function|pgrst202|schema cache/i.test(msg)
@@ -3376,6 +3472,63 @@ function whenIST(t) {
           : act === "failed"
           ? "<strong>Rejected</strong>The row is updated — the reason mail is queued for the delegate."
           : "<strong>Done</strong>The row is updated.");
+      } else if (act === "alloc") {
+        const rowEl = b.closest(".pa-row-actions");
+        if (!rowEl || rowEl.querySelector(".alloc-form")) return;
+        const cur = allocByReg(id) || {};
+        b.disabled = true;
+        rowEl.insertAdjacentHTML("beforeend", `
+          <form class="alloc-form" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;width:100%;margin-top:8px;">
+            <input class="input" name="committee" list="committee-list" placeholder="Committee (pick or type, e.g. DISEC)" value="${esc(cur.committee || "")}" required style="flex:1;min-width:190px;" />
+            <input class="input" name="portfolio" placeholder="Portfolio / country (optional)" value="${esc(cur.portfolio || "")}" style="flex:1;min-width:170px;" />
+            <button type="submit" class="pa-btn">Save seat</button>
+            <button type="button" class="pa-btn pa-btn--bad" data-act="alloc-cancel">Cancel</button>
+          </form>`);
+        const form = rowEl.querySelector(".alloc-form");
+        form.querySelector("input[name=committee]").focus();
+        form.addEventListener("submit", async (ev) => {
+          ev.preventDefault();
+          const committee = (form.committee.value || "").trim();
+          if (!committee) return;
+          try {
+            await rpc("alloc_delegate", { p_key: key, p_registration: id, p_committee: committee, p_portfolio: (form.portfolio.value || "").trim() });
+            showToast(`<strong>Seat saved</strong>${esc(b.dataset.name || "Delegate")} → ${esc(committee)}.`);
+            form.remove();
+            b.disabled = false;
+            b.textContent = "Edit allocation";
+            allocStale = true;
+            loadAllocations();
+          } catch (err) {
+            showToast(`<strong>Could not save the seat</strong>${esc(err.message || "")}`, true);
+          }
+        });
+      } else if (act === "alloc-cancel") {
+        e.preventDefault();
+        const form = b.closest(".alloc-form");
+        if (form) form.remove();
+        const holder = form && form.parentElement;
+        const ab = holder && holder.querySelector('[data-act="alloc"]');
+        if (ab) ab.disabled = false;
+      } else if (act === "unalloc") {
+        if (!isArmed(act, gid)) {
+          armAction(b, "Confirm remove");
+          showToast(`<strong>Hold on</strong>Removing the seat pulls ${esc(b.dataset.name || "this delegate")} out of the allocated roster — payments stay untouched. Click again to confirm.`, true);
+          return;
+        }
+        armedActs.delete(armedKey(act, gid));
+        await rpc("alloc_unallocate", { p_key: key, p_registration: id });
+        showToast(`<strong>Seat removed</strong>${esc(b.dataset.name || "Delegate")} is back on the unallocated roster.`);
+        loadAllocations();
+      } else if (act === "allocmail") {
+        b.disabled = true;
+        try {
+          await rpc("alloc_mail_queue", { p_key: key, p_registration: id });
+          showToast(`<strong>Allocation mail queued</strong>The seat + QR pass is on its way to ${esc(b.dataset.name || "the delegate")}.`);
+          loadAllocations();
+        } catch (err) {
+          b.disabled = false;
+          showToast(`<strong>Queue failed</strong>${esc(err.message || "")}`, true);
+        }
       } else if (act === "shot") {
         b.disabled = true;
         try {
@@ -3627,3 +3780,199 @@ showView(currentView, { animate: false });
     });
   }
 }
+/* ————————————————— REGDESK — staff check-in portal (#/regdesk) —————————————————
+   Staff unlock with the console key, then scan a delegate's QR pass (the
+   allocation mail encodes https://somunhyd.in/#/regdesk?ref=<code>) or type
+   the reference code. One check-in per IST day, three event days; the state
+   lives in allocations.checkins (supabase/alloc.sql), never in registrations. */
+(() => {
+  const deskView = $('.view[data-view="regdesk"]');
+  if (!deskView) return;
+  const gate = $("#desk-gate");
+  const gateErr = $("#desk-gate-err");
+  const app = $("#desk-app");
+  const keyInput = $("#desk-key");
+  const video = $("#desk-video");
+  const canvas = $("#desk-canvas");
+  const camHint = $("#desk-cam-hint");
+  const camBtn = $("#desk-cam");
+  const result = $("#desk-result");
+  let deskKey = sessionStorage.getItem("somun26-desk-key") || "";
+  let stream = null;
+  let scanTimer = 0;
+  let lastRef = "";
+  let lastAt = 0;
+
+  /* committee datalist for the allocate forms (both roster tabs) */
+  const dl = document.getElementById("committee-list");
+  if (dl && typeof COMMITTEES !== "undefined") {
+    dl.innerHTML = COMMITTEES.map((c) => `<option value="${esc(c.acronym || c.name)}">${esc(c.name)}</option>`).join("");
+  }
+
+  const unlock = async () => {
+    const k = (keyInput.value || "").trim();
+    if (!k) return;
+    gateErr.hidden = true;
+    try {
+      await rpc("alloc_admin_overview", { p_key: k });   // cheap key probe
+      deskKey = k;
+      sessionStorage.setItem("somun26-desk-key", deskKey);
+      gate.hidden = true;
+      app.hidden = false;
+    } catch (err) {
+      const msg = String(err.message || "");
+      gateErr.textContent = /could not find the function|pgrst202|schema cache/i.test(msg)
+        ? "Allocations aren't installed yet — run supabase/alloc.sql in the Supabase SQL Editor."
+        : (msg || "That key did not open the desk.");
+      gateErr.hidden = false;
+    }
+  };
+  $("#desk-enter").addEventListener("click", unlock);
+  keyInput.addEventListener("keydown", (e) => { if (e.key === "Enter") unlock(); });
+  if (deskKey) { keyInput.value = deskKey; unlock(); }
+
+  const stopCam = () => {
+    clearInterval(scanTimer);
+    scanTimer = 0;
+    if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+    video.srcObject = null;
+    video.style.display = "none";
+    camHint.style.display = "";
+    camBtn.textContent = "Start camera";
+  };
+  camBtn.addEventListener("click", async () => {
+    if (stream) return stopCam();
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      video.srcObject = stream;
+      video.style.display = "";
+      camHint.style.display = "none";
+      camBtn.textContent = "Stop camera";
+      await video.play();
+      const tick = () => {
+        if (!stream || video.readyState < 2) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(video, 0, 0);
+        let code = null;
+        try { code = window.jsQR && window.jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height), canvas.width, canvas.height); } catch (_) { /* frame skipped */ }
+        if (code && code.data) {
+          const ref = refFromQr(code.data);
+          const now = Date.now();
+          if (ref && !(ref === lastRef && now - lastAt < 2500)) { lastRef = ref; lastAt = now; openDelegate(ref); }
+        }
+      };
+      scanTimer = setInterval(tick, 180);
+    } catch (err) {
+      camHint.textContent = "Camera unavailable (" + (err.message || "permission denied") + ") — type the reference code instead.";
+      camHint.style.display = "";
+    }
+  });
+
+  const refFromQr = (text) => {
+    const m = String(text).match(/ref=([^&\s]+)/i);
+    if (m) { try { return decodeURIComponent(m[1]); } catch (_) { return m[1]; } }
+    const raw = String(text).trim();
+    return raw || null;   // a QR holding just the code also works
+  };
+
+  const payChip = (s) => s === "paid"
+    ? `<span class="regs-chip regs-chip--paid">payment verified</span>`
+    : s === "rejected"
+    ? `<span class="regs-chip regs-chip--rejected">payment rejected</span>`
+    : `<span class="regs-chip regs-chip--pending">payment pending</span>`;
+
+  const row = (k, v) => `<tr><td style="padding:6px 12px 6px 0;color:rgba(255,255,255,.55);font-size:13px;white-space:nowrap;vertical-align:top;">${esc(k)}</td><td style="padding:6px 0;font-size:14.5px;">${v}</td></tr>`;
+
+  const renderCard = (d, checkin) => {
+    const cks = d.checkins || {};
+    const days = Object.keys(cks).sort();
+    const dayList = days.length
+      ? days.map((k) => `<span class="regs-chip regs-chip--paid" title="${esc(k)}">Day ${esc(String((cks[k] || {}).day || "?"))} ✓</span>`).join(" ")
+      : `<span style="opacity:.5;font-size:13px;">none yet</span>`;
+    const okNow = checkin && checkin.ok && !checkin.already;
+    const already = checkin && checkin.already;
+    const atIst = (t) => { try { return new Date(t).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", minute: "2-digit", hour12: true }); } catch (_) { return ""; } };
+    result.innerHTML = `
+      <div style="border:1px solid rgba(255,255,255,.14);border-radius:16px;overflow:hidden;background:rgba(255,255,255,.04);">
+        <div style="background:#101418;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:11.5px;letter-spacing:2.5px;text-transform:uppercase;opacity:.65;">Reference ${esc(d.ref_code)}</div>
+            <div style="font-size:24px;font-weight:700;">${esc(d.full_name)}</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">${payChip(d.payment_status)}${d.committee ? `<span class="regs-chip regs-chip--paid">${esc(d.committee)}${d.portfolio ? " · " + esc(d.portfolio) : ""}</span>` : `<span class="regs-chip regs-chip--pending">no seat yet</span>`}</div>
+        </div>
+        ${okNow ? `
+        <div style="background:#0d3320;padding:26px 22px;text-align:center;">
+          <div style="font-size:30px;font-weight:800;letter-spacing:1px;color:#7bd8a2;">DELEGATE CHECKED IN</div>
+          <div style="font-size:15px;color:#a8e6c6;margin-top:6px;">Day ${esc(String(checkin.day))} — ${esc(d.full_name)} is in. ${days.length >= 3 ? "All three days complete — legend." : `${3 - days.length} day${3 - days.length === 1 ? "" : "s"} to go.`}</div>
+        </div>` : already ? `
+        <div style="background:#3a2a10;padding:20px 22px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:#f0c36a;">ALREADY CHECKED IN TODAY</div>
+          <div style="font-size:13.5px;color:#e0cf9f;margin-top:4px;">Day ${esc(String(checkin.day))} was scanned at ${esc(atIst(checkin.at))} — one scan per day keeps the counts honest.</div>
+        </div>` : ""}
+        <div style="padding:18px 22px;">
+          <table style="width:100%;border-collapse:collapse;">
+            ${row("Email", esc(d.email || "—"))}
+            ${row("Phone", esc(d.phone || "—"))}
+            ${row("Institution", esc(d.institution || "—"))}
+            ${row("Grade / title", esc(d.grade_or_title || "—"))}
+            ${d.delegation_name ? row("Delegation", esc(d.delegation_name)) : ""}
+            ${row("Invoice", d.expected_amount != null ? "₹" + Number(d.expected_amount).toFixed(2) : "—")}
+            ${d.utr ? row("UTR", `<span class="pa-mono">${esc(d.utr)}</span>`) : ""}
+            ${row("Check-ins", dayList)}
+          </table>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;">
+            ${d.payment_status !== "paid" ? `<span style="font-size:13px;color:#e76f51;">Payment is not verified — settle at the payments desk before admitting.</span>` : ""}
+            ${okNow || already
+              ? `<span style="font-size:13.5px;color:#7bd8a2;">Checked in today ✓ — see you tomorrow.</span>`
+              : `<button type="button" class="btn btn--crimson" id="desk-checkin">Check in for today</button>`}
+          </div>
+        </div>
+      </div>`;
+    const btn = $("#desk-checkin");
+    if (btn) btn.addEventListener("click", () => doCheckin(d.ref_code));
+  };
+
+  const openDelegate = async (ref) => {
+    if (!deskKey || !ref) return;
+    result.innerHTML = `<p class="regs-empty" style="display:block;">Looking up ${esc(ref)}…</p>`;
+    try {
+      const d = await rpc("desk_scan", { p_key: deskKey, p_ref: ref });
+      renderCard(d, null);
+      const u = window.location.hash.split("?")[1] || "";
+      if (new URLSearchParams(u).get("ref")) history.replaceState(null, "", window.location.pathname + "#/regdesk");
+    } catch (err) {
+      result.innerHTML = `<p class="regs-err" style="display:block;">${esc(err.message || "Lookup failed.")}</p>`;
+    }
+  };
+
+  const doCheckin = async (ref) => {
+    try {
+      const out = await rpc("desk_checkin", { p_key: deskKey, p_ref: ref });
+      const d = await rpc("desk_scan", { p_key: deskKey, p_ref: ref });
+      renderCard(d, out);
+    } catch (err) {
+      showToast(`<strong>Check-in failed</strong>${esc(err.message || "")}`, true);
+    }
+  };
+
+  $("#desk-manual").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const v = ($("#desk-ref").value || "").trim();
+    if (v) openDelegate(v);
+  });
+
+  /* leaving the view (or hiding the tab) kills the camera */
+  window.addEventListener("hashchange", () => {
+    const h = window.location.hash.replace(/^#\/?/, "").split("?")[0];
+    if (h !== "regdesk") stopCam();
+  });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) stopCam(); });
+
+  /* deep link: #/regdesk?ref=CODE — where the QR in the allocation mail lands */
+  const segs = window.location.hash.replace(/^#\/?/, "").split("?")[0];
+  const bootRef = new URLSearchParams(window.location.hash.split("?")[1] || "").get("ref");
+  if (segs === "regdesk" && bootRef && deskKey) openDelegate(bootRef);
+})();
