@@ -3859,30 +3859,48 @@ showView(currentView, { animate: false });
       camHint.style.display = "";
       camBtn.textContent = "Stop camera";
       await video.play();
-      if (!window.jsQR) { /* loud, not silent — this failure mode looks identical to 'bad lighting' */
+      /* native detector first (Chrome/Android read far better than jsQR);
+         jsQR is the portable fallback — if NEITHER exists, say so loud */
+      let detector = null;
+      if ("BarcodeDetector" in window) { try { detector = new window.BarcodeDetector({ formats: ["qr_code"] }); } catch (_) { /* fall through */ } }
+      if (!detector && !window.jsQR) {
         camHint.textContent = "Scanner library didn't load — refresh the page once. If it keeps saying this, js/vendor/jsQR.js is missing from the deployed files.";
         return;
       }
-      let tickN = 0;
-      const tick = () => {
-        if (!stream || video.readyState < 2) return;
-        /* cap the decode frame at 1280px — full-res 4K frames choke jsQR
-           (and a QR that fills the frame often only reads downscaled) */
-        const vw = video.videoWidth || 640, vh = video.videoHeight || 480;
-        const sc = Math.min(1, 1280 / Math.max(vw, vh));
-        canvas.width = Math.round(vw * sc);
-        canvas.height = Math.round(vh * sc);
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        let code = null;
-        /* alternate inversion every tick — dark-mode QRs read without paying the cost on every frame */
-        const inv = (tickN++ % 2) ? "invertFirst" : "dontInvert";
-        try { code = window.jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height), canvas.width, canvas.height, { inversionAttempts: inv }); } catch (_) { /* frame skipped */ }
-        if (code && code.data) {
-          const ref = refFromQr(code.data);
-          const now = Date.now();
-          if (ref && !(ref === lastRef && now - lastAt < 2500)) { lastRef = ref; lastAt = now; openDelegate(ref); }
-        }
+      try { const tr = stream.getVideoTracks()[0]; await tr.applyConstraints({ advanced: [{ zoom: 2 }, { focusMode: "continuous" }] }); } catch (_) { /* optics not controllable here */ }
+      let tickN = 0, frames = 0, busy = false;
+      const tick = async () => {
+        if (busy || !stream || video.readyState < 2) return;
+        busy = true;
+        const n = tickN++;
+        try {
+          let code = null;
+          if (detector) {
+            try { const hits = await detector.detect(video); if (hits && hits.length) code = { data: hits[0].rawValue }; } catch (_) { /* fall back below */ }
+          }
+          if (!code) {
+            const vw = video.videoWidth || 640, vh = video.videoHeight || 480;
+            /* three looks per rotation: downscaled frame (fast), native frame
+               (small QRs), native center crop (a poor man's zoom) */
+            let sx = 0, sy = 0, sw = vw, sh = vh;
+            if (n % 3 === 2) { sw = Math.round(vw * 0.6); sh = Math.round(vh * 0.6); sx = Math.round((vw - sw) / 2); sy = Math.round((vh - sh) / 2); }
+            const scale = n % 3 === 0 ? Math.min(1, 1280 / Math.max(sw, sh)) : 1;
+            canvas.width = Math.max(1, Math.round(sw * scale));
+            canvas.height = Math.max(1, Math.round(sh * scale));
+            const ctx = canvas.getContext("2d", { willReadFrequently: true });
+            ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+            const inv = (n % 2) ? "invertFirst" : "dontInvert";
+            try { code = window.jsQR && window.jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height), canvas.width, canvas.height, { inversionAttempts: inv }); } catch (_) { /* frame skipped */ }
+          }
+          frames++;
+          if (code && code.data) {
+            const ref = refFromQr(code.data);
+            const now = Date.now();
+            if (ref && !(ref === lastRef && now - lastAt < 2500)) { lastRef = ref; lastAt = now; openDelegate(ref); }
+          } else if (frames % 12 === 0) {
+            camHint.textContent = `Scanning — ${frames} frames checked · hold the pass steady, 30–50 cm away, about a third of the frame`;
+          }
+        } finally { busy = false; }
       };
       scanTimer = setInterval(tick, 180);
     } catch (err) {
