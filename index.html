@@ -1410,7 +1410,8 @@
                   <div class="regs-tools">
                     <input class="input" id="regs-search" type="text" placeholder="Filter by any detail — name, email, phone, emergency contact, grade, institution, dietary, committee, portfolio, referral" autocomplete="off" />
                     <button type="button" class="pa-btn" id="regs-refresh" title="Pull the roster fresh from the ledger">Refresh</button>
-                    <button type="button" class="pa-btn" id="regs-csv" title="Download what you see as a spreadsheet">Export CSV</button>
+                    <select class="input" id="regs-day" title="Pick one day → Export CSV downloads that day as its own file; All days keeps the combined file" style="max-width:300px"></select>
+                    <button type="button" class="pa-btn" id="regs-csv" title="Download the picked day (or all days) as a spreadsheet">Export CSV</button>
                   </div>
                   <p class="regs-count" id="regs-count" hidden></p>
                   <p class="regs-err" id="regs-err" hidden></p>
@@ -1425,7 +1426,8 @@
                   <div class="regs-tools">
                     <input class="input" id="deleg-search" type="text" placeholder="Filter folders or delegates — delegation, head, name, email, phone, institution, committee, portfolio" autocomplete="off" />
                     <button type="button" class="pa-btn" id="deleg-refresh" title="Pull the delegation roster fresh from the ledger">Refresh</button>
-                    <button type="button" class="pa-btn" id="deleg-csv" title="Download the delegation roster as a spreadsheet">Export CSV</button>
+                    <select class="input" id="deleg-day" title="Pick one day → Export CSV downloads that day as its own file; All days keeps the combined file" style="max-width:300px"></select>
+                    <button type="button" class="pa-btn" id="deleg-csv" title="Download the picked day (or all days) as a spreadsheet">Export CSV</button>
                   </div>
                   <p class="regs-count" id="deleg-count" hidden></p>
                   <p class="regs-err" id="deleg-err" hidden></p>
@@ -1607,6 +1609,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=20260914a"></script>
+  <script type="module" src="js/main.js?v=20260914b"></script>
 </body>
 </html>

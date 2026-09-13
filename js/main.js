@@ -2671,6 +2671,7 @@ function whenIST(t) {
     restoreOpen(regsList, open);
     regsCount.hidden = false;
     regsCount.innerHTML = `<b>${rows.length}</b> shown · <b>${regsCache.length}</b> total${(regsSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
+    fillDaySelect(regsDaySel, rows);
   }
 
   async function loadRegistrants() {
@@ -2764,18 +2765,48 @@ function whenIST(t) {
      CSV carries it with paise intact for bank-statement reconciliation. */
   const inrPaid = (v) => (v == null || v === "" ? "" : Number(v).toFixed(2));
 
+  /* — day picker beside each Export CSV: pick a day → that day downloads
+     as its OWN csv file (somun26-registrants-2026-09-12.csv); “All days”
+     keeps the single combined file with day banners. The option list is
+     rebuilt from whatever the current filter shows, newest day first. — */
+  const fillDaySelect = (sel, rows) => {
+    if (!sel) return;
+    const prev = sel.value;
+    const groups = csvDayGroups(rows).filter((g) => g.key !== "—");
+    const opts = [`<option value="all">All days — one combined file (${rows.length})</option>`];
+    for (let i = groups.length - 1; i >= 0; i--) {
+      const g = groups[i];
+      opts.push(`<option value="${esc(g.key)}">${esc(g.label)} — ${g.rows.length}</option>`);
+    }
+    sel.innerHTML = opts.join("");
+    sel.value = [...sel.options].some((o) => o.value === prev) ? prev : "all";
+  };
+  const regsRowLine = (r) => csvLine([
+    r.upi_utr || "", inrPaid(r.expected_amount), r.ref_code, r.full_name, r.institution, r.email, istStamp(r.created_at),
+  ]);
+  const delegRowLine = (m) => csvLine([
+    m.upi_utr || "", inrPaid(m.expected_amount), m.ref_code, m.full_name, m.institution, m.email,
+    m.delegation_name, istStamp(m.created_at),
+  ]);
+
+  const regsDaySel = $("#regs-day");
   const regsCsv = $("#regs-csv");
   if (regsCsv) regsCsv.addEventListener("click", () => {
     const rows = regsFiltered();
     if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no rows.", true);
     const head = ["UTR", "Amount Paid (₹)", "Ref ID", "Name", "School", "Email", "Registered (IST)"];
+    const day = (regsDaySel && regsDaySel.value) || "all";
+    if (day !== "all") {
+      const g = csvDayGroups(rows).find((x) => x.key === day);
+      if (!g) return showToast("<strong>Nothing on that day</strong>The current view has no rows for the picked day — choose “All days” or another date.", true);
+      csvDownload(`somun26-registrants-${day}.csv`, head, g.rows.map(regsRowLine), g.rows.length);
+      return;
+    }
     const out = [];
     for (const g of csvDayGroups(rows)) {
       out.push("");
       out.push(csvLine([`— ${g.label} · ${g.rows.length} registration${g.rows.length === 1 ? "" : "s"} —`]));
-      for (const r of g.rows) out.push(csvLine([
-        r.upi_utr || "", inrPaid(r.expected_amount), r.ref_code, r.full_name, r.institution, r.email, istStamp(r.created_at),
-      ]));
+      for (const r of g.rows) out.push(regsRowLine(r));
     }
     csvDownload(`somun26-registrants-${istFileDay()}.csv`, head, out, rows.length);
   });
@@ -2902,21 +2933,27 @@ function whenIST(t) {
     restoreOpen(delegBox, open);
     delegCount.hidden = false;
     delegCount.innerHTML = `<b>${groups.length}</b> folder${groups.length === 1 ? "" : "s"} · <b>${shown}</b> shown · <b>${total}</b> verified under delegation${(delegSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
+    fillDaySelect(delegDaySel, delegGroups().flatMap((g) => g.members));
   }
 
   const delegCsv = $("#deleg-csv");
+  const delegDaySel = $("#deleg-day");
   if (delegCsv) delegCsv.addEventListener("click", () => {
     const rows = delegGroups().flatMap((g) => g.members);
     if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no delegates.", true);
     const head = ["UTR", "Amount Paid (₹)", "Ref ID", "Name", "School", "Email", "Delegation", "Registered (IST)"];
+    const day = (delegDaySel && delegDaySel.value) || "all";
+    if (day !== "all") {
+      const g = csvDayGroups(rows).find((x) => x.key === day);
+      if (!g) return showToast("<strong>Nothing on that day</strong>The current view has no delegates for the picked day — choose “All days” or another date.", true);
+      csvDownload(`somun26-delegations-${day}.csv`, head, g.rows.map(delegRowLine), g.rows.length);
+      return;
+    }
     const out = [];
     for (const g of csvDayGroups(rows)) {
       out.push("");
       out.push(csvLine([`— ${g.label} · ${g.rows.length} delegate${g.rows.length === 1 ? "" : "s"} —`]));
-      for (const m of g.rows) out.push(csvLine([
-        m.upi_utr || "", inrPaid(m.expected_amount), m.ref_code, m.full_name, m.institution, m.email,
-        m.delegation_name, istStamp(m.created_at),
-      ]));
+      for (const m of g.rows) out.push(delegRowLine(m));
     }
     csvDownload(`somun26-delegations-${istFileDay()}.csv`, head, out, rows.length);
   });
