@@ -3845,6 +3845,7 @@ showView(currentView, { animate: false });
     if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
     video.srcObject = null;
     video.style.display = "none";
+    camHint.textContent = "Camera off — start it, or just type the code above.";
     camHint.style.display = "";
     camBtn.textContent = "Start camera";
   };
@@ -3854,17 +3855,22 @@ showView(currentView, { animate: false });
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       video.srcObject = stream;
       video.style.display = "";
-      camHint.style.display = "none";
+      camHint.textContent = "Looking for a pass QR — hold it steady, fill the frame, mind the glare (a phone screen needs full brightness).";
+      camHint.style.display = "";
       camBtn.textContent = "Stop camera";
       await video.play();
       const tick = () => {
         if (!stream || video.readyState < 2) return;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        /* cap the decode frame at 1280px — full-res 4K frames choke jsQR
+           (and a QR that fills the frame often only reads downscaled) */
+        const vw = video.videoWidth || 640, vh = video.videoHeight || 480;
+        const sc = Math.min(1, 1280 / Math.max(vw, vh));
+        canvas.width = Math.round(vw * sc);
+        canvas.height = Math.round(vh * sc);
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
-        ctx.drawImage(video, 0, 0);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         let code = null;
-        try { code = window.jsQR && window.jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height), canvas.width, canvas.height); } catch (_) { /* frame skipped */ }
+        try { code = window.jsQR && window.jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height), canvas.width, canvas.height, { inversionAttempts: "dontInvert" }); } catch (_) { /* frame skipped */ }
         if (code && code.data) {
           const ref = refFromQr(code.data);
           const now = Date.now();
