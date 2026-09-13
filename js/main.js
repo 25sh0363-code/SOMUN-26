@@ -3859,6 +3859,11 @@ showView(currentView, { animate: false });
       camHint.style.display = "";
       camBtn.textContent = "Stop camera";
       await video.play();
+      if (!window.jsQR) { /* loud, not silent — this failure mode looks identical to 'bad lighting' */
+        camHint.textContent = "Scanner library didn't load — refresh the page once. If it keeps saying this, js/vendor/jsQR.js is missing from the deployed files.";
+        return;
+      }
+      let tickN = 0;
       const tick = () => {
         if (!stream || video.readyState < 2) return;
         /* cap the decode frame at 1280px — full-res 4K frames choke jsQR
@@ -3870,7 +3875,9 @@ showView(currentView, { animate: false });
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         let code = null;
-        try { code = window.jsQR && window.jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height), canvas.width, canvas.height, { inversionAttempts: "dontInvert" }); } catch (_) { /* frame skipped */ }
+        /* alternate inversion every tick — dark-mode QRs read without paying the cost on every frame */
+        const inv = (tickN++ % 2) ? "invertFirst" : "dontInvert";
+        try { code = window.jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height), canvas.width, canvas.height, { inversionAttempts: inv }); } catch (_) { /* frame skipped */ }
         if (code && code.data) {
           const ref = refFromQr(code.data);
           const now = Date.now();
