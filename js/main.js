@@ -1768,6 +1768,7 @@ if (SHOW_ITINERARY) {
       if (!EMAIL_RE.test(val("email"))) return "Please enter a valid email address.";
       if (!$("#email-confirm").checked) return "Please confirm your email is correct — it is the only way we can reach you.";
       if (val("phone").replace(/\D/g, "").length < 8) return "Please enter a valid contact number.";
+      if (!val("gradeOrTitle")) return "Please select your grade — VIII to XII.";
       if (val("emName").length < 3) return "Please share a parent / guardian name for emergency contact.";
       if (val("emPhone").replace(/\D/g, "").length < 8) return "Please enter a valid parent / guardian phone number.";
       if (!val("institution")) return "Current institution is required.";
@@ -2709,23 +2710,74 @@ function whenIST(t) {
   if (regsSearch) regsSearch.addEventListener("input", renderRegistrants);
   const regsRefresh = $("#regs-refresh");
   if (regsRefresh) regsRefresh.addEventListener("click", loadRegistrants);
+  /* — CSV exports read in “standard Indian time”: every timestamp is
+     pinned to Asia/Kolkata (no matter whose device downloads) and the
+     rows are laid out day by day — a blank line, then a day banner, then
+     that day's registrations oldest → newest. — */
+  const IST_TZ = "Asia/Kolkata";
+  const IST_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const istParts = (t) => {
+    const d = new Date(t);
+    if (isNaN(d)) return null;
+    const [y, m, day] = d.toLocaleDateString("en-CA", { timeZone: IST_TZ }).split("-").map(Number);
+    return { y, m, day };
+  };
+  const istDayKey = (t) => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleDateString("en-CA", { timeZone: IST_TZ }); };
+  const istDayLabel = (t) => {
+    const p = istParts(t);
+    if (!p) return "Unknown date";
+    const wd = new Date(t).toLocaleString("en-IN", { timeZone: IST_TZ, weekday: "long" });
+    return `${wd}, ${p.day} ${IST_MONTHS[p.m - 1]} ${p.y}`;
+  };
+  const istStamp = (t) => {
+    const p = istParts(t);
+    if (!p) return "";
+    const hm = new Date(t).toLocaleTimeString("en-IN", { timeZone: IST_TZ, hour: "numeric", minute: "2-digit", hour12: true });
+    return `${p.day} ${IST_MONTHS[p.m - 1]}, ${hm}`;
+  };
+  const istFileDay = () => new Date().toLocaleDateString("en-CA", { timeZone: IST_TZ });
+  const csvCell = (v) => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const csvLine = (arr) => arr.map(csvCell).join(",");
+  const csvDownload = (name, head, out, count) => {
+    const blob = new Blob(["\uFEFF" + csvLine(head) + "\r\n" + out.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    showToast(`<strong>CSV downloaded</strong>${count} row${count === 1 ? "" : "s"} exported.`);
+  };
+  /* filtered rows → chronological day groups (oldest day first) */
+  const csvDayGroups = (rows) => {
+    const sorted = [...rows].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const groups = [];
+    for (const r of sorted) {
+      const k = istDayKey(r.created_at) || "—";
+      if (!groups.length || groups[groups.length - 1].key !== k) groups.push({ key: k, label: istDayLabel(r.created_at), rows: [] });
+      groups[groups.length - 1].rows.push(r);
+    }
+    return groups;
+  };
+
+  /* amount actually paid — under the watermark scheme the invoice amount
+     IS the proof of payment (base fee + that row's unique paise), so the
+     CSV carries it with paise intact for bank-statement reconciliation. */
+  const inrPaid = (v) => (v == null || v === "" ? "" : Number(v).toFixed(2));
+
   const regsCsv = $("#regs-csv");
   if (regsCsv) regsCsv.addEventListener("click", () => {
     const rows = regsFiltered();
     if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no rows.", true);
-    const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-    const line = (arr) => arr.map(cell).join(",");
-    const head = ["UTR", "Ref ID", "Name", "School", "Email"];
-    const body = rows.map((r) => line([
-      r.upi_utr || "", r.ref_code, r.full_name, r.institution, r.email,
-    ]));
-    const blob = new Blob(["\uFEFF" + line(head) + "\r\n" + body.join("\r\n")], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `somun26-registrants-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    showToast(`<strong>CSV downloaded</strong>${rows.length} row${rows.length === 1 ? "" : "s"} exported.`);
+    const head = ["UTR", "Amount Paid (₹)", "Ref ID", "Name", "School", "Email", "Registered (IST)"];
+    const out = [];
+    for (const g of csvDayGroups(rows)) {
+      out.push("");
+      out.push(csvLine([`— ${g.label} · ${g.rows.length} registration${g.rows.length === 1 ? "" : "s"} —`]));
+      for (const r of g.rows) out.push(csvLine([
+        r.upi_utr || "", inrPaid(r.expected_amount), r.ref_code, r.full_name, r.institution, r.email, istStamp(r.created_at),
+      ]));
+    }
+    csvDownload(`somun26-registrants-${istFileDay()}.csv`, head, out, rows.length);
   });
 
   /* — the third page: delegation registrations, foldered by the
@@ -2856,20 +2908,17 @@ function whenIST(t) {
   if (delegCsv) delegCsv.addEventListener("click", () => {
     const rows = delegGroups().flatMap((g) => g.members);
     if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no delegates.", true);
-    const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-    const line = (arr) => arr.map(cell).join(",");
-    const head = ["UTR", "Ref ID", "Name", "School", "Email", "Delegation"];
-    const body = rows.map((m) => line([
-      m.upi_utr || "", m.ref_code, m.full_name, m.institution, m.email,
-      m.delegation_name,
-    ]));
-    const blob = new Blob(["\uFEFF" + line(head) + "\r\n" + body.join("\r\n")], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `somun26-delegations-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    showToast(`<strong>CSV downloaded</strong>${rows.length} delegate${rows.length === 1 ? "" : "s"} exported.`);
+    const head = ["UTR", "Amount Paid (₹)", "Ref ID", "Name", "School", "Email", "Delegation", "Registered (IST)"];
+    const out = [];
+    for (const g of csvDayGroups(rows)) {
+      out.push("");
+      out.push(csvLine([`— ${g.label} · ${g.rows.length} delegate${g.rows.length === 1 ? "" : "s"} —`]));
+      for (const m of g.rows) out.push(csvLine([
+        m.upi_utr || "", inrPaid(m.expected_amount), m.ref_code, m.full_name, m.institution, m.email,
+        m.delegation_name, istStamp(m.created_at),
+      ]));
+    }
+    csvDownload(`somun26-delegations-${istFileDay()}.csv`, head, out, rows.length);
   });
   if (delegSearch) delegSearch.addEventListener("input", renderDelegations);
   const delegRefresh = $("#deleg-refresh");

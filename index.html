@@ -1101,8 +1101,18 @@
                       <p class="field-note">WhatsApp preferred — the secretariat may reach you here.</p>
                     </div>
                     <div class="field">
-                      <label class="field-label" for="gradeOrTitle">Grade <span class="opt">(class / year)</span></label>
-                      <input class="input" id="gradeOrTitle" name="gradeOrTitle" placeholder="e.g. Grade XI · B.A. LL.B., 2nd year" />
+                      <label class="field-label" for="gradeOrTitle">Grade <span class="req">*</span></label>
+                      <div class="select-wrap">
+                        <select class="select" id="gradeOrTitle" name="gradeOrTitle" required>
+                          <option value="" selected disabled>Select your grade</option>
+                          <option>Grade VIII</option>
+                          <option>Grade IX</option>
+                          <option>Grade X</option>
+                          <option>Grade XI</option>
+                          <option>Grade XII</option>
+                        </select>
+                        <i data-icon="chevron-down" data-cls="select-chevron"></i>
+                      </div>
                     </div>
                     <div class="field">
                       <label class="field-label" for="emName">Emergency Contact — Parent / Guardian Name <span class="req">*</span></label>
@@ -1597,6 +1607,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=20260912m"></script>
+  <script type="module" src="js/main.js?v=20260914a"></script>
 </body>
 </html>
