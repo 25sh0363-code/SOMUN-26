@@ -2678,6 +2678,7 @@ function whenIST(t) {
 
   async function loadRegistrants() {
     if (!key || regsLoading) return;
+    if (document.querySelector(".alloc-form")) return; // an open seat form lives inside this list — don't wipe it
     regsLoading = true;
     regsErr.hidden = true;
     try {
@@ -2832,6 +2833,7 @@ function whenIST(t) {
 
   async function loadDelegations() {
     if (!key || delegLoading) return;
+    if (document.querySelector(".alloc-form")) return; // same — never re-render under an open seat form
     delegLoading = true;
     delegErr.hidden = true;
     try {
@@ -3372,8 +3374,10 @@ function whenIST(t) {
       pollTimer = setInterval(() => {
         if (document.hidden || !view.classList.contains("active") || !key) return;
         load().catch(() => { /* transient — next poll retries */ });
-        if (!regsPage.hidden) loadRegistrants();
-        if (!delegPage.hidden) loadDelegations();
+        if (!document.querySelector(".alloc-form")) { // mid-allocation — hold the lists still
+          if (!regsPage.hidden) loadRegistrants();
+          if (!delegPage.hidden) loadDelegations();
+        }
       }, 20000);
     }
   }
