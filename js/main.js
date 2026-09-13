@@ -6,7 +6,7 @@
    resources (Supabase) · itinerary
    ———————————————————————————————————————————————————————— */
 
-import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, MATRIX_PDFS } from "./data.js?v=20260912l";
+import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, MATRIX_PDFS } from "./data.js?v=20260912m";
 import { CONFIG, supabaseConfigured, feeAnnounced, payFlow, formatINR } from "./config.js";
 import { icon, hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
@@ -2715,21 +2715,9 @@ function whenIST(t) {
     if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no rows.", true);
     const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const line = (arr) => arr.map(cell).join(",");
-    const head = ["#", "Ref code", "Email", "Name", "Phone", "Emergency contact", "Emergency phone", "Grade", "Institution", "Dietary", "MUNs attended", "Past MUNs & committees", "Achievements", "Committee pref I", "Committee pref II", "Committee pref III", "Portfolio I", "Portfolio II", "Portfolio III", "Referred", "Reference name", "Fee", "UTR", "Status", "UTR submitted", "Verified at", "Note", "Registered"];
-    const body = rows.map((r, i) => line([
-      i + 1, r.ref_code, r.email, r.full_name, r.phone,
-      r.emergency_name, r.emergency_phone, r.grade_or_title, r.institution,
-      (r.allergies || "").trim() && !/^none$/i.test((r.allergies || "").trim()) ? r.allergies : "",
-      expLabel(r.experience), r.exp_details, r.achievements,
-      cmtAcronym(r.committee_pref1), cmtAcronym(r.committee_pref2), cmtAcronym(r.committee_pref3),
-      r.portfolio1, r.portfolio2, r.portfolio3,
-      r.referred ? "yes" : "no", r.referral_name,
-      r.expected_amount != null ? Number(r.expected_amount).toFixed(2) : "",
-      r.upi_utr,
-      (STATUS_CHIP[r.payment_status] || [r.payment_status])[0],
-      r.utr_submitted_at ? whenIST(r.utr_submitted_at) : "",
-      r.paid_at ? whenIST(r.paid_at) : "", r.status_note,
-      whenIST(r.created_at),
+    const head = ["UTR", "Ref ID", "Name", "School", "Email"];
+    const body = rows.map((r) => line([
+      r.upi_utr || "", r.ref_code, r.full_name, r.institution, r.email,
     ]));
     const blob = new Blob(["\uFEFF" + line(head) + "\r\n" + body.join("\r\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
@@ -2870,16 +2858,10 @@ function whenIST(t) {
     if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no delegates.", true);
     const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const line = (arr) => arr.map(cell).join(",");
-    const head = ["#", "Delegation", "Delegation head", "Delegation head phone", "Ref code", "Name", "Email", "Phone", "Institution", "Grade", "Committee pref I", "Committee pref II", "Committee pref III", "Portfolio", "Fee", "UTR", "Status", "Registered"];
-    const body = rows.map((m, i) => line([
-      i + 1, m.delegation_name, m.delegation_head, m.delegation_head_phone,
-      m.ref_code, m.full_name, m.email, m.phone, m.institution, m.grade_or_title,
-      cmtAcronym(m.committee_pref1), cmtAcronym(m.committee_pref2), cmtAcronym(m.committee_pref3),
-      m.portfolio,
-      m.expected_amount != null ? Number(m.expected_amount).toFixed(2) : "",
-      m.upi_utr,
-      (STATUS_CHIP[m.payment_status] || [m.payment_status])[0],
-      whenIST(m.created_at),
+    const head = ["UTR", "Ref ID", "Name", "School", "Email", "Delegation"];
+    const body = rows.map((m) => line([
+      m.upi_utr || "", m.ref_code, m.full_name, m.institution, m.email,
+      m.delegation_name,
     ]));
     const blob = new Blob(["\uFEFF" + line(head) + "\r\n" + body.join("\r\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
