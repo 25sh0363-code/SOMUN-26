@@ -1814,10 +1814,30 @@ if (SHOW_ITINERARY) {
     if (next) {
       const err = validateStage(cur);
       if (err) return showToast(`<strong>Almost there</strong>${err}`, true);
+      /* leaving stage one routes through the email warning gate — the
+         secretariat wants an explicit "yes, my email is right" choice */
+      if (cur === 0) {
+        const ov = $("#email-warn-overlay");
+        if (ov) { ov.hidden = false; return; }
+      }
       show(cur + 1);
     }
     if (back) show(cur - 1);
   });
+
+  /* the email warning gate's two exits */
+  const emailWarnOv = $("#email-warn-overlay");
+  if (emailWarnOv) {
+    $("#email-warn-ok").addEventListener("click", () => {
+      emailWarnOv.hidden = true;
+      show(cur + 1);
+    });
+    $("#email-warn-back").addEventListener("click", () => {
+      emailWarnOv.hidden = true;
+      const em = $("#email");
+      if (em) { em.focus(); em.select && em.select(); }
+    });
+  }
 
   /* referral yes/no flips the reference-name field */
   $$('input[name="referred"]', form).forEach((r) =>

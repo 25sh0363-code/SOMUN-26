@@ -1631,6 +1631,23 @@
     </div>
   </div>
 
+  <!-- ———————— EMAIL WARNING GATE (registration stage one → continue) ———————— -->
+  <div class="matrix-overlay" id="email-warn-overlay" hidden>
+    <div class="matrix-modal" role="dialog" aria-modal="true" aria-labelledby="email-warn-title" style="max-width:520px;">
+      <div class="matrix-head">
+        <div>
+          <p class="matrix-kicker">Before you continue</p>
+          <h3 class="matrix-title" id="email-warn-title">Check your <em class="accent">email address</em></h3>
+        </div>
+      </div>
+      <p class="matrix-intro" style="font-size:15.5px;line-height:1.65;">If your email is wrong, your registration will be considered <strong>invalid</strong> and <strong>no refund will be given</strong>. Every confirmation, invoice and committee allocation lands at exactly that address — there is no other way we can reach you.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px;">
+        <button type="button" class="pa-btn" id="email-warn-back">Let me fix it</button>
+        <button type="button" class="btn btn--crimson" id="email-warn-ok">My email is correct — continue</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ———————— EASTER EGG MODAL (footer "Eighth Edition" hitbox) ———————— -->
   <div class="matrix-overlay" id="egg-overlay" hidden>
     <canvas class="egg-confetti" id="egg-confetti" aria-hidden="true"></canvas>
@@ -1671,6 +1688,6 @@
 
   <datalist id="committee-list"></datalist>
   <script src="js/vendor/jsQR.js"></script>
-  <script type="module" src="js/main.js?v=20260914h"></script>
+  <script type="module" src="js/main.js?v=20260914i"></script>
 </body>
 </html>
