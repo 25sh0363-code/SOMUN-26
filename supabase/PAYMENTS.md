@@ -21,7 +21,7 @@ one delegate, ₹2799.07 for the next. The paise are the payment's identity.
 1. **Database** — open Supabase → SQL Editor, paste `payment.sql` whole, Run.
    The file is idempotent: re-running upgrades in place and **never
    overwrites a real secret** (its updates only fire while a cell is still
-   empty / still says `PASTE-…`).
+   empty / still says `PASTE-…`).fjhfhfhf
    Then fill the rows in **Table Editor → `app_secrets`**:
    - `payee_vpa` → the conference UPI id (e.g. `somun26@ybl`)
    - `admin_key` → any long random string — the `#/verify` console key
