@@ -73,7 +73,7 @@ export const CONFIG = {
      INVOICED amount itself is stamped per delegate server-side from
      app_secrets → fee_base_early (supabase/payment.sql) — keep the two
      in step when the early-bird window ends. */
-  REGISTRATION_FEE: 2799,   /* early-bird base — round one TBD */
+  REGISTRATION_FEE: 3000,   /* early-bird base — round one TBD */
 
   /* ——— UPI watermark payments (the live path — no gateway, no KYC) ———
      The payee UPI ID is NOT set here — it lives in Supabase:

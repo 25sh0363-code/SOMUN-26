@@ -1416,6 +1416,12 @@
                       <option value="exp-desc">Most experienced first</option>
                       <option value="exp-asc">Least experienced first</option>
                     </select>
+                    <select class="input" id="regs-worker" title="Parallel allocate — three secretariat members can seat delegates at once. Pick your number; you see exactly one third of the roster (the same third on every reload), so no two workers ever grab the same delegate. Keep it off to see everyone." style="max-width:250px">
+                      <option value="0">Parallel · off — see everyone</option>
+                      <option value="1">Allocate as Worker 1 of 3</option>
+                      <option value="2">Allocate as Worker 2 of 3</option>
+                      <option value="3">Allocate as Worker 3 of 3</option>
+                    </select>
                     <select class="input" id="regs-day" title="Pick one day → Export CSV downloads that day as its own file; All days keeps the combined file" style="max-width:300px"></select>
                     <button type="button" class="pa-btn" id="regs-csv" title="Download the picked day (or all days) as a spreadsheet">Export CSV</button>
                   </div>
@@ -1436,6 +1442,12 @@
                       <option value="new">Sort · default order</option>
                       <option value="exp-desc">Most experienced first</option>
                       <option value="exp-asc">Least experienced first</option>
+                    </select>
+                    <select class="input" id="deleg-worker" title="Parallel allocate — pick the same worker number you chose on the singles tab. Whole delegation folders stay with ONE worker (split by delegation name), so a delegation is never half-allocated by two people." style="max-width:250px">
+                      <option value="0">Parallel · off — see everyone</option>
+                      <option value="1">Allocate as Worker 1 of 3</option>
+                      <option value="2">Allocate as Worker 2 of 3</option>
+                      <option value="3">Allocate as Worker 3 of 3</option>
                     </select>
                     <select class="input" id="deleg-day" title="Pick one day → Export CSV downloads that day as its own file; All days keeps the combined file" style="max-width:300px"></select>
                     <button type="button" class="pa-btn" id="deleg-csv" title="Download the picked day (or all days) as a spreadsheet">Export CSV</button>
@@ -1698,6 +1710,6 @@
 
   <datalist id="committee-list"></datalist>
   <script src="js/vendor/jsQR.js"></script>
-  <script type="module" src="js/main.js?v=20260914k"></script>
+  <script type="module" src="js/main.js?v=20260914l"></script>
 </body>
 </html>

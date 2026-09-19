@@ -2588,6 +2588,7 @@ function whenIST(t) {
   const regsErr = $("#regs-err");
   const regsSearch = $("#regs-search");
   const regsSort = $("#regs-sort");
+  const regsWorker = $("#regs-worker");
   let regsCache = null;
   let regsLoading = false;
   let regsStale = true;
@@ -2633,10 +2634,49 @@ function whenIST(t) {
     failed: ["rejected", "bad"],
   };
 
+  /* ——— parallel allocation — the desk splits the roster three ways so
+     three secretariat members can seat delegates at the same time without
+     grabbing each other's rows. The worker number lives in localStorage
+     (one choice drives BOTH roster tabs) and the partition is computed
+     from the registration id (whole delegations from the delegation
+     name), so a row's third NEVER changes: new registrations slot in,
+     already-seated rows keep their seat chip, and while the split is on
+     no two workers ever share a delegate. CSV exports + the day picker
+     follow the slice automatically. ——— */
+  const workerSel = () => {
+    try { return parseInt(localStorage.getItem("somun-worker") || "0", 10) || 0; } catch { return 0; }
+  };
+  const setWorkerSel = (n) => {
+    try { n ? localStorage.setItem("somun-worker", String(n)) : localStorage.removeItem("somun-worker"); } catch {}
+  };
+  const hash3 = (s) => {
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h * 33) + s.charCodeAt(i)) >>> 0;
+    return h % 3;
+  };
+  const workerOfReg = (r) => (Number(r.id) || 0) % 3;
+  const workerOfDeleg = (name) => hash3(String(name || "").trim().toLowerCase());
+  const paintWorkers = () => {
+    const n = String(workerSel());
+    for (const sel of [regsWorker, delegWorker]) {
+      if (sel) sel.value = n;
+    }
+  };
+  const onWorkerChange = () => {
+    const raw = (regsWorker && regsWorker.value) || (delegWorker && delegWorker.value) || "0";
+    setWorkerSel(parseInt(raw, 10) || 0);
+    paintWorkers();
+    if (regsCache) renderRegistrants();
+    if (delegCache) renderDelegations();
+  };
+
   const regsFiltered = () => {
     const q = (regsSearch.value || "").trim().toLowerCase();
-    if (!q) return regsCache || [];
-    return (regsCache || []).filter((r) => [
+    let rows = regsCache || [];
+    const w = workerSel();
+    if (w) rows = rows.filter((r) => workerOfReg(r) === w - 1);
+    if (!q) return rows;
+    return rows.filter((r) => [
       r.full_name, r.ref_code, r.email, r.phone, r.institution, r.grade_or_title,
       r.emergency_name, r.emergency_phone,
       r.portfolio, r.committee_pref1, r.committee_pref2, r.committee_pref3,
@@ -2720,7 +2760,7 @@ function whenIST(t) {
       : `<p class="regs-empty">${(regsSearch.value || "").trim() ? "No registrant matches that filter." : "No single registrations yet — rows land here the moment the first delegate signs up."}</p>`;
     restoreOpen(regsList, open);
     regsCount.hidden = false;
-    regsCount.innerHTML = `<b>${rows.length}</b> shown · <b>${regsCache.length}</b> total${(regsSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
+    regsCount.innerHTML = `<b>${rows.length}</b> shown · <b>${regsCache.length}</b> total${(regsSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}${workerSel() ? ` · <b>Worker ${workerSel()}</b> of 3 slice — parallel allocate` : ""}`;
     fillDaySelect(regsDaySel, rows);
   }
 
@@ -2875,6 +2915,7 @@ function whenIST(t) {
   const delegBox = $("#deleg-folders");
   const delegSearch = $("#deleg-search");
   const delegSort = $("#deleg-sort");
+  const delegWorker = $("#deleg-worker");
   const delegCount = $("#deleg-count");
   const delegErr = $("#deleg-err");
   let delegCache = null;
@@ -2905,6 +2946,8 @@ function whenIST(t) {
   function delegGroups() {
     const q = (delegSearch.value || "").trim().toLowerCase();
     let rows = (delegCache || []).filter((r) => r.payment_status === "paid");
+    const w = workerSel();
+    if (w) rows = rows.filter((r) => workerOfDeleg(r.delegation_name) === w - 1);
     if (q) {
       rows = rows.filter((r) => [
         r.delegation_name, r.delegation_head, r.delegation_head_phone,
@@ -3006,7 +3049,7 @@ function whenIST(t) {
       : `<p class="pa-empty">${(delegSearch.value || "").trim() ? "No delegation matches that filter." : "No verified delegations yet — a folder lands here only once its delegates clear payment; still-pending ones wait on the desk."}</p>`;
     restoreOpen(delegBox, open);
     delegCount.hidden = false;
-    delegCount.innerHTML = `<b>${groups.length}</b> folder${groups.length === 1 ? "" : "s"} · <b>${shown}</b> shown · <b>${total}</b> verified under delegation${(delegSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}`;
+    delegCount.innerHTML = `<b>${groups.length}</b> folder${groups.length === 1 ? "" : "s"} · <b>${shown}</b> shown · <b>${total}</b> verified under delegation${(delegSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}${workerSel() ? ` · <b>Worker ${workerSel()}</b> of 3 slice — parallel allocate` : ""}`;
     fillDaySelect(delegDaySel, delegGroups().flatMap((g) => g.members));
   }
 
@@ -3033,6 +3076,9 @@ function whenIST(t) {
   });
   if (delegSearch) delegSearch.addEventListener("input", renderDelegations);
   if (delegSort) delegSort.addEventListener("change", renderDelegations);
+  if (regsWorker) regsWorker.addEventListener("change", onWorkerChange);
+  if (delegWorker) delegWorker.addEventListener("change", onWorkerChange);
+  paintWorkers(); // restore this browser's parallel-allocate worker number
   const delegRefresh = $("#deleg-refresh");
   if (delegRefresh) delegRefresh.addEventListener("click", loadDelegations);
 
@@ -3089,14 +3135,48 @@ function whenIST(t) {
     const queued = allocCache.filter((a) => a.mail_queued_at && !a.mail_sent_at).length;
     const istToday = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
     const inToday = allocCache.filter((a) => a.checkins && Object.keys(a.checkins).includes(istToday)).length;
-    allocCount.innerHTML = `<b>${allocCache.length}</b> seated · <b>${mailed}</b> mailed · <b>${queued}</b> queued · <b>${inToday}</b> checked in today`;
-    allocList.innerHTML = allocCache.length ? allocCache.map((a) => `
+    const cmtCount = new Set(allocCache.map((a) => String(a.committee || ""))).size;
+    allocCount.innerHTML = `<b>${allocCache.length}</b> seated in <b>${cmtCount}</b> chamber${cmtCount === 1 ? "" : "s"} · <b>${mailed}</b> mailed · <b>${queued}</b> queued · <b>${inToday}</b> checked in today`;
+
+    /* one folder per chamber — seats sorted by portfolio, then name —
+       so the secretariat can review (and mail) committee by committee */
+    const map = new Map();
+    for (const a of allocCache) {
+      const k = String(a.committee || "");
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(a);
+    }
+    const groups = [...map.entries()].map(([cmt, rows]) => ({
+      cmt,
+      label: cmtAcronym(cmt),
+      rows: rows.slice().sort((x, y) =>
+        String(x.portfolio || "").localeCompare(String(y.portfolio || ""), undefined, { sensitivity: "base" }) ||
+        String(x.full_name || "").localeCompare(String(y.full_name || ""), undefined, { sensitivity: "base" })),
+    })).sort((x, y) => x.label.localeCompare(y.label, undefined, { sensitivity: "base" }));
+
+    const open = keepOpen(allocList, "details[data-k]");
+    allocList.innerHTML = groups.length ? groups.map((g) => `
+      <details class="deleg-folder" data-k="C:${esc(g.cmt)}">
+        <summary>
+          <span class="deleg-caret" aria-hidden="true"></span>
+          <span class="deleg-folder-id">
+            <span class="deleg-folder-name">${esc(g.label)}</span>
+            <span class="deleg-folder-meta">${g.rows.length} seated · ${g.rows.filter((a) => a.mail_sent_at).length} mailed</span>
+          </span>
+        </summary>
+        <div class="deleg-members">${g.rows.map(allocCard).join("")}</div>
+      </details>`).join("")
+      : `<p class="regs-empty">No seats yet — hit Allocate on a verified delegate (either roster tab) and they land here.</p>`;
+    restoreOpen(allocList, open);
+  }
+
+  const allocCard = (a) => `
       <details class="regs-item" data-k="A:${esc(a.ref_code)}">
         <summary>
           <span class="regs-caret" aria-hidden="true"></span>
           <span><strong>${esc(a.full_name)}</strong></span>
           <span class="pa-code">${esc(a.ref_code || "—")}</span>
-          <span class="regs-chip regs-chip--paid">${esc(a.committee)}${a.portfolio ? " · " + esc(a.portfolio) : ""}</span>
+          <span class="regs-chip regs-chip--paid">${esc(a.portfolio || "seat")}</span>
         </summary>
         <div class="regs-item-body">
           <p class="pa-row-sub">${esc(a.email || "—")}${a.phone ? " · " + esc(a.phone) : ""}${a.institution ? " · " + esc(a.institution) : ""}${a.delegation_name ? " · delegation " + esc(a.delegation_name) : ""}${a.grade_or_title ? " · " + esc(a.grade_or_title) : ""}</p>
@@ -3106,9 +3186,7 @@ function whenIST(t) {
             <button type="button" class="pa-btn pa-btn--bad${isArmed("unalloc", a.registration_id) ? " is-armed" : ""}" data-act="unalloc" data-id="${esc(a.registration_id)}" data-name="${esc(a.full_name)}" title="Pull this seat back — the delegate returns to the unallocated roster; payments are untouched">${isArmed("unalloc", a.registration_id) ? "Confirm remove" : "Remove seat"}</button>
           </div>
         </div>
-      </details>`).join("")
-      : `<p class="regs-empty">No seats yet — hit Allocate on a verified delegate (either roster tab) and they land here.</p>`;
-  }
+      </details>`;
 
   if (allocPage) {
     $("#alloc-refresh").addEventListener("click", loadAllocations);
