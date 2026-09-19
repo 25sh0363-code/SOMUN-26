@@ -2647,7 +2647,7 @@ function whenIST(t) {
      localStorage maps to a name, and the name rides along with every
      seat save (allocations.allocated_by) so the Allocated tab shows
      exactly who seated whom */
-  const WORKER_NAMES = [null, "Shambhavi", "Jeya Varshini", "Krithika"];
+  const WORKER_NAMES = [null, "Shambhavi", "Jeya Varshini", "Pritika"];
   const workerSel = () => {
     try { return parseInt(localStorage.getItem("somun-worker") || "0", 10) || 0; } catch { return 0; }
   };
