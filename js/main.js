@@ -2643,6 +2643,11 @@ function whenIST(t) {
      already-seated rows keep their seat chip, and while the split is on
      no two workers ever share a delegate. CSV exports + the day picker
      follow the slice automatically. ——— */
+  /* the three secretariat members allocating in parallel — the number in
+     localStorage maps to a name, and the name rides along with every
+     seat save (allocations.allocated_by) so the Allocated tab shows
+     exactly who seated whom */
+  const WORKER_NAMES = [null, "Shambhavi", "Jeya Varshini", "Krithika"];
   const workerSel = () => {
     try { return parseInt(localStorage.getItem("somun-worker") || "0", 10) || 0; } catch { return 0; }
   };
@@ -2760,7 +2765,7 @@ function whenIST(t) {
       : `<p class="regs-empty">${(regsSearch.value || "").trim() ? "No registrant matches that filter." : "No single registrations yet — rows land here the moment the first delegate signs up."}</p>`;
     restoreOpen(regsList, open);
     regsCount.hidden = false;
-    regsCount.innerHTML = `<b>${rows.length}</b> shown · <b>${regsCache.length}</b> total${(regsSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}${workerSel() ? ` · <b>Worker ${workerSel()}</b> of 3 slice — parallel allocate` : ""}`;
+    regsCount.innerHTML = `<b>${rows.length}</b> shown · <b>${regsCache.length}</b> total${(regsSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}${workerSel() ? ` · <b>${esc(WORKER_NAMES[workerSel()] || "worker " + workerSel())}'s</b> slice — parallel allocate` : ""}`;
     fillDaySelect(regsDaySel, rows);
   }
 
@@ -3049,7 +3054,7 @@ function whenIST(t) {
       : `<p class="pa-empty">${(delegSearch.value || "").trim() ? "No delegation matches that filter." : "No verified delegations yet — a folder lands here only once its delegates clear payment; still-pending ones wait on the desk."}</p>`;
     restoreOpen(delegBox, open);
     delegCount.hidden = false;
-    delegCount.innerHTML = `<b>${groups.length}</b> folder${groups.length === 1 ? "" : "s"} · <b>${shown}</b> shown · <b>${total}</b> verified under delegation${(delegSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}${workerSel() ? ` · <b>Worker ${workerSel()}</b> of 3 slice — parallel allocate` : ""}`;
+    delegCount.innerHTML = `<b>${groups.length}</b> folder${groups.length === 1 ? "" : "s"} · <b>${shown}</b> shown · <b>${total}</b> verified under delegation${(delegSearch.value || "").trim() ? " — CSV exports exactly what you see" : ""}${workerSel() ? ` · <b>${esc(WORKER_NAMES[workerSel()] || "worker " + workerSel())}'s</b> slice — parallel allocate` : ""}`;
     fillDaySelect(delegDaySel, delegGroups().flatMap((g) => g.members));
   }
 
@@ -3180,7 +3185,7 @@ function whenIST(t) {
         </summary>
         <div class="regs-item-body">
           <p class="pa-row-sub">${esc(a.email || "—")}${a.phone ? " · " + esc(a.phone) : ""}${a.institution ? " · " + esc(a.institution) : ""}${a.delegation_name ? " · delegation " + esc(a.delegation_name) : ""}${a.grade_or_title ? " · " + esc(a.grade_or_title) : ""}</p>
-          <p class="regs-note">Mail: ${a.mail_sent_at ? `sent ${whenIST(a.mail_sent_at)}` : a.mail_queued_at ? `queued ${whenIST(a.mail_queued_at)} — waiting on the mailer` : "not queued yet"} &nbsp;·&nbsp; Check-ins: ${checkinChips(a.checkins)}</p>
+          <p class="regs-note">Seat by <b>${esc(a.allocated_by || "—")}</b> · ${whenIST(a.allocated_at)} &nbsp;·&nbsp; Mail: ${a.mail_sent_at ? `sent ${whenIST(a.mail_sent_at)}` : a.mail_queued_at ? `queued ${whenIST(a.mail_queued_at)} — waiting on the mailer` : "not queued yet"} &nbsp;·&nbsp; Check-ins: ${checkinChips(a.checkins)}</p>
           <div class="pa-row-actions">
             <button type="button" class="pa-btn" data-act="allocmail" data-id="${esc(a.registration_id)}" data-name="${esc(a.full_name)}" title="Queue (or re-send) the allocation mail with the QR entry pass">${a.mail_queued_at ? "Re-send mail" : "Queue mail"}</button>
             <button type="button" class="pa-btn pa-btn--bad${isArmed("unalloc", a.registration_id) ? " is-armed" : ""}" data-act="unalloc" data-id="${esc(a.registration_id)}" data-name="${esc(a.full_name)}" title="Pull this seat back — the delegate returns to the unallocated roster; payments are untouched">${isArmed("unalloc", a.registration_id) ? "Confirm remove" : "Remove seat"}</button>
@@ -3640,7 +3645,7 @@ function whenIST(t) {
           const committee = (form.committee.value || "").trim();
           if (!committee) return;
           try {
-            await rpc("alloc_delegate", { p_key: key, p_registration: id, p_committee: committee, p_portfolio: (form.portfolio.value || "").trim() });
+            await rpc("alloc_delegate", { p_key: key, p_registration: id, p_committee: committee, p_portfolio: (form.portfolio.value || "").trim(), p_by: WORKER_NAMES[workerSel()] || null });
             showToast(`<strong>Seat saved</strong>${esc(b.dataset.name || "Delegate")} → ${esc(committee)}.`);
             form.remove();
             b.disabled = false;
