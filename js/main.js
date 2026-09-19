@@ -74,10 +74,15 @@ function showToast(html, isErr = false) {
 $('[data-copy="tagline"]') && ($('[data-copy="tagline"]').textContent = CONFERENCE.tagline);
 $('[data-copy="dates"]') && ($('[data-copy="dates"]').textContent = CONFERENCE.dates);
 $('[data-copy="venue"]') && ($('[data-copy="venue"]').textContent = `${CONFERENCE.venue} · ${CONFERENCE.city}`);
-$("#itin-intro").innerHTML =
+$('#itin-intro').innerHTML =
   `From the first roll call to the final gavel — the full three-day programme at <span class="venue-redact">${CONFERENCE.venue}</span> will be published right here, day by day.`;
-$("#reg-intro").textContent =
+/* the register-page intro has two states — open (wizard walkthrough) and
+   closed (priority-round notice) — applyRegGate swaps between them */
+const REG_INTRO_TEXT =
   `Complete the four short pages below — personal information, MUN experience, committee preferences, then referral and payment — and the secretariat will respond with your portfolio allotment. For assistance write to ${CONFERENCE.email}.`;
+const REG_INTRO_CLOSED =
+  `The priority registration round is closed. Please wait for Round 1 registrations — the portal reopens as soon as the secretariat announces the date. For assistance write to ${CONFERENCE.email}.`;
+$("#reg-intro").textContent = REG_INTRO_TEXT;
 $("#year").textContent = new Date().getFullYear();
 
 /* ————————————————— Ticker ————————————————— */
@@ -959,10 +964,10 @@ function applyRegGate() {
         v.className = "reg-veil";
         const stamp = document.createElement("span");
         stamp.className = "reg-veil-stamp";
-        stamp.textContent = "Opening Soon";
+        stamp.textContent = "Priority Round Closed";
         const sub = document.createElement("span");
         sub.className = "reg-veil-sub";
-        sub.textContent = "Registrations open Saturday, September 12 — the portal goes live that morning.";
+        sub.textContent = "Please wait for Round 1 registrations — the portal reopens on the announced date.";
         v.append(stamp, sub);
         regBox.append(v);
       }
@@ -979,6 +984,8 @@ function applyRegGate() {
       if (textNode && heroText0) textNode.nodeValue = heroText0;
     }
   }
+  const regIntro = $("#reg-intro");
+  if (regIntro) regIntro.textContent = open ? REG_INTRO_TEXT : REG_INTRO_CLOSED;
   const statusCard = $("#status-card");
   if (statusCard) {
     if (open) statusCard.removeAttribute("hidden");
@@ -2419,7 +2426,7 @@ if (SHOW_ITINERARY) {
   const paint = () => {
     const on = testerOn();
     stateLine.innerHTML = on
-      ? "Access is <b style='color:var(--beige)'>ON</b> — the portal is open on this browser only; everyone else still sees “Opening Soon”. Enter the code to switch it back off."
+      ? "Access is <b style='color:var(--beige)'>ON</b> — the portal is open on this browser only; everyone else still sees “Priority Round Closed”. Enter the code to switch it back off."
       : "Registrations are closed for the world right now. Enter the access code to open the portal on this browser only — nothing changes for anyone else.";
     goBtn.textContent = on ? "Lock again" : "Unlock";
   };
@@ -2446,7 +2453,7 @@ if (SHOW_ITINERARY) {
       applyRegGate();
       closeModal();
       showToast(on
-        ? "<strong>Tester mode on</strong>Registrations are open on this browser only — the world still sees “Opening Soon”."
+        ? "<strong>Tester mode on</strong>Registrations are open on this browser only — the world still sees “Priority Round Closed”."
         : "<strong>Tester mode off</strong>This browser is back to the public view — registrations closed.", !on);
     } else {
       msg.textContent = "Wrong code.";

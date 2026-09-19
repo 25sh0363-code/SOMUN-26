@@ -28,9 +28,10 @@
 
 export const CONFIG = {
   /* Registration portal gate — flip to true when registrations open.
+     PRIORITY ROUND CLOSED (19 Sep) — flip back to true when Round 1 opens.
      While false: the register page stays browsable, but the wizard box
-     is blurred + inert under an "Opening Soon" stamp. */
-  REGISTRATIONS_OPEN: true,
+     is blurred + inert under a "Priority Round Closed" stamp. */
+  REGISTRATIONS_OPEN: false,
   TESTER_PIN: "somun26",
 
   /* Committees reveal gate — flip to true on reveal day.
