@@ -1528,8 +1528,6 @@ deckInit();
       });
     }
 
-    /* 5 · the road to the gavel — the spine fills crimson as it scrolls
-       past, and each milestone lights when the fill reaches its node */
     let tlUpdate = null;
     {
       const tl = $("#ab-timeline", view);
@@ -1562,13 +1560,6 @@ deckInit();
       update();
     }
 
-    /* 6 · meet the secretariat — no embed: the chapter card carries a
-       single CTA whose href comes from CONFIG.SECRETARIAT_POST_URL (no
-       URL configured → a "link goes live" hint shows instead). While
-       SECRETARIAT_REVEALED is false the card renders blurred + inert
-       under a "Coming Soon" stamp. Flip the flag in config.js on drop
-       day; the same file carries the post link, so a new post needs
-       zero code edits. */
     {
       const box = $("#ab-secretariat", view);
       const btn = $("#ab-sec-btn", view);
@@ -1596,9 +1587,7 @@ deckInit();
       }
     }
 
-    /* 7 · the grounds — the venue exhibit stays sealed until the map
-       panel scrolls near; the Google embed then loads once and the
-       veil fades. Once loaded it stays loaded across view swaps. */
+
     {
       const map = $("#ab-map", view);
       const frame = map ? $(".ab-map-frame", map) : null;

@@ -647,8 +647,8 @@
                 <span class="ab-tl-node" aria-hidden="true"></span>
                 <div class="ab-tl-card">
                   <span class="ab-tl-when">Now <span class="ab-tl-badge ab-tl-badge--tba">COMING SOON</span></span>
-                  <h4 class="ab-tl-title">Registrations Open now!</h4>
-                  <p class="ab-tl-desc">Limited seats. Early bird is live!</p>
+                  <h4 class="ab-tl-title">Registrations opening soon</h4>
+                  <p class="ab-tl-desc">The portal goes live shortly — and seats are first-come, first-serve. So keep watching this page, and your inbox.</p>
                 </div>
               </li>
               <li class="ab-tl-item reveal">
@@ -1411,6 +1411,11 @@
                   <div class="regs-tools">
                     <input class="input" id="regs-search" type="text" placeholder="Filter by any detail — name, email, phone, emergency contact, grade, institution, dietary, committee, portfolio, referral" autocomplete="off" />
                     <button type="button" class="pa-btn" id="regs-refresh" title="Pull the roster fresh from the ledger">Refresh</button>
+                    <select class="input" id="regs-sort" title="Order the cards by how many MUNs each delegate has attended" style="max-width:250px">
+                      <option value="new">Sort · newest first</option>
+                      <option value="exp-desc">Most experienced first</option>
+                      <option value="exp-asc">Least experienced first</option>
+                    </select>
                     <select class="input" id="regs-day" title="Pick one day → Export CSV downloads that day as its own file; All days keeps the combined file" style="max-width:300px"></select>
                     <button type="button" class="pa-btn" id="regs-csv" title="Download the picked day (or all days) as a spreadsheet">Export CSV</button>
                   </div>
@@ -1427,6 +1432,11 @@
                   <div class="regs-tools">
                     <input class="input" id="deleg-search" type="text" placeholder="Filter folders or delegates — delegation, head, name, email, phone, institution, committee, portfolio" autocomplete="off" />
                     <button type="button" class="pa-btn" id="deleg-refresh" title="Pull the delegation roster fresh from the ledger">Refresh</button>
+                    <select class="input" id="deleg-sort" title="Folders are ordered by their delegates' average experience; members inside each folder follow the same order" style="max-width:250px">
+                      <option value="new">Sort · default order</option>
+                      <option value="exp-desc">Most experienced first</option>
+                      <option value="exp-asc">Least experienced first</option>
+                    </select>
                     <select class="input" id="deleg-day" title="Pick one day → Export CSV downloads that day as its own file; All days keeps the combined file" style="max-width:300px"></select>
                     <button type="button" class="pa-btn" id="deleg-csv" title="Download the picked day (or all days) as a spreadsheet">Export CSV</button>
                   </div>
@@ -1688,6 +1698,6 @@
 
   <datalist id="committee-list"></datalist>
   <script src="js/vendor/jsQR.js"></script>
-  <script type="module" src="js/main.js?v=20260914i"></script>
+  <script type="module" src="js/main.js?v=20260914j"></script>
 </body>
 </html>
