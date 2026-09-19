@@ -1528,6 +1528,8 @@ deckInit();
       });
     }
 
+    /* 5 · the road to the gavel — the spine fills crimson as it scrolls
+       past, and each milestone lights when the fill reaches its node */
     let tlUpdate = null;
     {
       const tl = $("#ab-timeline", view);
@@ -1560,6 +1562,13 @@ deckInit();
       update();
     }
 
+    /* 6 · meet the secretariat — no embed: the chapter card carries a
+       single CTA whose href comes from CONFIG.SECRETARIAT_POST_URL (no
+       URL configured → a "link goes live" hint shows instead). While
+       SECRETARIAT_REVEALED is false the card renders blurred + inert
+       under a "Coming Soon" stamp. Flip the flag in config.js on drop
+       day; the same file carries the post link, so a new post needs
+       zero code edits. */
     {
       const box = $("#ab-secretariat", view);
       const btn = $("#ab-sec-btn", view);
@@ -1587,7 +1596,9 @@ deckInit();
       }
     }
 
-
+    /* 7 · the grounds — the venue exhibit stays sealed until the map
+       panel scrolls near; the Google embed then loads once and the
+       veil fades. Once loaded it stays loaded across view swaps. */
     {
       const map = $("#ab-map", view);
       const frame = map ? $(".ab-map-frame", map) : null;
@@ -2569,6 +2580,7 @@ function whenIST(t) {
   const regsCount = $("#regs-count");
   const regsErr = $("#regs-err");
   const regsSearch = $("#regs-search");
+  const regsSort = $("#regs-sort");
   let regsCache = null;
   let regsLoading = false;
   let regsStale = true;
@@ -2586,6 +2598,26 @@ function whenIST(t) {
       return n === 0 ? "First MUN" : `${n} MUN${n > 1 ? "s" : ""}`;
     }
     return EXP_LABEL[s] || s || "—";
+  };
+  /* experience as a sortable number — the form stores “how many MUNs
+     attended” as text ('0'…'99'); a few legacy rows may carry the old
+     novice/intermediate/veteran words instead, those rank 0/1/2. */
+  const expNum = (v) => {
+    const s = v == null ? "" : String(v).trim().toLowerCase();
+    if (/^\d+$/.test(s)) return parseInt(s, 10);
+    if (s === "novice") return 0;
+    if (s === "intermediate") return 1;
+    if (s === "veteran") return 2;
+    return -1;
+  };
+  /* apply the experience sort a toolbar picked — ties (and the default
+     “new” mode) keep the roster's newest-first order */
+  const byExp = (rows, sel) => {
+    if (!sel || sel.value === "new") return rows;
+    const dir = sel.value === "exp-asc" ? 1 : -1;
+    return [...rows].sort((a, b) =>
+      (expNum(a.experience) - expNum(b.experience)) * dir ||
+      (new Date(b.created_at) - new Date(a.created_at)));
   };
   const STATUS_CHIP = {
     registered: ["fee pending", "wait"],
@@ -2674,7 +2706,7 @@ function whenIST(t) {
 
   function renderRegistrants() {
     if (!regsCache) return;
-    const rows = regsFiltered();
+    const rows = byExp(regsFiltered(), regsSort);
     const open = keepOpen(regsList, "details.regs-item[data-k]");
     regsList.innerHTML = rows.length
       ? rows.map(regsRow).join("")
@@ -2723,6 +2755,7 @@ function whenIST(t) {
   $$(".pa-tab").forEach((t) => t.addEventListener("click", () => setTab(t.dataset.patab)));
 
   if (regsSearch) regsSearch.addEventListener("input", renderRegistrants);
+  if (regsSort) regsSort.addEventListener("change", renderRegistrants);
   const regsRefresh = $("#regs-refresh");
   if (regsRefresh) regsRefresh.addEventListener("click", loadRegistrants);
   /* — CSV exports read in “standard Indian time”: every timestamp is
@@ -2834,6 +2867,7 @@ function whenIST(t) {
   const delegPage = $("#pa-page-deleg");
   const delegBox = $("#deleg-folders");
   const delegSearch = $("#deleg-search");
+  const delegSort = $("#deleg-sort");
   const delegCount = $("#deleg-count");
   const delegErr = $("#deleg-err");
   let delegCache = null;
@@ -2878,7 +2912,7 @@ function whenIST(t) {
       if (!map.has(k)) map.set(k, []);
       map.get(k).push(r);
     }
-    return [...map.entries()].map(([, members]) => {
+    const groups = [...map.entries()].map(([, members]) => {
       const spell = new Map();
       for (const m of members) {
         const v = String(m.delegation_name || "").trim();
@@ -2893,8 +2927,24 @@ function whenIST(t) {
         members,
         head: members.map((m) => (m.delegation_head || "").trim()).find(Boolean) || "",
         phone: members.map((m) => (m.delegation_head_phone || "").trim()).find(Boolean) || "",
+        avgExp: members.length
+          ? members.reduce((n, m) => n + Math.max(0, expNum(m.experience)), 0) / members.length
+          : null,
       };
     });
+    /* experience sort — folders rank by their members' AVERAGE MUNs and
+       the members inside each folder follow the same direction, so the
+       strongest delegations (and delegates) sit at the top of the page */
+    if (delegSort && delegSort.value !== "new") {
+      const dir = delegSort.value === "exp-asc" ? 1 : -1;
+      for (const g of groups) {
+        g.members.sort((a, b) =>
+          (expNum(a.experience) - expNum(b.experience)) * dir ||
+          (new Date(b.created_at) - new Date(a.created_at)));
+      }
+      groups.sort((a, b) => ((a.avgExp == null ? -1 : a.avgExp) - (b.avgExp == null ? -1 : b.avgExp)) * dir);
+    }
+    return groups;
   }
 
   const delegMemberRow = (m) => {
@@ -2929,7 +2979,7 @@ function whenIST(t) {
         <span class="deleg-caret" aria-hidden="true"></span>
         <span class="deleg-folder-id">
           <span class="deleg-folder-name">${esc(g.name)}</span>
-          <span class="deleg-folder-meta">${g.members.length} delegate${g.members.length === 1 ? "" : "s"} · head ${g.head ? esc(g.head) : "—"}${g.phone ? ` <span class="regs-phone">${esc(g.phone)}</span>` : ""}</span>
+          <span class="deleg-folder-meta">${g.members.length} delegate${g.members.length === 1 ? "" : "s"} · avg ${g.avgExp == null ? "—" : g.avgExp.toFixed(1)} MUN${g.avgExp === 1 ? "" : "s"} · head ${g.head ? esc(g.head) : "—"}${g.phone ? ` <span class="regs-phone">${esc(g.phone)}</span>` : ""}</span>
         </span>
         ${g.members.length < 6 ? `<span class="deleg-risk" title="Minimum 6 delegates — below it this delegation gets disbanded">under 6 — at risk</span>` : ""}
         <button type="button" class="pa-btn pa-btn--bad${armed ? " is-armed" : ""}" data-act="deldel" data-deleg="${esc(g.name)}" title="Release every delegate in this folder back to individual registration — payments are untouched">${armed ? "Confirm disband" : "Disband"}</button>
@@ -2975,6 +3025,7 @@ function whenIST(t) {
     csvDownload(`somun26-delegations-${istFileDay()}.csv`, head, out, rows.length);
   });
   if (delegSearch) delegSearch.addEventListener("input", renderDelegations);
+  if (delegSort) delegSort.addEventListener("change", renderDelegations);
   const delegRefresh = $("#deleg-refresh");
   if (delegRefresh) delegRefresh.addEventListener("click", loadDelegations);
 
