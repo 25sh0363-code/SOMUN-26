@@ -6,7 +6,7 @@
    resources (Supabase) · itinerary
    ———————————————————————————————————————————————————————— */
 
-import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, MATRIX_PDFS } from "./data.js?v=20260912m";
+import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, MATRIX_PDFS } from "./data.js?v=20260921a";
 import { CONFIG, supabaseConfigured, feeAnnounced, payFlow, formatINR } from "./config.js";
 import { icon, hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
@@ -81,7 +81,7 @@ $('#itin-intro').innerHTML =
 const REG_INTRO_TEXT =
   `Complete the four short pages below — personal information, MUN experience, committee preferences, then referral and payment — and the secretariat will respond with your portfolio allotment. For assistance write to ${CONFERENCE.email}.`;
 const REG_INTRO_CLOSED =
-  `The priority registration round is closed. Please wait for Round 1 registrations — the portal reopens as soon as the secretariat announces the date. For assistance write to ${CONFERENCE.email}.`;
+  `Registrations reopen with Round 1 on 22 September 2026 — the portal opens right here that day. For assistance write to ${CONFERENCE.email}.`;
 $("#reg-intro").textContent = REG_INTRO_TEXT;
 $("#year").textContent = new Date().getFullYear();
 
@@ -964,10 +964,10 @@ function applyRegGate() {
         v.className = "reg-veil";
         const stamp = document.createElement("span");
         stamp.className = "reg-veil-stamp";
-        stamp.textContent = "Priority Round Closed";
+        stamp.textContent = "Round 1 · Opens 22 September";
         const sub = document.createElement("span");
         sub.className = "reg-veil-sub";
-        sub.textContent = "Please wait for Round 1 registrations — the portal reopens on the announced date.";
+        sub.textContent = "The portal opens right here on 22 September 2026 — set a reminder.";
         v.append(stamp, sub);
         regBox.append(v);
       }
@@ -2426,7 +2426,7 @@ if (SHOW_ITINERARY) {
   const paint = () => {
     const on = testerOn();
     stateLine.innerHTML = on
-      ? "Access is <b style='color:var(--beige)'>ON</b> — the portal is open on this browser only; everyone else still sees “Priority Round Closed”. Enter the code to switch it back off."
+      ? "Access is <b style='color:var(--beige)'>ON</b> — the portal is open on this browser only; everyone else still sees “Round 1 · Opens 22 September”. Enter the code to switch it back off."
       : "Registrations are closed for the world right now. Enter the access code to open the portal on this browser only — nothing changes for anyone else.";
     goBtn.textContent = on ? "Lock again" : "Unlock";
   };
@@ -2453,7 +2453,7 @@ if (SHOW_ITINERARY) {
       applyRegGate();
       closeModal();
       showToast(on
-        ? "<strong>Tester mode on</strong>Registrations are open on this browser only — the world still sees “Priority Round Closed”."
+        ? "<strong>Tester mode on</strong>Registrations are open on this browser only — the world still sees “Round 1 · Opens 22 September”."
         : "<strong>Tester mode off</strong>This browser is back to the public view — registrations closed.", !on);
     } else {
       msg.textContent = "Wrong code.";
