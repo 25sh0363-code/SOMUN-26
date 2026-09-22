@@ -28,9 +28,9 @@
 
 export const CONFIG = {
   /* Registration portal gate — flip to true when registrations open.
-     PRIORITY ROUND CLOSED (19 Sep) — flip back to true when Round 1 opens.
+     ROUND 1 NOT OPEN YET (dates to be revealed) — flip to true on opening day.
      While false: the register page stays browsable, but the wizard box
-     is blurred + inert under a "Priority Round Closed" stamp. */
+     is blurred + inert under a "Round 1 · Date To Be Revealed" stamp. */
   REGISTRATIONS_OPEN: false,
   TESTER_PIN: "somun26",
 
@@ -73,7 +73,7 @@ export const CONFIG = {
      INVOICED amount itself is stamped per delegate server-side from
      app_secrets → fee_base_early (supabase/payment.sql) — keep the two
      in step when the early-bird window ends. */
-  REGISTRATION_FEE: 3000,   /* early-bird base — round one TBD */
+  REGISTRATION_FEE: 3000,   /* round one — dates to be revealed */
 
   /* ——— UPI watermark payments (the live path — no gateway, no KYC) ———
      The payee UPI ID is NOT set here — it lives in Supabase:

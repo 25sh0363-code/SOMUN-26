@@ -77,11 +77,11 @@ $('[data-copy="venue"]') && ($('[data-copy="venue"]').textContent = `${CONFERENC
 $('#itin-intro').innerHTML =
   `From the first roll call to the final gavel — the full three-day programme at <span class="venue-redact">${CONFERENCE.venue}</span> will be published right here, day by day.`;
 /* the register-page intro has two states — open (wizard walkthrough) and
-   closed (priority-round notice) — applyRegGate swaps between them */
+   closed (round-one notice) — applyRegGate swaps between them */
 const REG_INTRO_TEXT =
   `Complete the four short pages below — personal information, MUN experience, committee preferences, then referral and payment — and the secretariat will respond with your portfolio allotment. For assistance write to ${CONFERENCE.email}.`;
 const REG_INTRO_CLOSED =
-  `Registrations reopen with Round 1 on 22 September 2026 — the portal opens right here that day. For assistance write to ${CONFERENCE.email}.`;
+  `Registrations reopen with Round 1 — dates to be revealed. The portal opens right here, so keep an eye on this page. For assistance write to ${CONFERENCE.email}.`;
 $("#reg-intro").textContent = REG_INTRO_TEXT;
 $("#year").textContent = new Date().getFullYear();
 
@@ -964,10 +964,10 @@ function applyRegGate() {
         v.className = "reg-veil";
         const stamp = document.createElement("span");
         stamp.className = "reg-veil-stamp";
-        stamp.textContent = "Round 1 · Opens 22 September";
+        stamp.textContent = "Round 1 · Date To Be Revealed";
         const sub = document.createElement("span");
         sub.className = "reg-veil-sub";
-        sub.textContent = "The portal opens right here on 22 September 2026 — set a reminder.";
+        sub.textContent = "The portal opens right here — dates to be revealed. Watch this space.";
         v.append(stamp, sub);
         regBox.append(v);
       }
@@ -2426,7 +2426,7 @@ if (SHOW_ITINERARY) {
   const paint = () => {
     const on = testerOn();
     stateLine.innerHTML = on
-      ? "Access is <b style='color:var(--beige)'>ON</b> — the portal is open on this browser only; everyone else still sees “Round 1 · Opens 22 September”. Enter the code to switch it back off."
+      ? "Access is <b style='color:var(--beige)'>ON</b> — the portal is open on this browser only; everyone else still sees “Round 1 · Date To Be Revealed”. Enter the code to switch it back off."
       : "Registrations are closed for the world right now. Enter the access code to open the portal on this browser only — nothing changes for anyone else.";
     goBtn.textContent = on ? "Lock again" : "Unlock";
   };
@@ -2453,7 +2453,7 @@ if (SHOW_ITINERARY) {
       applyRegGate();
       closeModal();
       showToast(on
-        ? "<strong>Tester mode on</strong>Registrations are open on this browser only — the world still sees “Round 1 · Opens 22 September”."
+        ? "<strong>Tester mode on</strong>Registrations are open on this browser only — the world still sees “Round 1 · Date To Be Revealed”."
         : "<strong>Tester mode off</strong>This browser is back to the public view — registrations closed.", !on);
     } else {
       msg.textContent = "Wrong code.";

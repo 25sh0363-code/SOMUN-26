@@ -432,13 +432,13 @@ export const FEES = [
     label: "Delegate",
     early: "₹ 3,000",
     standard: "₹ 3,000",
-    note: "Round 1 opens Tue, Sep 22 — your invoice carries a unique paise ID",
+    note: "Opens with Round 1 — your invoice carries a unique paise ID",
   },
   {
     label: "Group Delegation",
     early: "₹ 3,000",
     standard: "₹ 3,000",
-    note: "Same fee as delegates — Round 1 opens Tue, Sep 22",
+    note: "Same fee as delegates — opens with Round 1",
   },
 ];
 
