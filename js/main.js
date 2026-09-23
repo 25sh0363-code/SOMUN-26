@@ -2881,11 +2881,12 @@ function whenIST(t) {
     sel.value = [...sel.options].some((o) => o.value === prev) ? prev : "all";
   };
   const regsRowLine = (r) => csvLine([
-    r.upi_utr || "", inrPaid(r.expected_amount), r.ref_code, r.full_name, r.institution, r.email, istStamp(r.created_at),
+    r.upi_utr || "", inrPaid(r.expected_amount), r.ref_code, r.full_name, r.institution, r.email,
+    r.phone || "", r.emergency_phone || "", istStamp(r.created_at),
   ]);
   const delegRowLine = (m) => csvLine([
     m.upi_utr || "", inrPaid(m.expected_amount), m.ref_code, m.full_name, m.institution, m.email,
-    m.delegation_name, istStamp(m.created_at),
+    m.phone || "", m.emergency_phone || "", m.delegation_name, istStamp(m.created_at),
   ]);
 
   const regsDaySel = $("#regs-day");
@@ -2893,7 +2894,7 @@ function whenIST(t) {
   if (regsCsv) regsCsv.addEventListener("click", () => {
     const rows = regsFiltered();
     if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no rows.", true);
-    const head = ["UTR", "Amount Paid (₹)", "Ref ID", "Name", "School", "Email", "Registered (IST)"];
+    const head = ["UTR", "Amount Paid (₹)", "Ref ID", "Name", "School", "Email", "Phone", "Emergency Phone", "Registered (IST)"];
     const day = (regsDaySel && regsDaySel.value) || "all";
     if (day !== "all") {
       const g = csvDayGroups(rows).find((x) => x.key === day);
@@ -3063,7 +3064,7 @@ function whenIST(t) {
   if (delegCsv) delegCsv.addEventListener("click", () => {
     const rows = delegGroups().flatMap((g) => g.members);
     if (!rows.length) return showToast("<strong>Nothing to export</strong>The current view has no delegates.", true);
-    const head = ["UTR", "Amount Paid (₹)", "Ref ID", "Name", "School", "Email", "Delegation", "Registered (IST)"];
+    const head = ["UTR", "Amount Paid (₹)", "Ref ID", "Name", "School", "Email", "Phone", "Emergency Phone", "Delegation", "Registered (IST)"];
     const day = (delegDaySel && delegDaySel.value) || "all";
     if (day !== "all") {
       const g = csvDayGroups(rows).find((x) => x.key === day);
