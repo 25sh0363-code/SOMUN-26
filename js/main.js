@@ -3097,7 +3097,11 @@ function whenIST(t) {
   const allocPage = $("#pa-page-alloc");
   const allocList = $("#alloc-list");
   const allocCount = $("#alloc-count");
+  const allocFilter = $("#alloc-mail-filter");
   const allocErr = $("#alloc-err");
+  /* where each seat's mail stands — drives the toolbar filter, the CSV
+     export and the unsend actions: mailed → queued → not-queued */
+  const mailState = (a) => (a.mail_sent_at ? "mailed" : a.mail_queued_at ? "queued" : "notqueued");
   let allocCache = null;
   let allocLoading = false;
   let allocStale = true;
@@ -3141,13 +3145,15 @@ function whenIST(t) {
     const queued = allocCache.filter((a) => a.mail_queued_at && !a.mail_sent_at).length;
     const istToday = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
     const inToday = allocCache.filter((a) => a.checkins && Object.keys(a.checkins).includes(istToday)).length;
-    const cmtCount = new Set(allocCache.map((a) => String(a.committee || ""))).size;
-    allocCount.innerHTML = `<b>${allocCache.length}</b> seated in <b>${cmtCount}</b> chamber${cmtCount === 1 ? "" : "s"} · <b>${mailed}</b> mailed · <b>${queued}</b> queued · <b>${inToday}</b> checked in today`;
+    const f = (allocFilter && allocFilter.value) || "all";
+    const shown = f === "all" ? allocCache : allocCache.filter((a) => mailState(a) === f);
+    const cmtCount = new Set(shown.map((a) => String(a.committee || ""))).size;
+    allocCount.innerHTML = `<b>${shown.length}</b> shown · <b>${allocCache.length}</b> seated in <b>${cmtCount}</b> chamber${cmtCount === 1 ? "" : "s"} · <b>${mailed}</b> mailed · <b>${queued}</b> queued · <b>${inToday}</b> checked in today`;
 
     /* one folder per chamber — seats sorted by portfolio, then name —
        so the secretariat can review (and mail) committee by committee */
     const map = new Map();
-    for (const a of allocCache) {
+    for (const a of shown) {
       const k = String(a.committee || "");
       if (!map.has(k)) map.set(k, []);
       map.get(k).push(a);
@@ -3172,7 +3178,7 @@ function whenIST(t) {
         </summary>
         <div class="deleg-members">${g.rows.map(allocCard).join("")}</div>
       </details>`).join("")
-      : `<p class="regs-empty">No seats yet — hit Allocate on a verified delegate (either roster tab) and they land here.</p>`;
+      : `<p class="regs-empty">${f === "all" ? "No seats yet — hit Allocate on a verified delegate (either roster tab) and they land here." : "No delegates under this mail filter — switch the pick above back to “All seats”."}</p>`;
     restoreOpen(allocList, open);
   }
 
@@ -3189,6 +3195,7 @@ function whenIST(t) {
           <p class="regs-note">Seat by <b>${esc(a.allocated_by || "—")}</b> · ${whenIST(a.allocated_at)} &nbsp;·&nbsp; Mail: ${a.mail_sent_at ? `sent ${whenIST(a.mail_sent_at)}` : a.mail_queued_at ? `queued ${whenIST(a.mail_queued_at)} — waiting on the mailer` : "not queued yet"} &nbsp;·&nbsp; Check-ins: ${checkinChips(a.checkins)}</p>
           <div class="pa-row-actions">
             <button type="button" class="pa-btn" data-act="allocmail" data-id="${esc(a.registration_id)}" data-name="${esc(a.full_name)}" title="Queue (or re-send) the allocation mail with the QR entry pass">${a.mail_queued_at ? "Re-send mail" : "Queue mail"}</button>
+            ${a.mail_sent_at ? `<button type="button" class="pa-btn" data-act="mailrevoke" data-id="${esc(a.registration_id)}" data-name="${esc(a.full_name)}" title="Pull this mail back to the queue — the delegate shows as not queued and a fresh copy can be mailed">Unsend mail</button>` : ""}
             <button type="button" class="pa-btn pa-btn--bad${isArmed("unalloc", a.registration_id) ? " is-armed" : ""}" data-act="unalloc" data-id="${esc(a.registration_id)}" data-name="${esc(a.full_name)}" title="Pull this seat back — the delegate returns to the unallocated roster; payments are untouched">${isArmed("unalloc", a.registration_id) ? "Confirm remove" : "Remove seat"}</button>
           </div>
         </div>
@@ -3196,6 +3203,58 @@ function whenIST(t) {
 
   if (allocPage) {
     $("#alloc-refresh").addEventListener("click", loadAllocations);
+    if (allocFilter) allocFilter.addEventListener("change", renderAllocations);
+    /* CSV of exactly what the filter shows — pick “Mail sent” above and
+       this downloads the people the allocation mail went out to, with
+       committee, portfolio, phone and the sent stamp for each */
+    $("#alloc-csv").addEventListener("click", () => {
+      if (!allocCache || !allocCache.length) return showToast("<strong>Nothing to export</strong>No seats are allocated yet.", true);
+      const f = (allocFilter && allocFilter.value) || "all";
+      const rows = (f === "all" ? allocCache : allocCache.filter((a) => mailState(a) === f))
+        .slice()
+        .sort((x, y) =>
+          String(x.committee || "").localeCompare(String(y.committee || ""), undefined, { sensitivity: "base" }) ||
+          String(x.portfolio || "").localeCompare(String(y.portfolio || ""), undefined, { sensitivity: "base" }) ||
+          String(x.full_name || "").localeCompare(String(y.full_name || ""), undefined, { sensitivity: "base" }));
+      if (!rows.length) return showToast("<strong>Nothing to export</strong>The current mail filter has no rows — switch it to “All seats”.", true);
+      const head = ["Ref ID", "Name", "Email", "Phone", "School", "Committee", "Portfolio", "Delegation", "Mail", "Mailed (IST)", "Allocated by", "Allocated (IST)"];
+      const out = rows.map((a) => csvLine([
+        a.ref_code || "", a.full_name || "", a.email || "", a.phone || "", a.institution || "",
+        cmtAcronym(a.committee), a.portfolio || "", a.delegation_name || "",
+        mailState(a) === "mailed" ? "sent" : mailState(a) === "queued" ? "queued" : "not queued",
+        a.mail_sent_at ? istStamp(a.mail_sent_at) : "",
+        a.allocated_by || "", istStamp(a.allocated_at),
+      ]));
+      csvDownload(`somun26-allocated-${istFileDay()}.csv`, head, out, rows.length);
+    });
+    /* unsend: every mailed seat returns to the queue in one move — the
+       Gmail copies already delivered can't be recalled, but the ledger
+       resets so “Mail all pending” mails fresh copies on the next click */
+    const revokeBtn = $("#alloc-mail-revoke");
+    if (revokeBtn) revokeBtn.addEventListener("click", async () => {
+      const mailedN = (allocCache || []).filter((a) => a.mail_sent_at).length;
+      if (!mailedN) return showToast("<strong>Nothing to unsend</strong>No allocation mail is in the sent state right now.", true);
+      if (revokeBtn.dataset.armed !== "1") {
+        revokeBtn.dataset.armed = "1";
+        revokeBtn.textContent = `Confirm — unsend ${mailedN}`;
+        setTimeout(() => { revokeBtn.dataset.armed = ""; revokeBtn.textContent = "Unsend all mail"; }, 6000);
+        return;
+      }
+      revokeBtn.dataset.armed = "";
+      revokeBtn.textContent = "Unsend all mail";
+      revokeBtn.disabled = true;
+      try {
+        const n = await rpc("alloc_mail_revoke", { p_key: key });
+        showToast(n
+          ? `<strong>Mail pulled back</strong>${n} delegate${n === 1 ? "" : "s"} returned to the mail queue — “Mail all pending” sends fresh copies.`
+          : "<strong>Nothing to unsend</strong>No sent allocation mail was found.", !n);
+        loadAllocations();
+      } catch (err) {
+        showToast(`<strong>Unsend failed</strong>${esc(err.message || "Try again in a moment.")}`, true);
+      } finally {
+        revokeBtn.disabled = false;
+      }
+    });
     $("#alloc-mail-all").addEventListener("click", async () => {
       try {
         const n = await rpc("alloc_mail_queue", { p_key: key });
@@ -3683,6 +3742,18 @@ function whenIST(t) {
         } catch (err) {
           b.disabled = false;
           showToast(`<strong>Queue failed</strong>${esc(err.message || "")}`, true);
+        }
+      } else if (act === "mailrevoke") {
+        b.disabled = true;
+        try {
+          const n = await rpc("alloc_mail_revoke", { p_key: key, p_registration: id });
+          showToast(n
+            ? `<strong>Mail pulled back</strong>${esc(b.dataset.name || "The delegate")} is back in the mail queue — “Queue mail” sends a fresh copy.`
+            : "<strong>Nothing to unsend</strong>This mail was not in the sent state.", !n);
+          loadAllocations();
+        } catch (err) {
+          b.disabled = false;
+          showToast(`<strong>Unsend failed</strong>${esc(err.message || "")}`, true);
         }
       } else if (act === "shot") {
         b.disabled = true;
