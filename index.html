@@ -107,7 +107,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300..700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20260921f" />
+  <link rel="stylesheet" href="css/styles.css?v=20260921h" />
 </head>
 <body class="grain">
 
@@ -1463,7 +1463,7 @@
                   <p class="pa-hint">Every delegate with a committee seat — individuals and delegation members alike. Queue the allocation mail here: each mail carries the delegate's details, their committee seat and a QR entry pass built from their reference code (scannable at RegDesk, once per day).</p>
                   <div class="regs-tools">
                     <button type="button" class="pa-btn" id="alloc-refresh" title="Pull the allocated roster fresh from the ledger">Refresh</button>
-                    <button type="button" class="pa-btn" id="alloc-mail-all" title="Queue the allocation mail for every delegate that does not have one yet — asks for confirmation first so the allocations can be double-checked">Mail all pending</button>
+                    <button type="button" class="pa-btn" id="alloc-mail-all" title="Conference-wide — queues the allocation mail for every delegate without one, all committees at once; asks for confirmation first. To mail a single committee, open its card below and use the button in its header.">Mail all pending</button>
                     <select class="pa-select" id="alloc-mail-filter" title="Slice the roster by where each mail stands" style="max-width:240px">
                       <option value="all">All seats</option>
                       <option value="mailed">Mail sent</option>
@@ -1717,6 +1717,6 @@
 
   <datalist id="committee-list"></datalist>
   <script src="js/vendor/jsQR.js"></script>
-  <script type="module" src="js/main.js?v=20260921f"></script>
+  <script type="module" src="js/main.js?v=20260921h"></script>
 </body>
 </html>

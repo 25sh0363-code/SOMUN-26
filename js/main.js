@@ -3105,6 +3105,9 @@ function whenIST(t) {
   let allocCache = null;
   let allocLoading = false;
   let allocStale = true;
+  /* null = the committee grid; a committee name = that committee's
+     delegate view (opened by clicking its card in the grid) */
+  let allocView = null;
 
   const allocByReg = (id) => {
     if (!allocCache) return null;
@@ -3139,22 +3142,33 @@ function whenIST(t) {
     }
   }
 
+  const isPendingCmt = (c) => /^pending/i.test(String(c || ""));
+  /* doubles are BY DESIGN in HCC, IP and MCU — the EB deliberately seats
+     multiple delegates on one portfolio there, so those three never get
+     flagged red and the alloc form / DB patch don't block them either.
+     cmtAcronym maps slugs (hcc-ccc, mcu, ip) and typed text to the
+     acronym, so matching on the acronym covers every spelling */
+  const DUP_OK = new Set(["HCC", "IP", "MCU"]);
+  const dupAllowedCmt = (c) => DUP_OK.has(cmtAcronym(cmt));
+
   function renderAllocations() {
     if (!allocCache) return;
     const mailed = allocCache.filter((a) => a.mail_sent_at).length;
     const queued = allocCache.filter((a) => a.mail_queued_at && !a.mail_sent_at).length;
+    const toSend = allocCache.filter((a) => !a.mail_queued_at).length;
     const istToday = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
     const inToday = allocCache.filter((a) => a.checkins && Object.keys(a.checkins).includes(istToday)).length;
     const f = (allocFilter && allocFilter.value) || "all";
-    const shown = f === "all" ? allocCache : allocCache.filter((a) => mailState(a) === f);
-    /* one portfolio per chamber — catch doubles that already exist:
-       the same committee + portfolio (case-insensitive) held by 2+ */
+    /* one portfolio per chamber — doubles are computed over the WHOLE
+       roster, not the filtered view, so a red flag never disappears
+       just because a mail filter is on */
     const seatKey = (a) => {
       const p = String(a.portfolio || "").trim().toLowerCase();
       return p ? `${String(a.committee || "").trim().toLowerCase()}||${p}` : null;
     };
     const dupSets = new Map();
-    for (const a of shown) {
+    for (const a of allocCache) {
+      if (dupAllowedCmt(a.committee)) continue;   // HCC / IP / MCU — doubles by design
       const k = seatKey(a);
       if (!k) continue;
       if (!dupSets.has(k)) dupSets.set(k, []);
@@ -3166,38 +3180,68 @@ function whenIST(t) {
       if (arr.length > 1) for (const a of arr) dupes.set(String(a.registration_id), arr.filter((x) => x !== a).map((x) => x.full_name));
     }
     const dupSeats = [...dupSets.values()].filter((arr) => arr.length > 1).length;
-    const cmtCount = new Set(shown.map((a) => String(a.committee || ""))).size;
-    allocCount.innerHTML = `<b>${shown.length}</b> shown · <b>${allocCache.length}</b> seated in <b>${cmtCount}</b> chamber${cmtCount === 1 ? "" : "s"} · <b>${mailed}</b> mailed · <b>${queued}</b> queued · <b>${inToday}</b> checked in today${dupSeats ? ` · <span class="pa-hot"><b>${dupSeats}</b> seat${dupSeats === 1 ? "" : "s"} double-booked</span>` : ""}`;
-
-    /* one folder per chamber — seats sorted by portfolio, then name —
-       so the secretariat can review (and mail) committee by committee */
-    const map = new Map();
-    for (const a of shown) {
+    /* one group per committee — seats sorted by portfolio, then name;
+       PENDING-seat rows get their own dashed card pinned last */
+    const cmtGroups = [...allocCache.reduce((map, a) => {
       const k = String(a.committee || "");
       if (!map.has(k)) map.set(k, []);
       map.get(k).push(a);
-    }
-    const groups = [...map.entries()].map(([cmt, rows]) => ({
+      return map;
+    }, new Map()).entries()].map(([cmt, rows]) => ({
       cmt,
-      label: cmtAcronym(cmt),
+      label: isPendingCmt(cmt) ? "Pending seats" : cmtAcronym(cmt),
+      isPending: isPendingCmt(cmt),
       rows: rows.slice().sort((x, y) =>
         String(x.portfolio || "").localeCompare(String(y.portfolio || ""), undefined, { sensitivity: "base" }) ||
         String(x.full_name || "").localeCompare(String(y.full_name || ""), undefined, { sensitivity: "base" })),
-    })).sort((x, y) => x.label.localeCompare(y.label, undefined, { sensitivity: "base" }));
+    })).sort((x, y) => (x.isPending - y.isPending) ||
+      x.label.localeCompare(y.label, undefined, { sensitivity: "base" }));
 
+    if (!allocView) {
+      /* ——— the committee grid: one card per chamber, click through ——— */
+      allocCount.innerHTML = `<b>${allocCache.length}</b> seated in <b>${cmtGroups.filter((g) => !g.isPending).length}</b> committees · <b>${mailed}</b> mailed · <b>${queued}</b> queued · <b>${toSend}</b> to send · <b>${inToday}</b> checked in today${dupSeats ? ` · <span class="pa-hot"><b>${dupSeats}</b> seat${dupSeats === 1 ? "" : "s"} double-booked</span>` : ""}`;
+      allocList.innerHTML = allocCache.length ? `
+        ${f !== "all" ? `<p class="regs-note">Mail filter is on — it applies inside each committee and to Export CSV, not to this grid.</p>` : ""}
+        <div class="alloc-grid">${cmtGroups.map((g) => {
+          const gM = g.rows.filter((a) => a.mail_sent_at).length;
+          const gQ = g.rows.filter((a) => a.mail_queued_at && !a.mail_sent_at).length;
+          const gT = g.rows.filter((a) => !a.mail_queued_at).length;
+          const gD = g.rows.filter((a) => dupes.has(String(a.registration_id))).length;
+          return `<button type="button" class="alloc-cmt${gD ? " alloc-cmt--doubled" : ""}${g.isPending ? " alloc-cmt--pending" : ""}" data-cmt="${esc(g.cmt)}" title="Open ${esc(g.label)} — every delegate seated here, with the same mail / CSV / seat tools">
+            <span class="alloc-cmt-top"><span class="alloc-cmt-name">${esc(g.label)}</span><span class="alloc-cmt-n">${g.rows.length}</span></span>
+            <span class="alloc-cmt-meta">${gM} mailed · ${gQ ? `${gQ} queued · ` : ""}${gT} to send${gD ? ` · <span class="pa-hot">⚠ ${gD} doubled</span>` : ""}</span>
+          </button>`;
+        }).join("")}</div>`
+        : `<p class="regs-empty">No seats yet — hit Allocate on a verified delegate (either roster tab) and they land here.</p>`;
+      return;
+    }
+
+    /* ——— one committee's delegates, same tools as the old flat list ——— */
+    const g = cmtGroups.find((x) => x.cmt === allocView);
+    if (!g) {
+      allocView = null;
+      renderAllocations();
+      return;
+    }
+    const shownRows = f === "all" ? g.rows : g.rows.filter((a) => mailState(a) === f);
+    const gM = g.rows.filter((a) => a.mail_sent_at).length;
+    const gQ = g.rows.filter((a) => a.mail_queued_at && !a.mail_sent_at).length;
+    const gT = g.rows.filter((a) => !a.mail_queued_at).length;
+    const gD = g.rows.filter((a) => dupes.has(String(a.registration_id))).length;
+    allocCount.innerHTML = `<b>${esc(g.label)}</b> · <b>${g.rows.length}</b> seated · <b>${gM}</b> mailed · <b>${gQ}</b> queued · <b>${gT}</b> to send${gD ? ` · <span class="pa-hot"><b>${gD}</b> double-booked</span>` : ""}${f !== "all" ? ` · showing ${shownRows.length} (mail filter on)` : ""}`;
     const open = keepOpen(allocList, "details[data-k]");
-    allocList.innerHTML = groups.length ? groups.map((g) => `
-      <details class="deleg-folder" data-k="C:${esc(g.cmt)}">
-        <summary>
-          <span class="deleg-caret" aria-hidden="true"></span>
-          <span class="deleg-folder-id">
-            <span class="deleg-folder-name">${esc(g.label)}</span>
-            <span class="deleg-folder-meta">${g.rows.length} seated · ${g.rows.filter((a) => a.mail_sent_at).length} mailed${g.rows.some((a) => dupes.has(String(a.registration_id))) ? ` · <span class="pa-hot">${g.rows.filter((a) => dupes.has(String(a.registration_id))).length} doubled</span>` : ""}</span>
-          </span>
-        </summary>
-        <div class="deleg-members">${g.rows.map((a) => allocCard(a, dupes.get(String(a.registration_id)))).join("")}</div>
-      </details>`).join("")
-      : `<p class="regs-empty">${f === "all" ? "No seats yet — hit Allocate on a verified delegate (either roster tab) and they land here." : "No delegates under this mail filter — switch the pick above back to “All seats”."}</p>`;
+    allocList.innerHTML = `
+      <div class="alloc-cmt-head">
+        <button type="button" class="pa-btn" data-alloc-back title="Back to the committee grid">← All committees</button>
+        <span class="alloc-cmt-name alloc-cmt-name--xl">${esc(g.label)}${g.isPending ? "" : `<span class="alloc-cmt-slug">${esc(g.cmt)}</span>`}</span>
+        <span class="alloc-cmt-meta">${g.rows.length} seated · ${gM} mailed · ${gQ ? `${gQ} queued · ` : ""}${gT} to send${gD ? ` · <span class="pa-hot">⚠ ${gD} doubled</span>` : ""}</span>
+        <span class="pa-row-actions">
+          <button type="button" class="pa-btn" data-alloc-cmt-csv data-cmt="${esc(g.cmt)}" title="Download this committee's delegates — respects the mail filter above">Export CSV</button>
+          <button type="button" class="pa-btn pa-btn--ok" data-alloc-cmt-mail data-cmt="${esc(g.cmt)}" title="Queue the allocation mail for every not-yet-queued delegate in this committee only — asks twice before sending">Mail all pending · ${gT}</button>
+        </span>
+      </div>
+      ${shownRows.length ? `<div class="deleg-members">${shownRows.map((a) => allocCard(a, dupes.get(String(a.registration_id)))).join("")}</div>`
+        : `<p class="regs-empty">${f === "all" ? "No delegates seated here yet." : "No delegates under this mail filter — switch the pick above back to “All seats”."}</p>`}`;
     restoreOpen(allocList, open);
   }
 
@@ -3305,6 +3349,77 @@ function whenIST(t) {
       } catch (err) {
         showToast(`<strong>Queue failed</strong>${esc(err.message || "Try again in a moment.")}`, true);
       }
+    });
+    /* ——— committee grid wiring: clicking a card opens that committee's
+       delegate view; its header buttons mail / export for that one
+       committee only. Per-committee mail loops the same per-delegate RPC
+       the row button uses (alloc_mail_queue with p_registration — no new
+       SQL) in chunks of 5, so a 30-seat committee doesn't fire 30 calls
+       at once. The listener lives on the container so re-renders keep it. */
+    const rowsForCmt = (cmt) => (allocCache || []).filter((a) => String(a.committee || "") === cmt);
+    allocList.addEventListener("click", async (e) => {
+      const back = e.target.closest("[data-alloc-back]");
+      if (back) {
+        allocView = null;
+        renderAllocations();
+        return;
+      }
+      const card = e.target.closest(".alloc-cmt[data-cmt]");
+      if (card) {
+        allocView = card.dataset.cmt;
+        renderAllocations();
+        return;
+      }
+      const csvB = e.target.closest("[data-alloc-cmt-csv]");
+      if (csvB) {
+        const cmt = csvB.dataset.cmt;
+        const f = (allocFilter && allocFilter.value) || "all";
+        const rows = (f === "all" ? rowsForCmt(cmt) : rowsForCmt(cmt).filter((a) => mailState(a) === f))
+          .slice()
+          .sort((x, y) =>
+            String(x.portfolio || "").localeCompare(String(y.portfolio || ""), undefined, { sensitivity: "base" }) ||
+            String(x.full_name || "").localeCompare(String(y.full_name || ""), undefined, { sensitivity: "base" }));
+        if (!rows.length) return showToast("<strong>Nothing to export</strong>This committee has no rows under the current mail filter.", true);
+        const head = ["Ref ID", "Name", "Email", "Phone", "School", "Portfolio", "Delegation", "Mail", "Mailed (IST)", "Allocated by", "Allocated (IST)"];
+        const out = rows.map((a) => csvLine([
+          a.ref_code || "", a.full_name || "", a.email || "", a.phone || "", a.institution || "",
+          a.portfolio || "", a.delegation_name || "",
+          mailState(a) === "mailed" ? "sent" : mailState(a) === "queued" ? "queued" : "not queued",
+          a.mail_sent_at ? istStamp(a.mail_sent_at) : "",
+          a.allocated_by || "", istStamp(a.allocated_at),
+        ]));
+        csvDownload(`somun26-${String(cmtAcronym(cmt)).toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${istFileDay()}.csv`, head, out, rows.length);
+        return;
+      }
+      const mailB = e.target.closest("[data-alloc-cmt-mail]");
+      if (!mailB) return;
+      const cmt = mailB.dataset.cmt;
+      const toQueue = rowsForCmt(cmt).filter((a) => !a.mail_queued_at);
+      if (!toQueue.length) return showToast("<strong>Nothing to queue</strong>Every delegate in this committee already has their mail queued or sent.", true);
+      const noSeat = toQueue.filter((a) => /^pending/i.test(String(a.committee || "")));
+      if (mailB.dataset.armed !== "1") {
+        mailB.dataset.armed = "1";
+        mailB.textContent = `Confirm — mail ${toQueue.length}`;
+        const n = toQueue.length;
+        setTimeout(() => { mailB.dataset.armed = ""; mailB.textContent = `Mail all pending · ${n}`; }, 8000);
+        showToast(`<strong>Are you sure?</strong>${toQueue.length} allocation mail${toQueue.length === 1 ? " is" : "s are"} about to go out to real inboxes — <b>${esc(cmtAcronym(cmt))}</b> only${noSeat.length ? `, and ⚠ ${noSeat.length} of them hold a PENDING seat with no chamber yet` : ""}. Each mail carries the delegate's committee seat + QR pass and cannot be pulled back from their inbox, so double-check the allocations first. Click the same button again to send.`, true);
+        return;
+      }
+      mailB.disabled = true;
+      mailB.textContent = "Queueing…";
+      let ok = 0, bad = 0, lastErr = "";
+      for (let i = 0; i < toQueue.length; i += 5) {
+        const res = await Promise.allSettled(toQueue.slice(i, i + 5).map((a) =>
+          rpc("alloc_mail_queue", { p_key: key, p_registration: a.registration_id })));
+        for (const r of res) {
+          if (r.status === "fulfilled") ok++;
+          else { bad++; lastErr = (r.reason && r.reason.message) || lastErr; }
+        }
+      }
+      showToast(bad
+        ? `<strong>Partly queued</strong>${ok} of ${toQueue.length} mails queued for ${esc(cmtAcronym(cmt))} — ${bad} failed: ${esc(lastErr || "try again in a moment.")}`
+        : `<strong>Allocation mail queued</strong>${ok} delegate${ok === 1 ? "" : "s"} in ${esc(cmtAcronym(cmt))} will receive their seat + QR pass.`, !!bad);
+      loadAllocations();
     });
   }
 
@@ -3747,8 +3862,9 @@ function whenIST(t) {
           const portfolio = (form.portfolio.value || "").trim();
           /* one portfolio per chamber — refuse the obvious clash right in
              the form (the database refuses it too once patch-alloc-dupes.sql
-             is in, which also covers two workers saving at once) */
-          if (portfolio && allocCache && !allocStale) {
+             is in, which also covers two workers saving at once).
+             HCC / IP / MCU are exempt — doubles are allowed there */
+          if (portfolio && allocCache && !allocStale && !dupAllowedCmt(committee)) {
             const clash = allocCache.find((x) =>
               String(x.registration_id) !== String(id) &&
               String(x.committee || "").trim().toLowerCase() === committee.toLowerCase() &&

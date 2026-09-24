@@ -6042,3 +6042,48 @@ em.accent {
   border-color: var(--crimson);
   color: var(--crimson);
 }
+
+/* ——— allocated tab: committee grid — one card per chamber, click
+   through to the delegates; the detail header carries that committee's
+   own mail + CSV buttons ——— */
+.alloc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
+  gap: 0.7rem;
+}
+.alloc-cmt {
+  text-align: left; cursor: pointer;
+  border: 1px solid var(--line); background: rgba(22, 17, 13, 0.45);
+  padding: 0.85rem 0.95rem;
+  display: flex; flex-direction: column; gap: 0.4rem;
+  font-family: var(--font-sans);
+  transition: border-color 0.2s, background 0.2s;
+}
+.alloc-cmt:hover { border-color: rgba(200, 16, 46, 0.45); background: rgba(200, 16, 46, 0.06); }
+.alloc-cmt--doubled { border-color: rgba(200, 16, 46, 0.55); }
+.alloc-cmt--pending { border-style: dashed; opacity: 0.8; }
+.alloc-cmt-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.alloc-cmt-name {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  color: var(--beige);
+  letter-spacing: 0.01em;
+}
+.alloc-cmt-name--xl { font-size: 1.15rem; }
+.alloc-cmt-slug {
+  font-family: "Sarasa Mono SC", ui-monospace, monospace;
+  font-size: 0.66rem; color: var(--beige-dim);
+  margin-left: 0.55rem; letter-spacing: 0.08em;
+}
+.alloc-cmt-n { font-family: "Sarasa Mono SC", ui-monospace, monospace; font-size: 0.85rem; color: var(--beige-dim); }
+.alloc-cmt-meta { font-size: 0.72rem; color: var(--beige-dim); letter-spacing: 0.04em; line-height: 1.6; }
+.alloc-cmt-head {
+  border: 1px solid var(--line); background: rgba(22, 17, 13, 0.45);
+  padding: 0.8rem 1rem; margin-bottom: 0.8rem;
+  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+}
+.alloc-cmt-head .alloc-cmt-meta { flex: 1; min-width: 180px; }
+.alloc-cmt-head .pa-row-actions { flex: none; }
+@media (max-width: 640px) {
+  .alloc-cmt-head .pa-row-actions { justify-content: flex-start; }
+}
