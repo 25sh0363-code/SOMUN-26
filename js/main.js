@@ -3149,7 +3149,7 @@ function whenIST(t) {
      cmtAcronym maps slugs (hcc-ccc, mcu, ip) and typed text to the
      acronym, so matching on the acronym covers every spelling */
   const DUP_OK = new Set(["HCC", "IP", "MCU"]);
-  const dupAllowedCmt = (c) => DUP_OK.has(cmtAcronym(cmt));
+  const dupAllowedCmt = (c) => DUP_OK.has(cmtAcronym(c));
 
   function renderAllocations() {
     if (!allocCache) return;
