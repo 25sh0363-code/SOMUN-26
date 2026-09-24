@@ -3147,8 +3147,27 @@ function whenIST(t) {
     const inToday = allocCache.filter((a) => a.checkins && Object.keys(a.checkins).includes(istToday)).length;
     const f = (allocFilter && allocFilter.value) || "all";
     const shown = f === "all" ? allocCache : allocCache.filter((a) => mailState(a) === f);
+    /* one portfolio per chamber — catch doubles that already exist:
+       the same committee + portfolio (case-insensitive) held by 2+ */
+    const seatKey = (a) => {
+      const p = String(a.portfolio || "").trim().toLowerCase();
+      return p ? `${String(a.committee || "").trim().toLowerCase()}||${p}` : null;
+    };
+    const dupSets = new Map();
+    for (const a of shown) {
+      const k = seatKey(a);
+      if (!k) continue;
+      if (!dupSets.has(k)) dupSets.set(k, []);
+      dupSets.get(k).push(a);
+    }
+    /* registration_id -> the other names holding the same seat */
+    const dupes = new Map();
+    for (const arr of dupSets.values()) {
+      if (arr.length > 1) for (const a of arr) dupes.set(String(a.registration_id), arr.filter((x) => x !== a).map((x) => x.full_name));
+    }
+    const dupSeats = [...dupSets.values()].filter((arr) => arr.length > 1).length;
     const cmtCount = new Set(shown.map((a) => String(a.committee || ""))).size;
-    allocCount.innerHTML = `<b>${shown.length}</b> shown · <b>${allocCache.length}</b> seated in <b>${cmtCount}</b> chamber${cmtCount === 1 ? "" : "s"} · <b>${mailed}</b> mailed · <b>${queued}</b> queued · <b>${inToday}</b> checked in today`;
+    allocCount.innerHTML = `<b>${shown.length}</b> shown · <b>${allocCache.length}</b> seated in <b>${cmtCount}</b> chamber${cmtCount === 1 ? "" : "s"} · <b>${mailed}</b> mailed · <b>${queued}</b> queued · <b>${inToday}</b> checked in today${dupSeats ? ` · <span class="pa-hot"><b>${dupSeats}</b> seat${dupSeats === 1 ? "" : "s"} double-booked</span>` : ""}`;
 
     /* one folder per chamber — seats sorted by portfolio, then name —
        so the secretariat can review (and mail) committee by committee */
@@ -3173,24 +3192,25 @@ function whenIST(t) {
           <span class="deleg-caret" aria-hidden="true"></span>
           <span class="deleg-folder-id">
             <span class="deleg-folder-name">${esc(g.label)}</span>
-            <span class="deleg-folder-meta">${g.rows.length} seated · ${g.rows.filter((a) => a.mail_sent_at).length} mailed</span>
+            <span class="deleg-folder-meta">${g.rows.length} seated · ${g.rows.filter((a) => a.mail_sent_at).length} mailed${g.rows.some((a) => dupes.has(String(a.registration_id))) ? ` · <span class="pa-hot">${g.rows.filter((a) => dupes.has(String(a.registration_id))).length} doubled</span>` : ""}</span>
           </span>
         </summary>
-        <div class="deleg-members">${g.rows.map(allocCard).join("")}</div>
+        <div class="deleg-members">${g.rows.map((a) => allocCard(a, dupes.get(String(a.registration_id)))).join("")}</div>
       </details>`).join("")
       : `<p class="regs-empty">${f === "all" ? "No seats yet — hit Allocate on a verified delegate (either roster tab) and they land here." : "No delegates under this mail filter — switch the pick above back to “All seats”."}</p>`;
     restoreOpen(allocList, open);
   }
 
-  const allocCard = (a) => `
+  const allocCard = (a, dupPeers) => `
       <details class="regs-item" data-k="A:${esc(a.ref_code)}">
         <summary>
           <span class="regs-caret" aria-hidden="true"></span>
           <span><strong>${esc(a.full_name)}</strong></span>
           <span class="pa-code">${esc(a.ref_code || "—")}</span>
-          <span class="regs-chip regs-chip--paid">${esc(a.portfolio || "seat")}</span>
+          <span class="regs-chip${dupPeers ? " regs-chip--bad" : " regs-chip--paid"}">${esc(a.portfolio || "seat")}</span>
         </summary>
         <div class="regs-item-body">
+          ${dupPeers ? `<p class="regs-note pa-hot">⚠ Double-booked portfolio — this seat is also held by ${dupPeers.map((n) => `<b>${esc(n)}</b>`).join(", ")}. One of them must move.</p>` : ""}
           <p class="pa-row-sub">${esc(a.email || "—")}${a.phone ? " · " + esc(a.phone) : ""}${a.institution ? " · " + esc(a.institution) : ""}${a.delegation_name ? " · delegation " + esc(a.delegation_name) : ""}${a.grade_or_title ? " · " + esc(a.grade_or_title) : ""}</p>
           <p class="regs-note">Seat by <b>${esc(a.allocated_by || "—")}</b> · ${whenIST(a.allocated_at)} &nbsp;·&nbsp; Mail: ${a.mail_sent_at ? `sent ${whenIST(a.mail_sent_at)}` : a.mail_queued_at ? `queued ${whenIST(a.mail_queued_at)} — waiting on the mailer` : "not queued yet"} &nbsp;·&nbsp; Check-ins: ${checkinChips(a.checkins)}</p>
           <div class="pa-row-actions">
@@ -3255,7 +3275,27 @@ function whenIST(t) {
         revokeBtn.disabled = false;
       }
     });
+    /* bulk mail asks twice — the mails carry seats + QR passes and land
+       in real inboxes, so the first click only arms a caution: the
+       secretariat confirms the allocations are correct before anything
+       is queued (and any PENDING no-seat rows are called out loudly) */
     $("#alloc-mail-all").addEventListener("click", async () => {
+      const mailBtn = $("#alloc-mail-all");
+      const toQueue = (allocCache || []).filter((a) => !a.mail_queued_at);
+      if (!toQueue.length) {
+        showToast("<strong>Nothing to queue</strong>Every allocated delegate already has their mail queued or sent.", true);
+        return;
+      }
+      const noSeat = toQueue.filter((a) => /^pending/i.test(String(a.committee || "")));
+      if (mailBtn.dataset.armed !== "1") {
+        mailBtn.dataset.armed = "1";
+        mailBtn.textContent = `Confirm — mail ${toQueue.length}`;
+        setTimeout(() => { mailBtn.dataset.armed = ""; mailBtn.textContent = "Mail all pending"; }, 8000);
+        showToast(`<strong>Are you sure?</strong>${toQueue.length} allocation mail${toQueue.length === 1 ? " is" : "s are"} about to go out to real inboxes — each carries the delegate's committee seat + QR pass and cannot be pulled back from their inbox. Please double-check that the allocations are correct before sending.${noSeat.length ? ` ⚠ ${noSeat.length} of them hold a PENDING seat with no chamber yet — allocate them first, then mail.` : ""} Click the same button again to send.`, true);
+        return;
+      }
+      mailBtn.dataset.armed = "";
+      mailBtn.textContent = "Mail all pending";
       try {
         const n = await rpc("alloc_mail_queue", { p_key: key });
         showToast(n
@@ -3704,8 +3744,22 @@ function whenIST(t) {
           ev.preventDefault();
           const committee = (form.committee.value || "").trim();
           if (!committee) return;
+          const portfolio = (form.portfolio.value || "").trim();
+          /* one portfolio per chamber — refuse the obvious clash right in
+             the form (the database refuses it too once patch-alloc-dupes.sql
+             is in, which also covers two workers saving at once) */
+          if (portfolio && allocCache && !allocStale) {
+            const clash = allocCache.find((x) =>
+              String(x.registration_id) !== String(id) &&
+              String(x.committee || "").trim().toLowerCase() === committee.toLowerCase() &&
+              String(x.portfolio || "").trim().toLowerCase() === portfolio.toLowerCase());
+            if (clash) {
+              showToast(`<strong>That portfolio is taken</strong>${esc(clash.full_name || "Another delegate")} already holds <b>${esc(cmtAcronym(committee))} · ${esc(clash.portfolio)}</b> in this chamber — pick a different portfolio or fix the existing seat.`, true);
+              return;
+            }
+          }
           try {
-            await rpc("alloc_delegate", { p_key: key, p_registration: id, p_committee: committee, p_portfolio: (form.portfolio.value || "").trim(), p_by: WORKER_NAMES[workerSel()] || null });
+            await rpc("alloc_delegate", { p_key: key, p_registration: id, p_committee: committee, p_portfolio: portfolio, p_by: WORKER_NAMES[workerSel()] || null });
             showToast(`<strong>Seat saved</strong>${esc(b.dataset.name || "Delegate")} → ${esc(committee)}.`);
             form.remove();
             b.disabled = false;
