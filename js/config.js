@@ -31,7 +31,7 @@ export const CONFIG = {
      ROUND 1 NOT OPEN YET (dates to be revealed) — flip to true on opening day.
      While false: the register page stays browsable, but the wizard box
      is blurred + inert under a "Round 1 · Date To Be Revealed" stamp. */
-  REGISTRATIONS_OPEN: false,
+  REGISTRATIONS_OPEN: true,
   TESTER_PIN: "somun26",
 
   /* Committees reveal gate — flip to true on reveal day.

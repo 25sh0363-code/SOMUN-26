@@ -6087,3 +6087,42 @@ em.accent {
 @media (max-width: 640px) {
   .alloc-cmt-head .pa-row-actions { justify-content: flex-start; }
 }
+
+/* ——— pre-submit warning: pay + upload payment details while the site
+   is open — sits between the pay panel and the Submit Application
+   button on stage 5 of the registration form ——— */
+.prepay-note {
+  margin-top: 1.1rem;
+  border: 1px solid rgba(200, 16, 46, 0.65);
+  background: rgba(200, 16, 46, 0.1);
+  padding: 1rem 1.1rem;
+  display: flex; gap: 0.85rem; align-items: flex-start;
+}
+.prepay-note-ic { width: 20px; height: 20px; flex-shrink: 0; color: var(--crimson); margin-top: 0.2rem; }
+.prepay-note-body { min-width: 0; }
+.prepay-note-title {
+  font-family: var(--font-display);
+  font-size: 1.02rem; line-height: 1.3;
+  color: var(--crimson);
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.prepay-note-text, .prepay-note-warn { font-size: 0.82rem; line-height: 1.65; color: var(--beige-dim); margin-top: 0.5rem; }
+.prepay-note-text strong { color: var(--beige); }
+.prepay-note-warn { color: rgba(200, 16, 46, 0.85); }
+.prepay-note-warn strong { color: var(--crimson); }
+
+/* ——— same warning, compact — top strip of the post-submit payment
+   desk, where the actual drop-off happens ——— */
+.pay-urgency {
+  border: 1px solid rgba(200, 16, 46, 0.55);
+  background: rgba(200, 16, 46, 0.08);
+  padding: 0.75rem 0.95rem;
+  margin-bottom: 1.1rem;
+  display: flex; gap: 0.65rem; align-items: flex-start;
+}
+.pay-urgency-ic { width: 15px; height: 15px; flex-shrink: 0; color: var(--crimson); margin-top: 0.18rem; }
+.pay-urgency p { font-size: 0.82rem; line-height: 1.6; color: var(--beige-dim); }
+.pay-urgency strong { color: var(--crimson); }
+@media (max-width: 640px) {
+  .prepay-note { flex-direction: column; gap: 0.6rem; }
+}

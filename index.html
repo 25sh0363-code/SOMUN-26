@@ -107,7 +107,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300..700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20260921i" />
+  <link rel="stylesheet" href="css/styles.css?v=20260921j" />
 </head>
 <body class="grain">
 
@@ -1016,6 +1016,10 @@
                 <p class="pay-qr-kicker"><span class="pay-qr-diamond"></span>Settle the fee</p>
                 <p class="pay-qr-title">Scan · Pay · <em class="accent">Confirmed.</em></p>
               </div>
+              <div class="pay-urgency" role="alert">
+                <i data-icon="shield-alert" data-cls="pay-urgency-ic" data-sw="1.6"></i>
+                <p><strong>You are not done yet —</strong> pay your exact amount and upload the UTR + screenshot below <strong>while this page is open</strong>. If you leave without uploading, your registration stays unverified and unpaid applications are rejected.</p>
+              </div>
               <div class="pay-qr-grid">
                 <div class="pay-qr-card">
                   <img class="pay-qr-img" id="pay-qr-img" alt="SOMUN '26 payment QR" hidden />
@@ -1294,6 +1298,14 @@
                     <p class="pay-badge" id="pay-badge">To be disclosed</p>
                     <p class="pay-copy" id="pay-copy">The payment portal will open as soon as registrations do. When the fee is announced this panel shows YOUR exact amount — scan the QR with any UPI app, pay it to the last paise, then submit the UTR + payment screenshot. Delegates and Group Delegation share the same fee.</p>
                     <p class="pay-refund"><i data-icon="shield-alert" data-cls="pay-refund-ic" data-sw="1.6"></i>Registration fees are non-refundable — once paid, they cannot be refunded or transferred.</p>
+                  </div>
+                  <div class="prepay-note" role="alert">
+                    <i data-icon="shield-alert" data-cls="prepay-note-ic" data-sw="1.6"></i>
+                    <div class="prepay-note-body">
+                      <p class="prepay-note-title">Do not close this site after submitting</p>
+                      <p class="prepay-note-text">Submitting this form is only <strong>half</strong> your registration. The very next screen is your <strong>payment desk</strong>: pay your exact amount via UPI, then upload the <strong>UTR + payment screenshot</strong> — all while this tab is still open.</p>
+                      <p class="prepay-note-warn">⚠ If you close the site before your payment details are uploaded, your application stays <strong>UNVERIFIED</strong> — unpaid applications are rejected and the seat goes to someone else. Keep the site open until you see the payment confirmation.</p>
+                    </div>
                   </div>
                   <div class="stage-foot">
                     <button type="button" class="stage-back" data-back><i data-icon="chevron-left" data-cls="stage-back-icon"></i> Back</button>
@@ -1717,6 +1729,6 @@
 
   <datalist id="committee-list"></datalist>
   <script src="js/vendor/jsQR.js"></script>
-  <script type="module" src="js/main.js?v=20260921i"></script>
+  <script type="module" src="js/main.js?v=20260921j"></script>
 </body>
 </html>
