@@ -8,7 +8,7 @@
 
 import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, MATRIX_PDFS } from "./data.js?v=20260921a";
 import { CONFIG, supabaseConfigured, feeAnnounced, payFlow, formatINR } from "./config.js";
-import { icon, hydrateIcons } from "./icons.js";
+import { hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
 
 /* The preference selects list the real chambers only — Group Delegation
@@ -3159,6 +3159,13 @@ function whenIST(t) {
     const istToday = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
     const inToday = allocCache.filter((a) => a.checkins && Object.keys(a.checkins).includes(istToday)).length;
     const f = (allocFilter && allocFilter.value) || "all";
+    /* toolbar “Requeue stuck” only shows while mails are actually stuck —
+       queued, but the mailer never confirmed a send */
+    const requeueBtn = $("#alloc-requeue");
+    if (requeueBtn && requeueBtn.dataset.armed !== "1") {
+      requeueBtn.hidden = !queued;
+      requeueBtn.textContent = `Requeue stuck · ${queued}`;
+    }
     /* one portfolio per chamber — doubles are computed over the WHOLE
        roster, not the filtered view, so a red flag never disappears
        just because a mail filter is on */
@@ -3238,6 +3245,7 @@ function whenIST(t) {
         <span class="pa-row-actions">
           <button type="button" class="pa-btn" data-alloc-cmt-csv data-cmt="${esc(g.cmt)}" title="Download this committee's delegates — respects the mail filter above">Export CSV</button>
           <button type="button" class="pa-btn pa-btn--ok" data-alloc-cmt-mail data-cmt="${esc(g.cmt)}" title="Queue the allocation mail for every not-yet-queued delegate in this committee only — asks twice before sending">Mail all pending · ${gT}</button>
+          ${gQ ? `<button type="button" class="pa-btn" data-alloc-cmt-requeue data-cmt="${esc(g.cmt)}" title="${gQ} mail${gQ === 1 ? "" : "s"} here show queued but the mailer never confirmed a send — re-fires a fresh copy of each through the hook">Requeue stuck · ${gQ}</button>` : ""}
         </span>
       </div>
       ${shownRows.length ? `<div class="deleg-members">${shownRows.map((a) => allocCard(a, dupes.get(String(a.registration_id)))).join("")}</div>`
@@ -3294,6 +3302,32 @@ function whenIST(t) {
     /* unsend: every mailed seat returns to the queue in one move — the
        Gmail copies already delivered can't be recalled, but the ledger
        resets so “Mail all pending” mails fresh copies on the next click */
+    /* stuck-queue sweep — rows showing “queued” whose mail never actually
+       left (Gmail quota wall ~100/day per account, or a hook hiccup).
+       alloc_mail_queue with p_registration inserts a FRESH mail_queue row
+       each call, so the dispatch trigger fires again — and per the hook's
+       (id + attempts) spread every retry lands on the NEXT mailer
+       account. No new SQL needed. */
+    const requeueBtn = $("#alloc-requeue");
+    if (requeueBtn) requeueBtn.addEventListener("click", async () => {
+      const stuck = (allocCache || []).filter((a) => a.mail_queued_at && !a.mail_sent_at);
+      if (!stuck.length) return showToast("<strong>Nothing stuck</strong>No mail is sitting queued-un-sent right now.", true);
+      if (requeueBtn.dataset.armed !== "1") {
+        requeueBtn.dataset.armed = "1";
+        requeueBtn.textContent = `Confirm — requeue ${stuck.length}`;
+        setTimeout(() => { requeueBtn.dataset.armed = ""; renderAllocations(); }, 8000);
+        showToast(`<strong>Requeue ${stuck.length} stuck mail${stuck.length === 1 ? "" : "s"}?</strong>These say “queued” but the mailer never confirmed them as sent — usually a Gmail quota wall (~100 mails/day per account) or a hook hiccup. Re-firing queues a fresh copy of each; every retry rides the next mailer account. Click the same button again to requeue.`, true);
+        return;
+      }
+      requeueBtn.dataset.armed = "";
+      requeueBtn.disabled = true;
+      const { ok, bad, lastErr } = await queueRowsChunked(stuck);
+      requeueBtn.disabled = false;
+      showToast(bad
+        ? `<strong>Partly requeued</strong>${ok} of ${stuck.length} stuck mails re-fired — ${bad} failed: ${esc(lastErr || "try again in a moment.")}`
+        : `<strong>Stuck mails requeued</strong>${ok} fresh cop${ok === 1 ? "y is" : "ies are"} on their way — rows keep showing “queued” until the mailer confirms each send. If they're still queued in a few minutes, today's Gmail quota is spent (~100/account): requeue again later or add a mailer_url_2 account.`, !!bad);
+      loadAllocations();
+    });
     const revokeBtn = $("#alloc-mail-revoke");
     if (revokeBtn) revokeBtn.addEventListener("click", async () => {
       const mailedN = (allocCache || []).filter((a) => a.mail_sent_at).length;
@@ -3357,6 +3391,21 @@ function whenIST(t) {
        SQL) in chunks of 5, so a 30-seat committee doesn't fire 30 calls
        at once. The listener lives on the container so re-renders keep it. */
     const rowsForCmt = (cmt) => (allocCache || []).filter((a) => String(a.committee || "") === cmt);
+    /* chunked per-delegate queueing — 5 RPCs in flight at a time, one
+       fresh mail_queue row per delegate so the hook re-fires; shared by
+       per-committee mail, per-committee requeue and the stuck sweep */
+    const queueRowsChunked = async (rows) => {
+      let ok = 0, bad = 0, lastErr = "";
+      for (let i = 0; i < rows.length; i += 5) {
+        const res = await Promise.allSettled(rows.slice(i, i + 5).map((a) =>
+          rpc("alloc_mail_queue", { p_key: key, p_registration: a.registration_id })));
+        for (const r of res) {
+          if (r.status === "fulfilled") ok++;
+          else { bad++; lastErr = (r.reason && r.reason.message) || lastErr; }
+        }
+      }
+      return { ok, bad, lastErr };
+    };
     allocList.addEventListener("click", async (e) => {
       const back = e.target.closest("[data-alloc-back]");
       if (back) {
@@ -3392,7 +3441,29 @@ function whenIST(t) {
         return;
       }
       const mailB = e.target.closest("[data-alloc-cmt-mail]");
-      if (!mailB) return;
+      if (!mailB) {
+        const reB = e.target.closest("[data-alloc-cmt-requeue]");
+        if (!reB) return;
+        const cmtR = reB.dataset.cmt;
+        const stuck = rowsForCmt(cmtR).filter((a) => a.mail_queued_at && !a.mail_sent_at);
+        if (!stuck.length) return showToast("<strong>Nothing stuck</strong>No mail in this committee is queued-un-sent right now.", true);
+        if (reB.dataset.armed !== "1") {
+          reB.dataset.armed = "1";
+          reB.textContent = `Confirm — requeue ${stuck.length}`;
+          const nR = stuck.length;
+          setTimeout(() => { reB.dataset.armed = ""; reB.textContent = `Requeue stuck · ${nR}`; }, 8000);
+          showToast(`<strong>Requeue ${stuck.length} stuck mail${stuck.length === 1 ? "" : "s"} in ${esc(cmtAcronym(cmtR))}?</strong>They say “queued” but the mailer never confirmed a send. Re-firing queues a fresh copy of each — every retry rides the next mailer account. Click the same button again to requeue.`, true);
+          return;
+        }
+        reB.dataset.armed = "";
+        reB.disabled = true;
+        const { ok, bad, lastErr } = await queueRowsChunked(stuck);
+        showToast(bad
+          ? `<strong>Partly requeued</strong>${ok} of ${stuck.length} re-fired for ${esc(cmtAcronym(cmtR))} — ${bad} failed: ${esc(lastErr || "try again in a moment.")}`
+          : `<strong>Stuck mails requeued</strong>${ok} fresh cop${ok === 1 ? "y is" : "ies are"} going out for ${esc(cmtAcronym(cmtR))} — rows keep showing “queued” until the mailer confirms each send.`, !!bad);
+        loadAllocations();
+        return;
+      }
       const cmt = mailB.dataset.cmt;
       const toQueue = rowsForCmt(cmt).filter((a) => !a.mail_queued_at);
       if (!toQueue.length) return showToast("<strong>Nothing to queue</strong>Every delegate in this committee already has their mail queued or sent.", true);
@@ -3407,15 +3478,7 @@ function whenIST(t) {
       }
       mailB.disabled = true;
       mailB.textContent = "Queueing…";
-      let ok = 0, bad = 0, lastErr = "";
-      for (let i = 0; i < toQueue.length; i += 5) {
-        const res = await Promise.allSettled(toQueue.slice(i, i + 5).map((a) =>
-          rpc("alloc_mail_queue", { p_key: key, p_registration: a.registration_id })));
-        for (const r of res) {
-          if (r.status === "fulfilled") ok++;
-          else { bad++; lastErr = (r.reason && r.reason.message) || lastErr; }
-        }
-      }
+      const { ok, bad, lastErr } = await queueRowsChunked(toQueue);
       showToast(bad
         ? `<strong>Partly queued</strong>${ok} of ${toQueue.length} mails queued for ${esc(cmtAcronym(cmt))} — ${bad} failed: ${esc(lastErr || "try again in a moment.")}`
         : `<strong>Allocation mail queued</strong>${ok} delegate${ok === 1 ? "" : "s"} in ${esc(cmtAcronym(cmt))} will receive their seat + QR pass.`, !!bad);
