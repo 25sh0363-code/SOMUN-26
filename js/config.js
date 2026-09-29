@@ -27,12 +27,17 @@
    ———————————————————————————————————————————————————————— */
 
 export const CONFIG = {
-  /* Registration portal gate — flip to true when registrations open.
-     ROUND 1 NOT OPEN YET (dates to be revealed) — flip to true on opening day.
-     While false: the register page stays browsable, but the wizard box
-     is blurred + inert under a "Round 1 · Date To Be Revealed" stamp. */
-  REGISTRATIONS_OPEN: true,
-  TESTER_PIN: "somun26",
+  /* Registration portal gate — REGISTRATIONS ARE CLOSED for SOMUN '26
+     (done — see you at the next edition). While false: the register page
+     stays browsable, but the wizard box is blurred + inert under a
+     "Registrations Closed" stamp and the tester switch cannot open it.
+     Cached old pages are stopped server-side by the reg_gate trigger
+     (supabase/reg-gate.sql). Flip to true on the next edition's opening day. */
+  REGISTRATIONS_OPEN: false,
+  /* Secret tester switch — DISABLED for this season: an empty code shuts
+     the panel and applyRegGate no longer honours the bypass. Set a code
+     here (and flip REGISTRATIONS_OPEN) to bring tester mode back. */
+  TESTER_PIN: "",
 
   /* Committees reveal gate — flip to true on reveal day.
      While false: the committees deck, the home four-card preview and every

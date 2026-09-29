@@ -81,7 +81,7 @@ $('#itin-intro').innerHTML =
 const REG_INTRO_TEXT =
   `Complete the four short pages below — personal information, MUN experience, committee preferences, then referral and payment — and the secretariat will respond with your portfolio allotment. For assistance write to ${CONFERENCE.email}.`;
 const REG_INTRO_CLOSED =
-  `Registrations reopen with Round 1 — dates to be revealed. The portal opens right here, so keep an eye on this page. For assistance write to ${CONFERENCE.email}.`;
+  `Registrations for SOMUN '26 are now closed. If you could not register this year, we are happy to see you join us next year — thank you for the overwhelming response. For any queries write to ${CONFERENCE.email}.`;
 $("#reg-intro").textContent = REG_INTRO_TEXT;
 $("#year").textContent = new Date().getFullYear();
 
@@ -948,7 +948,11 @@ const heroText0 = heroRegens0
   : null;
 
 function applyRegGate() {
-  const open = Boolean(CONFIG.REGISTRATIONS_OPEN) || testerOn();
+  /* the tester switch no longer opens anything — registrations are shut
+     for the season and the portal state is CONFIG.REGISTRATIONS_OPEN
+     alone (cached tester browsers are still stopped server-side by the
+     reg_gate trigger in supabase/reg-gate.sql) */
+  const open = Boolean(CONFIG.REGISTRATIONS_OPEN);
   const regBox = $("#reg-box");
   if (regBox) {
     const veil = regBox.querySelector(":scope > .reg-veil");
@@ -964,10 +968,10 @@ function applyRegGate() {
         v.className = "reg-veil";
         const stamp = document.createElement("span");
         stamp.className = "reg-veil-stamp";
-        stamp.textContent = "Round 1 · Date To Be Revealed";
+        stamp.textContent = "Registrations Closed";
         const sub = document.createElement("span");
         sub.className = "reg-veil-sub";
-        sub.textContent = "The portal opens right here — dates to be revealed. Watch this space.";
+        sub.textContent = "SOMUN '26 registrations are done. Couldn't register this year? We'd love to see you join us next year.";
         v.append(stamp, sub);
         regBox.append(v);
       }
@@ -978,7 +982,7 @@ function applyRegGate() {
     const textNode = [...heroRegens.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
     if (!open) {
       heroRegens.classList.add("is-idle");
-      if (textNode) textNode.nodeValue = "Registrations Opening Soon";
+      if (textNode) textNode.nodeValue = "Registrations Have Closed";
     } else {
       heroRegens.classList.remove("is-idle");
       if (textNode && heroText0) textNode.nodeValue = heroText0;
@@ -2425,8 +2429,13 @@ if (SHOW_ITINERARY) {
 
   const paint = () => {
     const on = testerOn();
+    if (!CONFIG.TESTER_PIN || !CONFIG.REGISTRATIONS_OPEN) {
+      stateLine.innerHTML = "Registrations are <b style='color:var(--beige)'>closed</b> for the season — tester access is shut and this switch no longer opens the portal. It returns with the next edition.";
+      goBtn.textContent = "Unlock";
+      return;
+    }
     stateLine.innerHTML = on
-      ? "Access is <b style='color:var(--beige)'>ON</b> — the portal is open on this browser only; everyone else still sees “Round 1 · Date To Be Revealed”. Enter the code to switch it back off."
+      ? "Access is <b style='color:var(--beige)'>ON</b> — the portal is open on this browser only; everyone else still sees the closed veil. Enter the code to switch it back off."
       : "Registrations are closed for the world right now. Enter the access code to open the portal on this browser only — nothing changes for anyone else.";
     goBtn.textContent = on ? "Lock again" : "Unlock";
   };
@@ -2447,13 +2456,21 @@ if (SHOW_ITINERARY) {
   const tryPin = () => {
     const got = (pinInput.value || "").trim();
     if (!got) return;
+    /* portal shut for the season — no code unlocks anything, and
+       applyRegGate no longer honours the tester bypass */
+    if (!CONFIG.TESTER_PIN || !CONFIG.REGISTRATIONS_OPEN) {
+      msg.textContent = "Tester access is closed — registrations are done for this season.";
+      pinInput.value = "";
+      pinInput.focus();
+      return;
+    }
     if (got === String(CONFIG.TESTER_PIN || "")) {
       const on = !testerOn();
       setTester(on);
       applyRegGate();
       closeModal();
       showToast(on
-        ? "<strong>Tester mode on</strong>Registrations are open on this browser only — the world still sees “Round 1 · Date To Be Revealed”."
+        ? "<strong>Tester mode on</strong>Registrations are open on this browser only — the world still sees the closed veil."
         : "<strong>Tester mode off</strong>This browser is back to the public view — registrations closed.", !on);
     } else {
       msg.textContent = "Wrong code.";
