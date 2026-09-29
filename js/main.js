@@ -81,7 +81,7 @@ $('#itin-intro').innerHTML =
 const REG_INTRO_TEXT =
   `Complete the four short pages below — personal information, MUN experience, committee preferences, then referral and payment — and the secretariat will respond with your portfolio allotment. For assistance write to ${CONFERENCE.email}.`;
 const REG_INTRO_CLOSED =
-  `Registrations for SOMUN '26 are now closed. If you could not register this year, we are happy to see you join us next year — thank you for the overwhelming response. For any queries write to ${CONFERENCE.email}.`;
+  `Registrations for SOMUN '26 closed at 4:20 PM on 29 September 2026. If you could not register this year, we are happy to see you join us next year — thank you for the overwhelming response. For any queries write to ${CONFERENCE.email}.`;
 $("#reg-intro").textContent = REG_INTRO_TEXT;
 $("#year").textContent = new Date().getFullYear();
 
@@ -968,10 +968,10 @@ function applyRegGate() {
         v.className = "reg-veil";
         const stamp = document.createElement("span");
         stamp.className = "reg-veil-stamp";
-        stamp.textContent = "Registrations Closed";
+        stamp.textContent = "Registrations Closed — Sep 29, 4:20 PM";
         const sub = document.createElement("span");
         sub.className = "reg-veil-sub";
-        sub.textContent = "SOMUN '26 registrations are done. Couldn't register this year? We'd love to see you join us next year.";
+        sub.textContent = "SOMUN '26 registrations shut at 4:20 PM, 29 September 2026. Couldn't register this year? We'd love to see you join us next year.";
         v.append(stamp, sub);
         regBox.append(v);
       }
@@ -982,7 +982,7 @@ function applyRegGate() {
     const textNode = [...heroRegens.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
     if (!open) {
       heroRegens.classList.add("is-idle");
-      if (textNode) textNode.nodeValue = "Registrations Have Closed";
+      if (textNode) textNode.nodeValue = "Registrations Closed · Sep 29, 4:20 PM";
     } else {
       heroRegens.classList.remove("is-idle");
       if (textNode && heroText0) textNode.nodeValue = heroText0;
@@ -2430,13 +2430,13 @@ if (SHOW_ITINERARY) {
   const paint = () => {
     const on = testerOn();
     if (!CONFIG.TESTER_PIN || !CONFIG.REGISTRATIONS_OPEN) {
-      stateLine.innerHTML = "Registrations are <b style='color:var(--beige)'>closed</b> for the season — tester access is shut and this switch no longer opens the portal. It returns with the next edition.";
+      stateLine.innerHTML = "Registrations closed 4:20 PM, 29 Sep 2026 — tester access is shut and this switch no longer opens the portal. It returns with the next edition.";
       goBtn.textContent = "Unlock";
       return;
     }
     stateLine.innerHTML = on
       ? "Access is <b style='color:var(--beige)'>ON</b> — the portal is open on this browser only; everyone else still sees the closed veil. Enter the code to switch it back off."
-      : "Registrations are closed for the world right now. Enter the access code to open the portal on this browser only — nothing changes for anyone else.";
+      : "Registrations closed 4:20 PM, 29 Sep. Enter the access code to open the portal on this browser only — nothing changes for anyone else.";
     goBtn.textContent = on ? "Lock again" : "Unlock";
   };
 
@@ -2459,7 +2459,7 @@ if (SHOW_ITINERARY) {
     /* portal shut for the season — no code unlocks anything, and
        applyRegGate no longer honours the tester bypass */
     if (!CONFIG.TESTER_PIN || !CONFIG.REGISTRATIONS_OPEN) {
-      msg.textContent = "Tester access is closed — registrations are done for this season.";
+      msg.textContent = "Tester access is closed — registrations shut 4:20 PM, 29 Sep.";
       pinInput.value = "";
       pinInput.focus();
       return;
