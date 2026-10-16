@@ -19,7 +19,10 @@ export const CONFERENCE = {
 /* ————— Committee entries —————
    photo: "" → an empty, framed plate is shown (ready for artwork later).
    Once you have an image, drop it in images/committees/ and set
-   photo: "images/committees/unhrc.jpg" — the plate fills automatically. */
+   photo: "images/committees/unhrc.jpg" — the plate fills automatically.
+   poster: the committee's OFFICIAL AGENDA CARD art (images/agendas/) —
+   shown in the "Before the house" section of the committee's own page;
+   leave "" out entirely if a chamber has no agenda card yet. */
 
 /* ————— THE TWELVE CHAMBERS · MMXXVI —————
    Content source: secretariat committee pages document (content.pages).
@@ -36,13 +39,13 @@ export const COMMITTEES = [
     acronym: "DISEC",
     name: "Disarmament and International Security Committee",
     photo: "images/committees/disec.jpg",
+    poster: "images/agendas/disec.jpg",
     description:
       "Where diplomacy meets deterrence. DISEC confronts the weapons, technologies and strategic rivalries that shape the global security order. Every resolution is a negotiation between national interest and collective survival.",
     agendas: [
-      "Nuclear proliferation and strategic stability",
-      "Autonomous weapons and emerging warfare",
+      "Autonomous Weapons: The Impact on Terrorism and the Human Cost of War",
     ],
-    itemsLabel: "2 agenda items",
+    itemsLabel: "1 agenda item",
     cta: "Explore the committee",
     overview: [
       "The First Committee of the United Nations General Assembly, DISEC addresses some of the most pressing challenges to international peace and security. From nuclear weapons and arms proliferation to emerging military technologies, the committee provides a platform for nations to debate how global security can be strengthened.",
@@ -68,13 +71,13 @@ export const COMMITTEES = [
     acronym: "ECOSOC",
     name: "Economic and Social Council",
     photo: "images/committees/ecosoc.jpg",
+    poster: "images/agendas/ecosoc.jpg",
     description:
       "The global economy has no borders. From inequality and sustainable development to access to essential resources, ECOSOC asks a difficult question: how can prosperity become a global reality rather than a national privilege?",
     agendas: [
-      "Financing sustainable development",
-      "Bridging global economic inequality",
+      "Addressing Multinational Corruption via Illicit Activities affecting the Socio-Economic Status of States with Special Emphasis on the role of MNCs and Governmental Bodies",
     ],
-    itemsLabel: "2 agenda items",
+    itemsLabel: "1 agenda item",
     cta: "Explore the committee",
     overview: [
       "Economic and social challenges rarely stop at national borders. ECOSOC brings countries together to address global issues ranging from sustainable development and economic inequality to access to education, healthcare and essential resources.",
@@ -100,13 +103,13 @@ export const COMMITTEES = [
     acronym: "UNCTC",
     name: "United Nations Counter-Terrorism Committee",
     photo: "images/committees/unctc.jpg",
+    poster: "images/agendas/unctc.jpg",
     description:
       "Security has a price, but so does the loss of freedom. UNCTC confronts the evolving architecture of international terrorism, forcing states to balance intelligence, prevention and security with sovereignty and fundamental rights.",
     agendas: [
-      "Countering emerging terrorist threats",
-      "Disrupting terrorist financing networks",
+      "Countering the Use of Artificial Intelligence and Emerging Technologies by Terrorist Organizations in Digital and Modern Warfare",
     ],
-    itemsLabel: "2 agenda items",
+    itemsLabel: "1 agenda item",
     cta: "Explore the committee",
     overview: [
       "Terrorism presents a constantly evolving challenge to international peace and security. The UN Counter-Terrorism Committee works to strengthen international cooperation and improve national capabilities to prevent and respond to terrorist threats.",
@@ -132,13 +135,13 @@ export const COMMITTEES = [
     acronym: "UNOOSA",
     name: "United Nations Office for Outer Space Affairs",
     photo: "images/committees/unoosa.jpg",
+    poster: "images/agendas/unoosa.jpg",
     description:
       "Humanity's next geopolitical frontier lies far beyond Earth. As nations and private actors race into orbit, UNOOSA faces the challenge of keeping space peaceful, accessible and sustainable before the final frontier becomes the next contested domain.",
     agendas: [
-      "Managing the growing threat of space debris",
-      "Ensuring peaceful and sustainable space exploration",
+      "Enhancing Orbital Safety and Space Traffic Management: Mitigating Space Debris Risks and Regulating Dual-Use Rendezvous and Proximity Operations under the Long-Term Sustainability Framework",
     ],
-    itemsLabel: "2 agenda items",
+    itemsLabel: "1 agenda item",
     cta: "Explore the committee",
     overview: [
       "Space is no longer simply the final frontier. It has become an increasingly important domain for communication, navigation, scientific research, economic development and international security.",
@@ -165,13 +168,13 @@ export const COMMITTEES = [
     acronym: "UNCSW",
     name: "United Nations Commission on the Status of Women",
     photo: "images/committees/uncsw.jpg",
+    poster: "images/agendas/uncsw.jpg",
     description:
       "Equality on paper does not always become equality in practice. UNCSW examines the barriers that continue to shape the lives of women and girls, challenging delegates to transform international commitments into meaningful action.",
     agendas: [
-      "Economic empowerment of women",
-      "Expanding access to education and opportunity",
+      "Securing women's political agency amid military transitions, violent extremism and weakening state institutions in the Sahel",
     ],
-    itemsLabel: "2 agenda items",
+    itemsLabel: "1 agenda item",
     cta: "Explore the committee",
     overview: [
       "The Commission on the Status of Women works to promote gender equality and empower women and girls worldwide. Its discussions examine the political, economic, social and cultural barriers that continue to affect gender equality.",
@@ -197,13 +200,13 @@ export const COMMITTEES = [
     acronym: "UNODC",
     name: "United Nations Office on Drugs and Crime",
     photo: "images/committees/unodc.jpg",
+    poster: "images/agendas/unodc.jpg",
     description:
       "Crime has learned to cross borders faster than laws can follow. UNODC confronts transnational criminal networks, illicit trafficking and corruption, demanding cooperation between states whose interests do not always align.",
     agendas: [
-      "Combating transnational organised crime",
-      "Tackling cybercrime and illicit trafficking",
+      "Addressing the Transnational Trafficking and Illicit Production of Synthetic Narcotics Drugs and Firearms",
     ],
-    itemsLabel: "2 agenda items",
+    itemsLabel: "1 agenda item",
     cta: "Explore the committee",
     overview: [
       "Organised crime, illicit trafficking, corruption and drug-related crime represent challenges that increasingly operate across national borders. UNODC supports international cooperation against these threats while promoting justice, security and the rule of law.",
@@ -229,13 +232,13 @@ export const COMMITTEES = [
     acronym: "MCU",
     name: "Marvel Cinematic Universe Committee",
     photo: "images/committees/mcu.jpg",
+    poster: "images/agendas/mcu.jpg",
     description:
       "The world has survived gods, invasions and the collapse of reality itself. Now the fate of the universe rests in your hands. Heroes, villains, governments and cosmic powers enter a crisis where one decision can rewrite everything.",
     agendas: [
-      "The balance of power after a global crisis",
-      "An emerging threat to the Marvel universe",
+      "Avengers: The chaos of the stones — Freeze date: The beginning of the Wakandan war",
     ],
-    itemsLabel: "2 crisis directives",
+    itemsLabel: "1 crisis directive",
     cta: "Enter the universe",
     overview: [
       "The world knows the Avengers. But what happens when the fate of the Marvel universe rests in the hands of its most powerful figures?",
@@ -263,13 +266,13 @@ export const COMMITTEES = [
     name: "Historical Crisis Committee",
     tagline: "History. Reimagined.",
     photo: "images/committees/hcc-ccc.jpg",
+    poster: "images/agendas/hcc-ccc.jpg",
     description:
       "History is written by those who survive it. But what happens when you are given the power to change it? The Historical Crisis Committee places delegates inside a defining moment, where information is scarce, decisions are immediate and the timeline is anything but fixed.",
     agendas: [
-      "Political power and historical conflict",
-      "Decisions that could reshape the timeline",
+      "Yihetuan Uprising — Freeze Date: 28th May 1900",
     ],
-    itemsLabel: "2 crisis directives",
+    itemsLabel: "1 crisis directive",
     cta: "Enter the crisis",
     overview: [
       "What if history had taken a different turn?",
@@ -296,13 +299,13 @@ export const COMMITTEES = [
     acronym: "ICC",
     name: "International Cricket Council",
     photo: "images/committees/icc.jpg",
+    poster: "images/agendas/icc.jpg",
     description:
       "Cricket unites billions, but the game is governed by competing interests, national ambitions and an evolving global landscape. Inside the ICC, delegates must decide not only how cricket is played, but where the sport goes next.",
     agendas: [
-      "The future of international cricket",
-      "Governance, equity and global expansion",
+      "Addressing the Challenges and Opportunities Presented by the Rise of Franchise Cricket",
     ],
-    itemsLabel: "2 agenda items",
+    itemsLabel: "1 agenda item",
     cta: "Explore the committee",
     overview: [
       "Cricket is more than a sport. It is an institution connecting nations, cultures and millions of fans around the world.",
@@ -329,13 +332,13 @@ export const COMMITTEES = [
     acronym: "UNHRC",
     name: "United Nations Human Rights Council",
     photo: "images/committees/unhrc.jpg",
+    poster: "images/agendas/unhrc.jpg",
     description:
       "Geneva's conscience arrives in Hyderabad. The Council examines state accountability where it is most contested, confronting human rights violations inside conflicts and across the open internet.",
     agendas: [
-      "Human rights in active conflict zones",
-      "Protecting digital privacy and freedom of expression",
+      "Preventing Human Rights Violations During Armed Conflict: Assessing the Human Rights Situation of the Occupied Palestinian Territory and the Military Escalations Involving Iran",
     ],
-    itemsLabel: "2 agenda items",
+    itemsLabel: "1 agenda item",
     cta: "Explore the committee",
     overview: [
       "Human rights form the foundation of a just and peaceful international system. The UN Human Rights Council addresses violations of fundamental rights and works towards strengthening their protection worldwide.",
@@ -361,13 +364,13 @@ export const COMMITTEES = [
     acronym: "Lok Sabha",
     name: "The House of the People",
     photo: "images/committees/aippm.jpg",
+    poster: "images/agendas/aippm.jpg",
     description:
       "India's political theatre moves from the campaign trail to the floor of the House. Behind every bill lies an argument, an alliance and a battle for consensus. Here, delegates do not represent countries. They represent political power.",
     agendas: [
-      "Legislative reform and national policy",
-      "Political negotiations and coalition dynamics",
+      "Consideration of the Constitution (One Hundred and Twenty-Ninth Amendment) Bill, 2024 providing for simultaneous elections to the House of the People and the Legislative Assemblies of the States ('One Nation, One Election'), and recommendation of appropriate constitutional, operational, and federal safeguards",
     ],
-    itemsLabel: "2 agenda items",
+    itemsLabel: "1 agenda item",
     cta: "Enter the house",
     overview: [
       "India's Parliament is where national priorities collide, policies are debated and the direction of the world's largest democracy is shaped.",
@@ -395,6 +398,7 @@ export const COMMITTEES = [
     name: "International Press",
     tagline: "The Fourth Estate",
     photo: "images/committees/ip.jpg",
+    poster: "images/agendas/ip.jpg",
     description:
       "Every committee has a story. Few people get to decide how it is told. The International Press enters the conference as its eyes and ears, investigating developments, questioning delegates and turning hours of diplomacy into stories that shape the narrative.",
     agendas: [

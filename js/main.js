@@ -6,7 +6,7 @@
    resources (Supabase) · itinerary
    ———————————————————————————————————————————————————————— */
 
-import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, MATRIX_PDFS } from "./data.js?v=20260921a";
+import { CONFERENCE, COMMITTEES, FEES, ITINERARY, SHOW_ITINERARY, FAQS, MATRIX_PDFS } from "./data.js?v=20260921p";
 import { CONFIG, supabaseConfigured, feeAnnounced, payFlow, formatINR } from "./config.js";
 import { hydrateIcons } from "./icons.js";
 import { makeConfetti } from "./confetti.js";
@@ -382,7 +382,7 @@ $("#year").textContent = new Date().getFullYear();
         </div>
         <p class="preview-name">${c.name}</p>
         <p class="preview-desc">${c.description}</p>
-        <p class="preview-foot">Nº ${String(i + 1).padStart(2, "0")} · ${c.agendas.length} agendas →</p>
+        <p class="preview-foot">Nº ${String(i + 1).padStart(2, "0")} · ${c.agendas.length} agenda${c.agendas.length === 1 ? "" : "s"} →</p>
       </button>
     </div>`).join("");
 
@@ -545,7 +545,17 @@ function renderCommitteePage(slug) {
     { id: "agenda", title: "Before the house", rail: "Before the house",
       body: `<div class="agendas cv-agendas">${c.agendas
         .map((a, ai) => `<p class="agenda"><span class="agenda-diamond"></span><span class="agenda-roman">${ROMAN[ai]}.</span> ${a}</p>`)
-        .join("")}</div>` },
+        .join("")}</div>
+      ${c.poster ? `
+      <figure class="agenda-poster reveal" data-delay="0.12">
+        <a class="agenda-poster-frame" href="${c.poster}" target="_blank" rel="noopener" aria-label="Open the official ${c.acronym} agenda card full-size">
+          <img class="agenda-poster-img" src="${c.poster}" alt="Official ${c.acronym} agenda card" loading="lazy" />
+        </a>
+        <figcaption class="agenda-poster-cap">
+          <span class="agenda-poster-kicker">Official agenda card</span>
+          <span class="agenda-poster-hint"><i class="agenda-poster-diamond" aria-hidden="true"></i>Tap to view full-size</span>
+        </figcaption>
+      </figure>` : ""}` },
   ];
 
   $("#committee-view").innerHTML = `
