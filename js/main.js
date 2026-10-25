@@ -733,14 +733,20 @@ const RES_META = [
   { ic: "book-marked", no: "03", title: "Delegate Handbook", cat: "handbook", desc: "Venue maps, dress code, kit details and conference etiquette — your pocket companion for the three days." },
 ];
 
-/* released[key] = { url } filled from Supabase (or left empty) */
-const releasedRes = {};
+/* released[key] = { url, label? } — study-guides is seeded statically: the
+   background guides live in the repo at /bg/, so the shelf card hands over
+   every chamber's guide in one zip (the rows below serve individual PDFs).
+   rules + handbook stay dormant until their files exist. A Supabase row
+   (if one is ever added) overwrites the seed. */
+const releasedRes = {
+  "study-guides": { url: "bg/SOMUN26-background-guides.zip", label: "Download all ↓" },
+};
 
 function renderResourceCards() {
   $("#res-grid").innerHTML = RES_META.map((r, i) => {
     const rel = releasedRes[r.cat];
     const foot = rel
-      ? `<a class="res-dl" href="${rel.url}" target="_blank" rel="noopener">Download</a>`
+      ? `<a class="res-dl" href="${rel.url}" target="_blank" rel="noopener">${rel.label || "Download"}</a>`
       : `<span class="res-foot-label">PDF · coming to this shelf</span>
          <span class="stamp stamp--sm"><span class="stamp-diamond"></span>Soon</span>`;
     return `
