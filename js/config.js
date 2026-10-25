@@ -64,8 +64,8 @@ export const CONFIG = {
      post embeds right on the page, with a "View on Instagram" button.
      SECRETARIAT_POST_URL: the Instagram post (or reel) link to embed —
      swap the link here any time, no other file needs touching. */
-  SECRETARIAT_REVEALED: false,
-  SECRETARIAT_POST_URL: "https://www.instagram.com/p/Dci_Fgsv1F2/",
+  SECRETARIAT_REVEALED: true,
+  SECRETARIAT_POST_URL: "https://www.instagram.com/p/De4K0C3pLVg/",
 
   SUPABASE_URL: "https://gvhlbnyxysfhfwrflxsg.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aGxibnl4eXNmaGZ3cmZseHNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5Mzk5NjYsImV4cCI6MjEwMzUxNTk2Nn0.TzUqbSWhJTF1gx2tEjMdHkFwk_63VDhpHw46CHX5Reo",
