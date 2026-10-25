@@ -585,7 +585,7 @@ function renderCommitteePage(slug) {
               <span class="plate-num">${pad2(idx + 1)}</span>
             </div>
           </div>
-          <p class="committee-plate-note"><i data-icon="gavel"></i> Rule of procedure and dais assignments release with the background guides.</p>
+          <p class="committee-plate-note"><i data-icon="gavel"></i> Background guides released 25 Oct, 11:00 PM — rules of procedure and dais assignments follow.</p>
           <div class="cv-facts reveal" data-delay="0.16">
             <div class="cv-fact"><span>Chamber</span><strong>${c.acronym}</strong></div>
             <div class="cv-fact"><span>On the floor</span><strong>${c.itemsLabel.replace(/^2 /, "").replace(/^./, (ch) => ch.toUpperCase())}</strong></div>
