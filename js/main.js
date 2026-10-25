@@ -767,11 +767,33 @@ function renderResourceCards() {
 
 renderResourceCards();
 
+/* static guide shelf — the PDFs live in this repo at /bg/ and GitHub Pages
+   serves them directly. No Supabase needed: key = committee acronym,
+   value = relative PDF path. A chamber missing from this map keeps its
+   "releasing soon" row (HCC + MCU as of now). To release a guide, drop the
+   PDF into bg/ with the matching name and add one line here. */
+const STATIC_GUIDES = {
+  "DISEC":     "bg/disec.pdf",
+  "ECOSOC":    "bg/ecosoc.pdf",
+  "UNCTC":     "bg/unctc.pdf",
+  "UNOOSA":    "bg/unoosa.pdf",
+  "UNCSW":     "bg/uncsw.pdf",
+  "UNODC":     "bg/unodc.pdf",
+  "ICC":       "bg/icc.pdf",
+  "UNHRC":     "bg/unhrc.pdf",
+  "Lok Sabha": "bg/loksabha.pdf",
+  "IP":        "bg/ip.pdf",
+};
+
 function renderGuidesIndex(guides) {
   $("#guides-list").innerHTML = COMMITTEES.map((c) => {
-    const url = guides[c.acronym];
+    /* a Supabase row (if one ever exists) wins, else the static repo file */
+    const url = guides[c.acronym] || STATIC_GUIDES[c.acronym];
     const status = url
-      ? `<a class="guide-dl" href="${url}" target="_blank" rel="noopener">Download guide ↓</a>`
+      ? `<span class="guide-actions">
+           <a class="guide-dl" href="${url}" target="_blank" rel="noopener">View guide ↗</a>
+           <a class="guide-dl guide-dl--ghost" href="${url}" download>Download ↓</a>
+         </span>`
       : `<span class="guide-status"><span class="guide-diamond"></span>releasing soon</span>`;
     return `<li class="guide-row"><span class="guide-acronym">${c.acronym}</span>${status}</li>`;
   }).join("");

@@ -3091,6 +3091,11 @@ em.accent {
   transition: color 0.3s, border-color 0.3s;
 }
 .guide-dl:hover { color: var(--beige); border-color: var(--beige); }
+/* view/download pair on a released guide row — primary crimson link is
+   "View guide", the ghost variant is the muted download link beside it */
+.guide-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: 1.1rem; flex-wrap: wrap; }
+.guide-dl--ghost { color: rgba(179, 164, 135, 0.75); border-bottom-color: rgba(179, 164, 135, 0.4); }
+.guide-dl--ghost:hover { color: var(--beige); border-color: var(--beige); }
 .guides-note {
   margin-top: 1.75rem;
   max-width: 42rem;
@@ -3937,6 +3942,79 @@ em.accent {
 .cv-agendas { margin-top: 0; }
 .agenda-roman { font-family: var(--font-display); font-style: italic; color: var(--crimson); margin-right: 0.25rem; }
 .committee-cta { margin-top: 2.5rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+
+/* ————— official agenda card (committee pages) —————
+   The chamber's own agenda poster, framed like a dossier exhibit.
+   Click opens the full-resolution card in a new tab. */
+.agenda-poster {
+  margin: 2.6rem 0 0.2rem;
+  max-width: 26rem;
+}
+.agenda-poster-frame {
+  display: block;
+  position: relative;
+  padding: 0.55rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
+  transition: border-color 0.35s, transform 0.35s var(--ease-out), box-shadow 0.35s;
+}
+.agenda-poster-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0.55rem;
+  border: 1px solid rgba(200, 16, 46, 0.32);
+  pointer-events: none;
+  transition: border-color 0.35s;
+}
+.agenda-poster-frame:hover,
+.agenda-poster-frame:focus-visible {
+  transform: translateY(-4px);
+  border-color: rgba(200, 16, 46, 0.55);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.5);
+  outline: none;
+}
+.agenda-poster-frame:hover::after,
+.agenda-poster-frame:focus-visible::after { border-color: rgba(200, 16, 46, 0.6); }
+.agenda-poster-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: saturate(0.96);
+  transition: filter 0.35s;
+}
+.agenda-poster-frame:hover .agenda-poster-img,
+.agenda-poster-frame:focus-visible .agenda-poster-img { filter: saturate(1.05); }
+.agenda-poster-cap {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.7rem;
+}
+.agenda-poster-kicker {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.98rem;
+  color: var(--beige);
+}
+.agenda-poster-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--beige-dim);
+  white-space: nowrap;
+}
+.agenda-poster-diamond {
+  width: 5px;
+  height: 5px;
+  background: var(--crimson);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
 
 /* ———————————————— FAQS ———————————————— */
 .faq-list { margin-top: 3rem; border-top: 1px solid var(--line); }
