@@ -1611,41 +1611,7 @@ deckInit();
       update();
     }
 
-    /* 6 · meet the secretariat — no embed: the chapter card carries a
-       single CTA whose href comes from CONFIG.SECRETARIAT_POST_URL (no
-       URL configured → a "link goes live" hint shows instead). While
-       SECRETARIAT_REVEALED is false the card renders blurred + inert
-       under a "Coming Soon" stamp. Flip the flag in config.js on drop
-       day; the same file carries the post link, so a new post needs
-       zero code edits. */
-    {
-      const box = $("#ab-secretariat", view);
-      const btn = $("#ab-sec-btn", view);
-      const hint = $("#ab-sec-hint", view);
-      if (box) {
-        const url = (CONFIG.SECRETARIAT_POST_URL || "").trim();
-        if (url && btn) {
-          btn.href = url;
-          btn.hidden = false;
-        } else if (hint) {
-          hint.hidden = false;
-        }
-        if (!CONFIG.SECRETARIAT_REVEALED) {
-          box.classList.add("is-veiled");
-          box.setAttribute("inert", "");
-          const veil = document.createElement("div");
-          veil.className = "reg-veil ab-sec-veil";
-          veil.innerHTML = `
-            <span class="veil-kicker">Secretariat Messages</span>
-            <p class="veil-line">The team takes the stage <em>soon.</em></p>
-            <span class="reg-veil-stamp">Coming Soon</span>
-            <span class="reg-veil-sub">Every sec's message and the top-seven board are drafted — this box unblurs the moment the post drops.</span>`;
-          box.append(veil);
-        }
-      }
-    }
-
-    /* 7 · the grounds — the venue exhibit stays sealed until the map
+    /* 6 · the grounds — the venue exhibit stays sealed until the map
        panel scrolls near; the Google embed then loads once and the
        veil fades. Once loaded it stays loaded across view swaps. */
     {

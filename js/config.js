@@ -50,22 +50,11 @@ export const CONFIG = {
   /* Venue reveal gate — flip to true on venue-drop day.
      While false: every mention of the grounds (home strip, dossier, the
      timeline, the footer) renders in place but blur-redacted, and the live
-     map exhibit in About · chapter VII never arms — the Google embed isn't
+     map exhibit in About · chapter VI never arms — the Google embed isn't
      even fetched, coordinates, address and the deep-link sit under a
      "Coming Soon" seal. Flipping the flag lifts the blur and arms the map,
      nothing else to change. */
   VENUE_REVEALED: true,
-
-  /* Meet the Secretariat — About page, chapter V.
-     While SECRETARIAT_REVEALED is false: the section renders in place but
-     blurred + inert under a "Coming Soon" stamp (same treatment as the
-     committees deck) — and the Instagram embed is NOT loaded, nothing leaks.
-     Flip to true on drop day: the blur lifts, the stamp disappears and the
-     post embeds right on the page, with a "View on Instagram" button.
-     SECRETARIAT_POST_URL: the Instagram post (or reel) link to embed —
-     swap the link here any time, no other file needs touching. */
-  SECRETARIAT_REVEALED: true,
-  SECRETARIAT_POST_URL: "https://www.instagram.com/p/De4K0C3pLVg/",
 
   SUPABASE_URL: "https://gvhlbnyxysfhfwrflxsg.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aGxibnl4eXNmaGZ3cmZseHNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5Mzk5NjYsImV4cCI6MjEwMzUxNTk2Nn0.TzUqbSWhJTF1gx2tEjMdHkFwk_63VDhpHw46CHX5Reo",
