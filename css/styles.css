@@ -2968,7 +2968,7 @@ em.accent {
   gap: 1rem;
 }
 @media (min-width: 640px) { .res-grid { grid-template-columns: repeat(3, 1fr); gap: 1.25rem; } }
-@media (min-width: 1024px) { .res-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .res-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); } }
 .res-card {
   position: relative;
   display: flex;
