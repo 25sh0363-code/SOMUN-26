@@ -727,19 +727,16 @@ function renderCommitteePage(slug) {
    unlocks its card's Download button; a released committee row unlocks
    its guide download. */
 
+// 2. js/main.js — replace RES_META with:
 const RES_META = [
   { ic: "book-open", no: "01", title: "Background Guides", cat: "study-guides", desc: "Committee-wise guides and agenda briefs in depth — everything you need before the first roll call." },
-  { ic: "scroll-text", no: "02", title: "Rules of Procedure", cat: "rules", desc: "The SOMUN rules of procedure — motions, precedence and draft-resolution mechanics, the fine print of every chamber." },
-  { ic: "book-marked", no: "03", title: "Delegate Handbook", cat: "handbook", desc: "Venue maps, dress code, kit details and conference etiquette — your pocket companion for the three days." },
+  { ic: "book-marked", no: "02", title: "Delegate Handbook", cat: "handbook", desc: "Rules of procedure, committee etiquette, dress code — your pocket companion for the next three days." },
 ];
 
-/* released[key] = { url, label? } — study-guides is seeded statically: the
-   background guides live in the repo at /bg/, so the shelf card hands over
-   every chamber's guide in one zip (the rows below serve individual PDFs).
-   rules + handbook stay dormant until their files exist. A Supabase row
-   (if one is ever added) overwrites the seed. */
+// and replace the releasedRes seed with:
 const releasedRes = {
   "study-guides": { url: "bg/SOMUN26-background-guides.zip", label: "Download all ↓" },
+  "handbook": { url: "bg/delegate-handbook.pdf" },
 };
 
 function renderResourceCards() {
