@@ -2961,14 +2961,14 @@ em.accent {
 
 /* ———————————————— RESOURCES ———————————————— */
 
-/* archive shelf — two cards, 2-up from tablet up, stacked on phones */
+/* archive shelf — three cards, adjusted 3-up on desktop */
 .res-grid {
   margin-top: 3rem;
   display: grid;
   gap: 1rem;
 }
-@media (min-width: 640px) { .res-grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; } }
-@media (min-width: 1024px) { .res-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 640px) { .res-grid { grid-template-columns: repeat(3, 1fr); gap: 1.25rem; } }
+@media (min-width: 1024px) { .res-grid { grid-template-columns: repeat(3, 1fr); } }
 .res-card {
   position: relative;
   display: flex;

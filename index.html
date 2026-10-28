@@ -81,7 +81,7 @@
       {
         "@type": "Question",
         "name": "How do I choose my committee?",
-        "acceptedAnswer": { "@type": "Answer", "text": "You list three committee preferences and an optional preferred portfolio while registering. The secretariat matches portfolios to keep competition fair — use the allocation matrix on the form to see each chamber's portfolios before you choose. Allotments arrive by email once processing begins; dates releasing soon." }
+        "acceptedAnswer": { "@type": "Answer", "text": "You list three committee preferences and an optional preferred portfolio while registering. The secretariat matches portfolios to keep competition fair — use the allocation matrix on the form to see each chamber's portfolios before you choose. Allotments arrive by email once processing begins. The allocation matrix is live on the Resources shelf — find your committee and portfolio there." }
       },
       {
         "@type": "Question",
@@ -107,7 +107,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300..700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20260921x" />
+  <link rel="stylesheet" href="css/styles.css?v=20260921y" />
 </head>
 <body class="grain">
 
@@ -351,6 +351,13 @@
                 <p class="stats-label">Edition on the Floor</p>
               </div>
             </div>
+
+            <!-- allocation matrix nudge — slim strip under the stats, links to the secretariat's sheet -->
+            <a class="matrix-nudge" href="https://docs.google.com/spreadsheets/d/12nCpi2yBDeC8U2L5c70z_EDJLNf7WfRyjxCqDKlpi10/edit?usp=sharing" target="_blank" rel="noopener">
+              <span class="stamp-diamond" aria-hidden="true"></span>
+              <span class="matrix-nudge-text"><strong>Allocation matrix is out</strong>&nbsp;&mdash;&nbsp;find your committee and portfolio</span>
+              <i data-icon="arrow-right" data-cls="matrix-nudge-arrow"></i>
+            </a>
           </div>
         </div>
 
@@ -1697,6 +1704,6 @@
 
   <datalist id="committee-list"></datalist>
   <script src="js/vendor/jsQR.js"></script>
-  <script type="module" src="js/main.js?v=20260921x"></script>
+  <script type="module" src="js/main.js?v=20260921y"></script>
 </body>
 </html>
