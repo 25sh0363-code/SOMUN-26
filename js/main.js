@@ -585,7 +585,7 @@ function renderCommitteePage(slug) {
               <span class="plate-num">${pad2(idx + 1)}</span>
             </div>
           </div>
-          <p class="committee-plate-note"><i data-icon="gavel"></i> Background guides released 25 Oct, 11:00 PM — rules of procedure and dais assignments follow.</p>
+          <p class="committee-plate-note"><i data-icon="gavel"></i> Background guides + the delegate handbook are live — released 25 Oct, 11:00 PM. Dais assignments follow.</p>
           <div class="cv-facts reveal" data-delay="0.16">
             <div class="cv-fact"><span>Chamber</span><strong>${c.acronym}</strong></div>
             <div class="cv-fact"><span>On the floor</span><strong>${c.itemsLabel.replace(/^2 /, "").replace(/^./, (ch) => ch.toUpperCase())}</strong></div>
@@ -729,17 +729,19 @@ function renderCommitteePage(slug) {
 
 const RES_META = [
   { ic: "book-open", no: "01", title: "Background Guides", cat: "study-guides", desc: "Committee-wise guides and agenda briefs in depth — everything you need before the first roll call." },
-  { ic: "scroll-text", no: "02", title: "Rules of Procedure", cat: "rules", desc: "The SOMUN rules of procedure — motions, precedence and draft-resolution mechanics, the fine print of every chamber." },
-  { ic: "book-marked", no: "03", title: "Delegate Handbook", cat: "handbook", desc: "Venue maps, dress code, kit details and conference etiquette — your pocket companion for the three days." },
+  { ic: "book-marked", no: "02", title: "Delegate Handbook", cat: "handbook", desc: "Rules of procedure, committee etiquette, dress code- your pocket companion for the next three days." },
+  { ic: "file-text", no: "03", title: "Allocation Matrix", cat: "allocations", desc: "Committee and portfolio allocations across all twelve chambers — find your name before you write to the secretariat." },
 ];
 
-/* released[key] = { url, label? } — study-guides is seeded statically: the
-   background guides live in the repo at /bg/, so the shelf card hands over
-   every chamber's guide in one zip (the rows below serve individual PDFs).
-   rules + handbook stay dormant until their files exist. A Supabase row
+/* released[key] = { url, label? } — all three cards are seeded statically:
+   the background guides live in the repo at /bg/ as one zip (the rows below
+   serve individual PDFs), the delegate handbook ships as its own PDF and
+   the allocation matrix is the secretariat's Google Sheet. A Supabase row
    (if one is ever added) overwrites the seed. */
 const releasedRes = {
   "study-guides": { url: "bg/SOMUN26-background-guides.zip", label: "Download all ↓" },
+  "handbook": { url: "bg/delegate-handbook.pdf" },
+  "allocations": { url: "https://docs.google.com/spreadsheets/d/12nCpi2yBDeC8U2L5c70z_EDJLNf7WfRyjxCqDKlpi10/edit?usp=sharing", label: "Open matrix ↗" },
 };
 
 function renderResourceCards() {
@@ -775,9 +777,8 @@ renderResourceCards();
 
 /* static guide shelf — the PDFs live in this repo at /bg/ and GitHub Pages
    serves them directly. No Supabase needed: key = committee acronym,
-   value = relative PDF path. A chamber missing from this map keeps its
-   "releasing soon" row (HCC + MCU as of now). To release a guide, drop the
-   PDF into bg/ with the matching name and add one line here. */
+   value = relative PDF path. All twelve chambers are live. To release a
+   guide, drop the PDF into bg/ with the matching name and add one line. */
 const STATIC_GUIDES = {
   "DISEC":     "bg/disec.pdf",
   "ECOSOC":    "bg/ecosoc.pdf",
@@ -789,6 +790,8 @@ const STATIC_GUIDES = {
   "UNHRC":     "bg/unhrc.pdf",
   "Lok Sabha": "bg/loksabha.pdf",
   "IP":        "bg/ip.pdf",
+  "MCU":       "bg/mcu.pdf",
+  "HCC":       "bg/hcc.pdf",
 };
 
 function renderGuidesIndex(guides) {
